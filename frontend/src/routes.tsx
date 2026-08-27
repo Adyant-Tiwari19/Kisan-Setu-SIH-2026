@@ -1,0 +1,39 @@
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { AppShell } from './components/AppShell'
+import { RoleSelection } from './components/RoleSelection'
+import { FarmerDashboard } from './components/FarmerDashboard'
+import { RetailMarketplace } from './components/RetailMarketplace'
+import { BulkBuyerDashboard } from './components/BulkBuyerDashboard'
+import { Hero } from './components/Hero'
+import { HowItWorks } from './components/HowItWorks'
+import { Benefits } from './components/Benefits'
+import { CustomerTypes } from './components/CustomerTypes'
+import { AISection } from './components/AISection'
+import { ImpactSection } from './components/ImpactSection'
+
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<AppShell />}>
+        <Route index element={
+          <>
+            <Hero />
+            <HowItWorks />
+            <Benefits />
+            <CustomerTypes />
+            <AISection />
+            <ImpactSection />
+          </>
+        } />
+        <Route path="sign-in" element={<RoleSelection key="sign-in" />} />
+        <Route path="join-now" element={<RoleSelection key="join-now" />} />
+        <Route path="role-selection" element={<Navigate to="/sign-in" replace />} />
+        <Route path="farmer" element={<FarmerDashboard />} />
+        <Route path="retailer" element={<RetailMarketplace />} />
+        <Route path="marketplace" element={<RetailMarketplace />} />
+        <Route path="buyer" element={<BulkBuyerDashboard />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  )
+}
