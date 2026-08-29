@@ -28,7 +28,7 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
         account_num= user_in.account_num,
         ifsc= user_in.ifsc
     )
-    db.add(User)
+    db.add(user)
     db.commit()
     db.refresh(user)
     return user

@@ -13,9 +13,9 @@ class OrderStatus(str, enum.Enum):
 class Order(Base):
     __tablename__ = "orders"
 
-    id = Column(Integer , primary_key=True, index=True)
-    buyer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    listing_id = Column(Integer, ForeignKey("listings.id"), nullable=False)
+    oid = Column(Integer , primary_key=True, index=True)
+    bid = Column(Integer, ForeignKey("users.uid"), nullable=False)
+    lid = Column(Integer, ForeignKey("listings.lid"), nullable=False)
 
     quantity = Column(Float , nullable=False)
     produce_price = Column(Float , nullable=False)

@@ -14,7 +14,7 @@ class UserCreate(UserBase):
     ifsc: Optional[str] = None
 
 class UserResponse(UserBase):
-    id: int
+    uid: int
 
     class Config:
         from_attributes = True

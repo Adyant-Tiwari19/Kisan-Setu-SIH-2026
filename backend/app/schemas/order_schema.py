@@ -4,14 +4,14 @@ from typing import Optional
 from app.models.order import OrderStatus
 
 class OrderCreate(BaseModel):
-    buyer_id: int
-    listing_id: int
+    bid: int
+    lid: int
     quantity: float
 
 class OrderResponse(BaseModel):
-    id: int
-    buyer_id: int
-    listing_id: int
+    oid: int
+    bid: int
+    lid: int
     quantity: float
     produce_price: float
     logistics_price: float

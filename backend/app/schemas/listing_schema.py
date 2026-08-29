@@ -7,8 +7,8 @@ class LocationPoint(BaseModel):
     longitude: float
 
 class ListingCreate(BaseModel):
-    farmer_id: int
-    crop_id: int
+    fid: int
+    cid: int
     quantity_available: float
     price_per_unit: float
     listing_type: Optional[str] = "Standard"
@@ -17,9 +17,9 @@ class ListingCreate(BaseModel):
     location: LocationPoint
 
 class ListingResponse(BaseModel):
-    id: int
-    farmer_id: int
-    crop_id: int
+    lid: int
+    fid: int
+    cid: int
     quantity_available: float
     price_per_unit: float
     listing_type: Optional[str]

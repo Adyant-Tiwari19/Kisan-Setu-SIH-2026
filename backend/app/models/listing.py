@@ -6,7 +6,7 @@ from app.database import Base
 class Crop(Base):
     __tablename__ = "crops"
 
-    id = Column(Integer , primary_key=True , index=True)
+    cid = Column(Integer , primary_key=True , index=True)
     name = Column(String(100), nullable= False , unique=True, index=True)
     aliases = Column(ARRAY(String), nullable=True)
     sample_img_url = Column(String(255), nullable=False)
@@ -14,9 +14,9 @@ class Crop(Base):
 class Listing(Base):
     __tablename__ = "listings"
 
-    id = Column(Integer , primary_key=True)
-    farmer_id = Column(Integer, ForeignKey("users.id" , ondelete="CASCADE") , nullable=False)
-    crop_id = Column(Integer , ForeignKey("crops.id" , ondelete="RESTRICT") , nullable=False)
+    lid = Column(Integer , primary_key=True)
+    fid = Column(Integer, ForeignKey("users.uid" , ondelete="CASCADE") , nullable=False)
+    cid = Column(Integer , ForeignKey("crops.cid" , ondelete="RESTRICT") , nullable=False)
 
     quantity_available = Column(Float , nullable=False)
     price_per_unit = Column(Float , nullable=False)
