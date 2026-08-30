@@ -5,6 +5,7 @@ from app.models.user import User
 from app.schemas.order_schema import OrderCreate, OrderResponse, OrderStatusUpdate
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 
 from pydantic import BaseModel,Field
 from datetime import datetime, timezone
@@ -116,6 +117,22 @@ def update_order_status(
   db.commit()
   db.refresh(order)
   return order
+
+@router.put("/{oid}/deliver", response_model=OrderResponse)
+def mark_order_delivered(oid: int, db: Session = Depends(get_db)):
+    order = db.query(Order).filter(Order.oid == oid).first()
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Order not found"
+        )
+    
+    order.status = OrderStatus.DELIVERED
+    order.delivered_at = datetime.now(timezone.utc)
+    
+    db.commit()
+    db.refresh(order)
+    return order
 
 @router.post("/{oid}/rate", response_model=OrderResponse)
 def rate_order_and_seller(
