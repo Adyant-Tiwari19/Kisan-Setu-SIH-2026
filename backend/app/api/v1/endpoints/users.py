@@ -88,7 +88,7 @@ def get_farmer_income_dashboard(
 
     return FarmerIncomeDashboardSchema(
         total_earnings= round(total_earnings, 2),
-        total_escrow= round(pending_escrow, 2),
+        pending_escrow= round(pending_escrow, 2),
         total_quantity_sold= round(total_quantity_sold, 2),
         total_completed_orders= total_completed_orders,
         reliability_score= current_user.reliability_score or 0.9,
