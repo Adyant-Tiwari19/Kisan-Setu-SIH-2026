@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Partner Portal</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f4f6f8; margin: 0; }
+        .card { background: #ffffff; padding: 2.5rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 320px; text-align: center; }
+        h2 { margin-top: 0; color: #1a1a1a; font-size: 1.4rem; }
+        input { width: 100%; padding: 0.75rem; margin: 1rem 0; border: 1px solid #cccccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        button { width: 100%; padding: 0.85rem; background-color: #10b981; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+        button:hover { background-color: #059669; }
+        .status { margin-top: 1.2rem; font-weight: 600; font-size: 0.95rem; }
+        .success { color: #059669; }
+        .error { color: #dc2626; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>MyRider App</h2>
+        <input type="number" id="orderId" placeholder="Enter Order ID" required />
+        <button onclick="markDelivered()">Mark Delivered</button>
+        <div id="statusMessage" class="status"></div>
+    </div>
+
+    <script>
+        async function markDelivered() {
+            const oid = document.getElementById('orderId').value;
+            const messageDiv = document.getElementById('statusMessage');
+
+            if (!oid) {
+                messageDiv.className = 'status error';
+                messageDiv.textContent = 'Please enter an order number.';
+                return;
+            }
+
+            try {
+                // Calls status update endpoint on your existing router
+                const response = await fetch(`/api/v1/orders/${oid}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'DELIVERED' })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const time = new Date(data.delivered_at).toLocaleTimeString();
+                    messageDiv.className = 'status success';
+                    messageDiv.textContent = `Order #${oid} marked DELIVERED at ${time}`;
+                } else {
+                    const error = await response.json();
+                    messageDiv.className = 'status error';
+                    messageDiv.textContent = error.detail || 'Failed to update order status.';
+                }
+            } catch (err) {
+                messageDiv.className = 'status error';
+                messageDiv.textContent = 'Network error. Could not connect to backend.';
+            }
+        }
+    </script>
+</body>
+</html>

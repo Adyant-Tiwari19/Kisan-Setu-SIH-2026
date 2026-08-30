@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, FileResponse
 from app.api.v1.router import api_router
 from app.config import settings
+from pathlib import Path
 
 app = FastAPI(
     title= settings.PROJECT_NAME,
@@ -26,3 +28,10 @@ def root():
     return {
         "message":"Welcome to Farm Direct API!"
     }
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+FRONTEND_PATH = BASE_DIR / "frontend" / "deliveryapp.html"
+
+@app.get("/delivery", response_class=HTMLResponse)
+def serve_delivery_app():
+    return FileResponse(FRONTEND_PATH)
