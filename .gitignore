@@ -1,6 +1,8 @@
 backend/.env
+backend/.env.example
 backend/__pycache__/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+backend/seed_testing_nodes.py

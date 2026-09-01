@@ -4,7 +4,7 @@ from typing import Optional
 from app.models.order import OrderStatus
 
 class OrderCreate(BaseModel):
-    bid: int
+    bid: Optional[int] = None
     lid: int
     quantity: float
 
@@ -30,7 +30,11 @@ class OrderResponse(BaseModel):
     logistics_price: float
     landed_price: float
     status: OrderStatus
+    crop_name: Optional[str] = None
+    farmer_name: Optional[str] = None
+    buyer_name: Optional[str] = None
     ordered_at: datetime
+    delivered_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

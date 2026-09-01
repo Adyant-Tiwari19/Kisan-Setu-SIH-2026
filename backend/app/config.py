@@ -6,7 +6,7 @@ load_dotenv()
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Farm Direct API"
-    DATABASE_URL: str
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/farm_direct")
 
     model_config = SettingsConfigDict(
         env_file=".env",env_file_encoding="utf-8", extra="ignore",case_sensitive=True

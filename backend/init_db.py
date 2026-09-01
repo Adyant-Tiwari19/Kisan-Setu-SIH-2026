@@ -1,19 +1,15 @@
-from sqlalchemy import text
-from app.database import Base, engine
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine.url import make_url
+from app.config import settings
+from app.database import Base, engine, ensure_database_and_tables
 from app.models.listing import Crop, Listing
 from app.models.order import Order
 from app.models.user import User
 
-
 def create_tables():
-  print("Enabling PostGIS extension and creating database tables...")
-  with engine.connect() as connection:
-    connection.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
-    connection.commit()
-
-  Base.metadata.create_all(bind=engine)
-  print("All database tables created successfully with PostGIS support!")
-
+    print("Ensuring database and PostGIS extension...")
+    ensure_database_and_tables()
+    print("Database tables initialized successfully!")
 
 if __name__ == "__main__":
-  create_tables()
+    create_tables()

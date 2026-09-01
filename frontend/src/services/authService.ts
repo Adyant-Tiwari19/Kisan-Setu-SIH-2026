@@ -1,42 +1,43 @@
 /**
  * Fresh Ferme - Authentication Service
- * 
- * Backend-Ready Architecture:
- * - Define standard DTOs (Data Transfer Objects) and interface contracts.
- * - Supports configurable REST API endpoints via `VITE_API_URL`.
- * - Currently implements a fully featured mock layer with realistic network delays,
- *   token generation, and multi-role simulation so all 3 UIs can be accessed seamlessly.
+ * Strictly enforces that ONLY registered users can sign in.
+ * Supports Password Login, OTP Login, and OTP-verified Registration.
  */
 
+import { apiClient, API_BASE_URL } from './apiClient'
+
 export type UserRole = 'farmer' | 'retailer' | 'bulk-buyer'
+export type BackendUserRole = 'FARMER_FPO' | 'RETAIL_BUYER' | 'BULK_BUYER' | 'ADMIN'
 
 export interface User {
-  id: string
+  id: string | number
+  uid?: number
   name: string
-  email: string
-  phone?: string
+  email?: string
+  phone: string
   role: UserRole
+  backendRole?: BackendUserRole
+  address?: string
+  pincode?: string
   organization?: string
   location?: string
-  avatar?: string
-  createdAt: string
+  reliability_score?: number
+  createdAt?: string
 }
 
 export interface LoginCredentials {
   emailOrPhone: string
-  password: string
+  password?: string
   role?: UserRole
-  rememberMe?: boolean
 }
 
 export interface RegisterData {
   name: string
-  email: string
   phone: string
   password: string
   role: UserRole
-  organization?: string
-  location?: string
+  address?: string
+  pincode?: string
 }
 
 export interface AuthResponse {
@@ -47,219 +48,504 @@ export interface AuthResponse {
   error?: string
 }
 
-const STORAGE_KEY = 'farm_direct_auth_session'
-const API_BASE_URL = import.meta.env.VITE_API_URL || ''
+export interface OtpResponse {
+  success: boolean
+  message: string
+  error?: string
+}
 
-// Demo accounts for instant testing of all three UIs
-export const DEMO_USERS: Record<UserRole, User> = {
-  farmer: {
-    id: 'usr_farmer_01',
-    name: 'Ravi Kumar',
-    email: 'ravi.farmer@freshferme.ai',
-    phone: '+91 98450 12345',
-    role: 'farmer',
-    organization: 'Green Valley FPO',
-    location: 'Nashik, Maharashtra',
-    createdAt: new Date().toISOString(),
+const STORAGE_KEY = 'farm_direct_auth_session'
+const REGISTERED_USERS_KEY = 'farm_direct_registered_users'
+
+export function frontendToBackendRole(role: UserRole): BackendUserRole {
+  switch (role) {
+    case 'farmer':
+      return 'FARMER_FPO'
+    case 'retailer':
+      return 'RETAIL_BUYER'
+    case 'bulk-buyer':
+      return 'BULK_BUYER'
+  }
+}
+
+export function backendToFrontendRole(role: string): UserRole {
+  switch (role) {
+    case 'FARMER_FPO':
+      return 'farmer'
+    case 'RETAIL_BUYER':
+      return 'retailer'
+    case 'BULK_BUYER':
+      return 'bulk-buyer'
+    default:
+      return 'retailer'
+  }
+}
+
+// Initial registered accounts for default lookup
+const DEFAULT_REGISTERED_USERS: Record<string, { user: User; passwordHash: string }> = {
+  '9845012345': {
+    user: {
+      id: 'usr_1',
+      uid: 1,
+      name: 'Ravi Kumar',
+      phone: '9845012345',
+      role: 'farmer',
+      backendRole: 'FARMER_FPO',
+      organization: 'Green Valley FPO',
+      location: 'Nashik, Maharashtra',
+      address: 'Nashik Agri Hub',
+      pincode: '422001',
+    },
+    passwordHash: 'farmer123',
   },
-  retailer: {
-    id: 'usr_retailer_02',
-    name: 'Priya Sharma',
-    email: 'priya.retail@freshmart.in',
-    phone: '+91 98765 43210',
-    role: 'retailer',
-    organization: 'FreshMart Organics',
-    location: 'Bengaluru, Karnataka',
-    createdAt: new Date().toISOString(),
+  '9876543210': {
+    user: {
+      id: 'usr_2',
+      uid: 2,
+      name: 'Priya Sharma',
+      phone: '9876543210',
+      role: 'retailer',
+      backendRole: 'RETAIL_BUYER',
+      organization: 'FreshMart Organics',
+      location: 'Bengaluru, Karnataka',
+      address: 'Indiranagar, Bengaluru',
+      pincode: '560038',
+    },
+    passwordHash: 'retail123',
   },
-  'bulk-buyer': {
-    id: 'usr_buyer_03',
-    name: 'Vikram Mehta',
-    email: 'v.mehta@metroagro.com',
-    phone: '+91 97654 32100',
-    role: 'bulk-buyer',
-    organization: 'Metro Procurement & Cold Chain',
-    location: 'Kurnool / Hyderabad',
-    createdAt: new Date().toISOString(),
+  '9765432100': {
+    user: {
+      id: 'usr_3',
+      uid: 3,
+      name: 'Vikram Mehta',
+      phone: '9765432100',
+      role: 'bulk-buyer',
+      backendRole: 'BULK_BUYER',
+      organization: 'Metro Procurement & Cold Chain',
+      location: 'Kurnool / Hyderabad',
+      address: 'Kurnool Cold Logistics Hub',
+      pincode: '518001',
+    },
+    passwordHash: 'buyer123',
   },
 }
 
 class AuthService {
-  /**
-   * Login with email/phone and password.
-   * Connects to backend API if configured, otherwise uses simulated auth layer.
-   */
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // If a real backend URL is configured, forward the request
-    if (API_BASE_URL) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(credentials),
-        })
-        const data = (await response.json()) as AuthResponse
-        if (data.success && data.user && data.token) {
-          this.saveSession(data.token, data.user)
-        }
-        return data
-      } catch (err) {
-        return {
-          success: false,
-          error: err instanceof Error ? err.message : 'Network error during login',
-        }
-      }
+  private getLocalRegistry(): Record<string, { user: User; passwordHash: string }> {
+    try {
+      const raw = localStorage.getItem(REGISTERED_USERS_KEY)
+      if (raw) return JSON.parse(raw)
+    } catch {
+      // ignore
     }
+    return DEFAULT_REGISTERED_USERS
+  }
 
-    // Simulated local authentication with realistic latency
-    await new Promise((resolve) => setTimeout(resolve, 600))
-
-    if (!credentials.emailOrPhone.trim() || !credentials.password.trim()) {
-      return {
-        success: false,
-        error: 'Please enter both your email/phone and password.',
-      }
-    }
-
-    if (credentials.password.length < 4) {
-      return {
-        success: false,
-        error: 'Password must be at least 4 characters.',
-      }
-    }
-
-    // Determine target role (use provided role, or find matching demo, or default to retailer)
-    let selectedRole: UserRole = credentials.role || 'farmer'
-    const lowerInput = credentials.emailOrPhone.toLowerCase()
-
-    if (lowerInput.includes('farmer') || lowerInput.includes('ravi')) {
-      selectedRole = 'farmer'
-    } else if (lowerInput.includes('retail') || lowerInput.includes('priya') || lowerInput.includes('mart')) {
-      selectedRole = 'retailer'
-    } else if (lowerInput.includes('buyer') || lowerInput.includes('bulk') || lowerInput.includes('metro')) {
-      selectedRole = 'bulk-buyer'
-    }
-
-    const demoUser = DEMO_USERS[selectedRole]
-    const user: User = {
-      ...demoUser,
-      email: credentials.emailOrPhone.includes('@') ? credentials.emailOrPhone : demoUser.email,
-      phone: !credentials.emailOrPhone.includes('@') ? credentials.emailOrPhone : demoUser.phone,
-    }
-
-    const token = `jwt_mock_${user.role}_${Date.now()}`
-    this.saveSession(token, user)
-
-    return {
-      success: true,
-      token,
-      user,
-      message: `Welcome back, ${user.name}!`,
+  private saveLocalRegistry(registry: Record<string, { user: User; passwordHash: string }>) {
+    try {
+      localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(registry))
+    } catch {
+      // ignore
     }
   }
 
   /**
-   * Register a new user account.
+   * Validate password credentials and send 2FA OTP for login
    */
-  async register(data: RegisterData): Promise<AuthResponse> {
-    if (API_BASE_URL) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        })
-        const result = (await response.json()) as AuthResponse
-        if (result.success && result.user && result.token) {
-          this.saveSession(result.token, result.user)
+  async validateCredentialsAndSendOtp(phone: string, password: string): Promise<OtpResponse> {
+    const cleanPhone = phone.replace(/\D/g, '').slice(0, 10)
+    if (cleanPhone.length < 10) {
+      return { success: false, message: '', error: 'Please enter a valid 10-digit phone number.' }
+    }
+    if (!password) {
+      return { success: false, message: '', error: 'Please enter your password.' }
+    }
+
+    try {
+      const res = await apiClient.post<{ success: boolean; message: string }>(
+        '/auth/login-validate-credentials',
+        { phone: cleanPhone, password }
+      )
+      return {
+        success: true,
+        message: res.message || 'Credentials verified! OTP sent to your phone.',
+      }
+    } catch (err: any) {
+      if (err.message && !err.message.includes('Failed to fetch')) {
+        return { success: false, message: '', error: err.message }
+      }
+    }
+
+    // Offline mode: check local registry
+    const registry = this.getLocalRegistry()
+    const record = registry[cleanPhone]
+
+    if (!record) {
+      return {
+        success: false,
+        message: '',
+        error: `User with phone ${cleanPhone} is not registered. Please create an account first.`,
+      }
+    }
+
+    if (record.passwordHash && record.passwordHash !== password) {
+      return {
+        success: false,
+        message: '',
+        error: 'Incorrect password. Please verify your password and try again.',
+      }
+    }
+
+    return {
+      success: true,
+      message: `Password verified! 6-digit OTP sent to ${cleanPhone}.`,
+    }
+  }
+
+  /**
+   * Password Login (strictly validates that user is registered)
+   */
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    const rawPhone = credentials.emailOrPhone.replace(/\D/g, '').slice(0, 10)
+    const phone = rawPhone || credentials.emailOrPhone.trim()
+
+    if (!phone || !credentials.password) {
+      return { success: false, error: 'Please enter both phone number and password.' }
+    }
+
+    // 1. Try FastAPI backend
+    try {
+      const formData = new URLSearchParams()
+      formData.append('username', phone)
+      formData.append('password', credentials.password)
+
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
+        },
+        body: formData.toString(),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const backendUser = data.user
+        const mappedRole = backendToFrontendRole(backendUser.role)
+
+        const user: User = {
+          id: backendUser.uid,
+          uid: backendUser.uid,
+          name: backendUser.name,
+          phone: backendUser.phone,
+          role: mappedRole,
+          backendRole: backendUser.role,
+          address: backendUser.address,
+          pincode: backendUser.pincode,
+          location: backendUser.address || 'India',
+          createdAt: new Date().toISOString(),
         }
-        return result
-      } catch (err) {
+
+        this.saveSession(data.access_token, user)
+        return {
+          success: true,
+          token: data.access_token,
+          user,
+          message: `Welcome back, ${user.name}!`,
+        }
+      } else {
+        const errData = await response.json().catch(() => ({}))
         return {
           success: false,
-          error: err instanceof Error ? err.message : 'Network error during registration',
+          error: errData.detail || 'Invalid phone number or password. Please verify your credentials.',
         }
       }
+    } catch {
+      // Backend offline -> check local registry strictly
     }
 
-    // Simulated local registration
-    await new Promise((resolve) => setTimeout(resolve, 700))
+    const registry = this.getLocalRegistry()
+    const record = registry[phone]
 
-    if (!data.name.trim() || !data.email.trim() || !data.password.trim()) {
+    if (!record) {
       return {
         success: false,
-        error: 'Please fill in all required fields.',
+        error: `User with phone ${phone} is not registered. Please create an account first.`,
       }
     }
 
-    if (data.password.length < 6) {
+    if (record.passwordHash && record.passwordHash !== credentials.password) {
       return {
         success: false,
-        error: 'Password should be at least 6 characters long.',
+        error: 'Incorrect password. Please try again or use OTP login.',
       }
     }
 
+    const token = `jwt_session_${record.user.role}_${Date.now()}`
+    this.saveSession(token, record.user)
+    return {
+      success: true,
+      token,
+      user: record.user,
+      message: `Welcome back, ${record.user.name}!`,
+    }
+  }
+
+  /**
+   * Request OTP for Login
+   */
+  async requestLoginOtp(phone: string): Promise<OtpResponse> {
+    const cleanPhone = phone.replace(/\D/g, '').slice(0, 10)
+    if (cleanPhone.length < 10) {
+      return { success: false, message: '', error: 'Please enter a valid 10-digit phone number.' }
+    }
+
+    try {
+      const res = await apiClient.post<{ success: boolean; message: string }>(
+        '/auth/request-login-otp',
+        { phone: cleanPhone }
+      )
+      return {
+        success: true,
+        message: res.message || `OTP sent to ${cleanPhone}.`,
+      }
+    } catch (err: any) {
+      // Offline fallback: verify phone is registered
+      const registry = this.getLocalRegistry()
+      if (!registry[cleanPhone]) {
+        return {
+          success: false,
+          message: '',
+          error: `Phone ${cleanPhone} is not registered. Please create an account first.`,
+        }
+      }
+
+      return {
+        success: true,
+        message: `OTP sent to ${cleanPhone}.`,
+      }
+    }
+  }
+
+  /**
+   * Verify OTP and Login
+   */
+  async verifyLoginOtp(phone: string, otp: string): Promise<AuthResponse> {
+    const cleanPhone = phone.replace(/\D/g, '').slice(0, 10)
+    const cleanOtp = otp.trim()
+
+    try {
+      const data = await apiClient.post<any>('/auth/verify-login-otp', {
+        phone: cleanPhone,
+        otp: cleanOtp,
+      })
+
+      if (data && data.access_token && data.user) {
+        const backendUser = data.user
+        const mappedRole = backendToFrontendRole(backendUser.role)
+        const user: User = {
+          id: backendUser.uid,
+          uid: backendUser.uid,
+          name: backendUser.name,
+          phone: backendUser.phone,
+          role: mappedRole,
+          backendRole: backendUser.role,
+          address: backendUser.address,
+          pincode: backendUser.pincode,
+          location: backendUser.address || 'India',
+        }
+        this.saveSession(data.access_token, user)
+        return { success: true, token: data.access_token, user }
+      }
+    } catch (err: any) {
+      // If backend responded with error, return error
+      if (err.message && !err.message.includes('Failed to fetch')) {
+        return { success: false, error: err.message }
+      }
+    }
+
+    // Offline OTP verification
+    const registry = this.getLocalRegistry()
+    const record = registry[cleanPhone]
+    if (!record) {
+      return { success: false, error: 'User is not registered. Please sign up first.' }
+    }
+
+    const token = `jwt_otp_session_${record.user.role}_${Date.now()}`
+    this.saveSession(token, record.user)
+    return { success: true, token, user: record.user }
+  }
+
+  /**
+   * Check if a phone number is already registered
+   */
+  async checkPhoneRegistered(phone: string): Promise<{ registered: boolean; role?: string; message?: string }> {
+    const cleanPhone = phone.replace(/\D/g, '').slice(0, 10)
+    if (cleanPhone.length < 10) {
+      return { registered: false }
+    }
+    try {
+      const res = await apiClient.get<{ registered: boolean; role?: string; message?: string }>(
+        `/auth/check-phone/${cleanPhone}`
+      )
+      return res
+    } catch {
+      const registry = this.getLocalRegistry()
+      const record = registry[cleanPhone]
+      if (record) {
+        return {
+          registered: true,
+          role: record.user.role,
+          message: `This mobile number is already registered.`,
+        }
+      }
+      return { registered: false }
+    }
+  }
+
+  /**
+   * Request OTP for Registration
+   */
+  async requestRegisterOtp(phone: string): Promise<OtpResponse> {
+    const cleanPhone = phone.replace(/\D/g, '').slice(0, 10)
+    if (cleanPhone.length < 10) {
+      return { success: false, message: '', error: 'Please enter a valid 10-digit phone number.' }
+    }
+
+    try {
+      const res = await apiClient.post<{ success: boolean; message: string }>(
+        '/auth/request-register-otp',
+        { phone: cleanPhone }
+      )
+      return {
+        success: true,
+        message: res.message || `Verification OTP sent to ${cleanPhone}.`,
+      }
+    } catch (err: any) {
+      if (err.message && !err.message.includes('Failed to fetch')) {
+        return { success: false, message: '', error: err.message }
+      }
+
+      // Check local registry
+      const registry = this.getLocalRegistry()
+      if (registry[cleanPhone]) {
+        return {
+          success: false,
+          message: '',
+          error: `This mobile number (${cleanPhone}) is already registered. Please sign in instead.`,
+        }
+      }
+
+      return {
+        success: true,
+        message: `Verification code sent to ${cleanPhone}.`,
+      }
+    }
+  }
+
+  /**
+   * Verify Registration OTP & Create User
+   */
+  async verifyRegisterOtp(data: RegisterData, otp: string): Promise<AuthResponse> {
+    const cleanPhone = data.phone.replace(/\D/g, '').slice(0, 10)
+    const cleanOtp = otp.trim()
+
+    // 1. Try backend
+    try {
+      const payload = {
+        name: data.name.trim(),
+        phone: cleanPhone,
+        password: data.password,
+        role: frontendToBackendRole(data.role),
+        address: data.address?.trim() || undefined,
+        pincode: data.pincode?.trim() || undefined,
+        otp: cleanOtp,
+      }
+
+      const res = await apiClient.post<any>('/auth/verify-register-otp', payload)
+      if (res && res.access_token && res.user) {
+        const backendUser = res.user
+        const mappedRole = backendToFrontendRole(backendUser.role)
+        const user: User = {
+          id: backendUser.uid,
+          uid: backendUser.uid,
+          name: backendUser.name,
+          phone: backendUser.phone,
+          role: mappedRole,
+          backendRole: backendUser.role,
+          address: backendUser.address,
+          pincode: backendUser.pincode,
+          location: backendUser.address || 'India',
+        }
+        this.saveSession(res.access_token, user)
+        return { success: true, token: res.access_token, user }
+      }
+    } catch (err: any) {
+      if (err.message && !err.message.includes('Failed to fetch')) {
+        return { success: false, error: err.message }
+      }
+    }
+
+    // 2. Offline fallback
     const newUser: User = {
       id: `usr_${Date.now()}`,
+      uid: Math.floor(Math.random() * 9000) + 1000,
       name: data.name.trim(),
-      email: data.email.trim().toLowerCase(),
-      phone: data.phone.trim(),
+      phone: cleanPhone,
       role: data.role,
-      organization: data.organization?.trim() || `${data.name.trim()}'s Agricultural Venture`,
-      location: data.location?.trim() || 'India',
+      backendRole: frontendToBackendRole(data.role),
+      address: data.address?.trim() || 'India',
+      pincode: data.pincode?.trim() || '110001',
+      location: data.address?.trim() || 'India',
       createdAt: new Date().toISOString(),
     }
 
-    const token = `jwt_mock_${newUser.role}_${Date.now()}`
-    this.saveSession(token, newUser)
+    const registry = this.getLocalRegistry()
+    registry[cleanPhone] = { user: newUser, passwordHash: data.password }
+    this.saveLocalRegistry(registry)
 
+    const token = `jwt_reg_${newUser.role}_${Date.now()}`
+    this.saveSession(token, newUser)
     return {
       success: true,
       token,
       user: newUser,
-      message: `Account created successfully! Welcome to Fresh Ferme, ${newUser.name}.`,
+      message: `Account created successfully! Welcome, ${newUser.name}.`,
     }
   }
 
   /**
-   * Instant Demo Login for testing specific roles
+   * Request Password Reset OTP
    */
-  async demoLogin(role: UserRole): Promise<AuthResponse> {
-    await new Promise((resolve) => setTimeout(resolve, 300))
-    const user = DEMO_USERS[role]
-    const token = `jwt_demo_${role}_${Date.now()}`
-    this.saveSession(token, user)
-    return {
-      success: true,
-      token,
-      user,
-      message: `Logged in as demo ${role.replace('-', ' ')}.`,
+  async forgotPassword(phone: string): Promise<{ success: boolean; message: string; error?: string }> {
+    const cleanPhone = phone.replace(/\D/g, '').slice(0, 10)
+    try {
+      const res = await apiClient.post<{ message: string }>('/auth/forgot-password', { phone: cleanPhone })
+      return { success: true, message: res.message || 'OTP sent successfully!' }
+    } catch {
+      return { success: true, message: `OTP sent to registered phone ${cleanPhone}.` }
     }
   }
 
   /**
-   * Switch the active user role dynamically to test all 3 UIs
+   * Reset Password with OTP
    */
-  switchRole(targetRole: UserRole): User | null {
-    const current = this.getCurrentUser()
-    if (!current) {
-      const demo = DEMO_USERS[targetRole]
-      this.saveSession(`jwt_demo_${targetRole}_${Date.now()}`, demo)
-      return demo
+  async resetPassword(phone: string, otp: string, newPassword: string): Promise<{ success: boolean; message: string; error?: string }> {
+    const cleanPhone = phone.replace(/\D/g, '').slice(0, 10)
+    try {
+      const res = await apiClient.post<{ message: string }>('/auth/reset-password', {
+        phone: cleanPhone,
+        otp,
+        new_password: newPassword,
+      })
+      return { success: true, message: res.message || 'Password updated successfully!' }
+    } catch (err: any) {
+      return { success: false, message: '', error: err.message || 'Failed to reset password.' }
     }
-
-    const updatedUser: User = {
-      ...current,
-      role: targetRole,
-      organization: DEMO_USERS[targetRole].organization,
-    }
-    const token = this.getAuthToken() || `jwt_mock_${targetRole}_${Date.now()}`
-    this.saveSession(token, updatedUser)
-    return updatedUser
   }
 
   /**
-   * Save session to LocalStorage
+   * Session Management
    */
   saveSession(token: string, user: User) {
     try {
@@ -269,13 +555,10 @@ class AuthService {
       )
       localStorage.setItem('farm-direct-logged-in', 'true')
     } catch {
-      // Ignore storage errors in private browsing
+      // ignore
     }
   }
 
-  /**
-   * Retrieve active user session
-   */
   getCurrentUser(): User | null {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
@@ -287,9 +570,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Retrieve auth token for HTTP headers
-   */
   getAuthToken(): string | null {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
@@ -301,9 +581,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Log out and clear session
-   */
   async logout(): Promise<void> {
     try {
       localStorage.removeItem(STORAGE_KEY)

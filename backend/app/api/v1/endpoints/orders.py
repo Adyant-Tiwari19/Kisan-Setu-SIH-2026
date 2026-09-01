@@ -1,5 +1,5 @@
 from app.database import get_db
-from app.models.listing import Listing
+from app.models.listing import Listing, Crop
 from app.models.order import Order, OrderStatus
 from app.models.user import User
 from app.schemas.order_schema import OrderCreate, OrderResponse, OrderStatusUpdate
@@ -20,72 +20,112 @@ class OrderRatingRequest(BaseModel):
   feedback:Optional[str] = None
 
 
+def format_order_response(order: Order, db: Session) -> OrderResponse:
+    listing = db.query(Listing).filter(Listing.lid == order.lid).first()
+    crop_name = None
+    farmer_name = None
+    if listing:
+        crop = db.query(Crop).filter(Crop.cid == listing.cid).first()
+        crop_name = crop.name if crop else f"Produce #{listing.cid}"
+        farmer = db.query(User).filter(User.uid == listing.fid).first()
+        farmer_name = farmer.name if farmer else f"Producer #{listing.fid}"
+    
+    buyer = db.query(User).filter(User.uid == order.bid).first()
+    buyer_name = buyer.name if buyer else f"Buyer #{order.bid}"
+
+    return OrderResponse(
+        oid=order.oid,
+        bid=order.bid,
+        lid=order.lid,
+        quantity=order.quantity,
+        produce_price=order.produce_price,
+        logistics_price=order.logistics_price,
+        landed_price=order.landed_price,
+        status=order.status,
+        crop_name=crop_name,
+        farmer_name=farmer_name,
+        buyer_name=buyer_name,
+        ordered_at=order.ordered_at,
+        delivered_at=order.delivered_at,
+    )
+
+
 @router.post(
     "/", response_model=OrderResponse, status_code=status.HTTP_201_CREATED
 )
-def place_order(order_in: OrderCreate, db: Session = Depends(get_db)):
-  buyer = db.query(User).filter(User.uid == order_in.bid).first()
-  if not buyer:
-    raise HTTPException(status_code=404, detail="Buyer user not found.")
+def place_order(
+    order_in: OrderCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    buyer_id = order_in.bid if order_in.bid is not None else current_user.uid
+    buyer = db.query(User).filter(User.uid == buyer_id).first()
+    if not buyer:
+        raise HTTPException(status_code=404, detail="Buyer user not found.")
 
-  listing = (
-      db.query(Listing).filter(Listing.lid == order_in.lid).first()
-  )
-  if not listing or not listing.is_active:
-    raise HTTPException(
-        status_code=404, detail="Listing is no longer active or available."
+    listing = db.query(Listing).filter(Listing.lid == order_in.lid).first()
+    if not listing or not listing.is_active:
+        raise HTTPException(
+            status_code=404, detail="Listing is no longer active or available."
+        )
+
+    # If requested quantity is larger than single listing, fulfill maximum available stock
+    actual_quantity = order_in.quantity
+    if listing.quantity_available < order_in.quantity:
+        if listing.quantity_available > 0:
+            actual_quantity = listing.quantity_available
+        else:
+            raise HTTPException(
+                status_code=400, detail="Insufficient stock available for this order."
+            )
+
+    produce_price = listing.price_per_unit * actual_quantity
+    logistics_price = round(actual_quantity * 1.5, 2)  
+    landed_price = produce_price + logistics_price
+
+    listing.quantity_available -= actual_quantity
+    if listing.quantity_available <= 0:
+        listing.is_active = False
+
+    order = Order(
+        bid=buyer_id,
+        lid=order_in.lid,
+        quantity=actual_quantity,
+        produce_price=produce_price,
+        logistics_price=logistics_price,
+        landed_price=landed_price,
+        status=OrderStatus.PLACED,
     )
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+    return format_order_response(order, db)
 
-  if listing.quantity_available < order_in.quantity:
-    raise HTTPException(
-        status_code=400, detail="Insufficient stock available for this order."
-    )
-
-  produce_price = listing.price_per_unit * order_in.quantity
-  logistics_price = round(order_in.quantity * 1.5, 2)  
-  landed_price = produce_price + logistics_price
-
-  listing.quantity_available -= order_in.quantity
-  if listing.quantity_available <= 0:
-    listing.is_active = False
-
-  order = Order(
-      bid=order_in.bid,
-      lid=order_in.lid,
-      quantity=order_in.quantity,
-      produce_price=produce_price,
-      logistics_price=logistics_price,
-      landed_price=landed_price,
-      status=OrderStatus.PLACED,
-  )
-  db.add(order)
-  db.commit()
-  db.refresh(order)
-  return order
 
 @router.get("/{oid}/track", response_model=OrderResponse)
 def track_order_lifecycle(
-  oid: int,
-  db: Session = Depends(get_db),
-  current_user: User = Depends(get_current_user)
+    oid: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-  order = db.query(Order).filter(Order.oid == oid).first()
-  if not order:
-    raise HTTPException(
-      status_code=404,
-      detail="Order Not Found."
-    )
-  return order
+    order = db.query(Order).filter(Order.oid == oid).first()
+    if not order:
+        raise HTTPException(
+            status_code=404,
+            detail="Order Not Found."
+        )
+    return format_order_response(order, db)
+
 
 @router.get("/my-orders", response_model=List[OrderResponse])
 def get_my_orders(
-  db: Session = Depends(get_db),
-  current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-  orders = db.query(Order).join(Listing, Order.lid==Listing.lid).filter(
-    (Order.bid == current_user.uid) | (Listing.lid == current_user.uid)
-  ).all()
-  return orders
+    orders = db.query(Order).join(Listing, Order.lid == Listing.lid).filter(
+        (Order.bid == current_user.uid) | (Listing.fid == current_user.uid)
+    ).order_by(Order.oid.desc()).all()
+    return [format_order_response(o, db) for o in orders]
 
 @router.patch("/{oid}/status", response_model=OrderResponse)
 def update_order_status(
