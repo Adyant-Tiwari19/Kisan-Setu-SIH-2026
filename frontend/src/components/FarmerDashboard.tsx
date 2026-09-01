@@ -89,11 +89,10 @@ export function FarmerDashboard() {
                 key={item}
                 type="button"
                 onClick={() => handleNavClick(item)}
-                className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition ${
-                  item === activeNav
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:text-emerald-700'
-                }`}
+                className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition ${item === activeNav
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:text-emerald-700'
+                  }`}
               >
                 {item}
               </button>
@@ -127,9 +126,8 @@ export function FarmerDashboard() {
                           <div className="text-base font-bold">{item.crop}</div>
                           <div className="text-xs text-slate-300">{item.qty} available</div>
                         </div>
-                        <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${
-                          item.status === 'Live' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
-                        }`}>
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${item.status === 'Live' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                          }`}>
                           {item.status}
                         </span>
                       </div>

@@ -5,11 +5,12 @@ import { FarmerDashboard } from './components/FarmerDashboard'
 import { RetailMarketplace } from './components/RetailMarketplace'
 import { BulkBuyerDashboard } from './components/BulkBuyerDashboard'
 import { Hero } from './components/Hero'
+import { ImpactBand } from './components/ImpactBand'
 import { HowItWorks } from './components/HowItWorks'
+import { MarketplacePreview } from './components/MarketplacePreview'
 import { Benefits } from './components/Benefits'
-import { CustomerTypes } from './components/CustomerTypes'
-import { AISection } from './components/AISection'
-import { ImpactSection } from './components/ImpactSection'
+import { TestimonialsSection } from './components/TestimonialsSection'
+import { FinalCTA } from './components/FinalCTA'
 
 export function AppRoutes() {
   return (
@@ -18,11 +19,12 @@ export function AppRoutes() {
         <Route index element={
           <>
             <Hero />
+            <ImpactBand />
             <HowItWorks />
+            <MarketplacePreview />
             <Benefits />
-            <CustomerTypes />
-            <AISection />
-            <ImpactSection />
+            <TestimonialsSection />
+            <FinalCTA />
           </>
         } />
         <Route path="sign-in" element={<RoleSelection key="sign-in" />} />

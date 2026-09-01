@@ -124,9 +124,8 @@ export function RetailMarketplace() {
                   if (item === 'Home') setDashboardMessage('Fresh produce marketplace home.')
                   if (item === 'Profile') setDashboardMessage('Profile settings are ready for your delivery preferences.')
                 }}
-                className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition ${
-                  item === activeNav ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'
-                }`}
+                className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition ${item === activeNav ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'
+                  }`}
               >
                 {item}
               </button>
@@ -150,9 +149,8 @@ export function RetailMarketplace() {
                   key={categoryName}
                   type="button"
                   onClick={() => setCategory(categoryName)}
-                  className={`rounded-full px-3 py-2 text-sm font-medium ${
-                    categoryName === category ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
-                  }`}
+                  className={`rounded-full px-3 py-2 text-sm font-medium ${categoryName === category ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                    }`}
                 >
                   {categoryName}
                 </button>
@@ -403,9 +401,8 @@ export function RetailMarketplace() {
                       {orderTimeline.map((step, index) => (
                         <div key={step} className="flex flex-col items-center gap-2">
                           <div
-                            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
-                              index === 0 ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
-                            }`}
+                            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${index === 0 ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
+                              }`}
                           >
                             {index + 1}
                           </div>

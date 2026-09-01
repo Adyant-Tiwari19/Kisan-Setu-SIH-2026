@@ -37,8 +37,8 @@ export function DashboardHeader() {
     user?.role === 'bulk-buyer'
       ? 'Bulk Buyer'
       : user?.role
-      ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
-      : 'Farmer'
+        ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+        : 'Farmer'
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -85,11 +85,10 @@ export function DashboardHeader() {
               onClick={() => setOpenMenu(openMenu === 'notifications' ? null : 'notifications')}
               aria-expanded={openMenu === 'notifications'}
               aria-label="View order notifications"
-              className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                openMenu === 'notifications'
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-100'
-                  : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-700'
-              }`}
+              className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${openMenu === 'notifications'
+                ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-100'
+                : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-700'
+                }`}
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -132,13 +131,12 @@ export function DashboardHeader() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span
-                            className={`h-2 w-2 rounded-full ${
-                              notification.type === 'success'
-                                ? 'bg-emerald-500'
-                                : notification.type === 'alert'
+                            className={`h-2 w-2 rounded-full ${notification.type === 'success'
+                              ? 'bg-emerald-500'
+                              : notification.type === 'alert'
                                 ? 'bg-amber-500'
                                 : 'bg-sky-500'
-                            }`}
+                              }`}
                           />
                           <span className="text-sm font-bold text-slate-900">{notification.title}</span>
                         </div>
@@ -178,11 +176,10 @@ export function DashboardHeader() {
               onClick={() => setOpenMenu(openMenu === 'profile' ? null : 'profile')}
               aria-expanded={openMenu === 'profile'}
               aria-label="Open profile menu"
-              className={`flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition ${
-                openMenu === 'profile'
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-100'
-                  : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-700'
-              }`}
+              className={`flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition ${openMenu === 'profile'
+                ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-100'
+                : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-700'
+                }`}
             >
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-xs font-black text-emerald-700">
                 {displayName.charAt(0).toUpperCase()}

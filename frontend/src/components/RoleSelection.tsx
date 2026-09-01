@@ -31,12 +31,12 @@ export function RoleSelection() {
     const response = mode === 'login'
       ? await authService.login({ emailOrPhone: phone, password, role: selectedRole })
       : await authService.register({
-          name: `User ${phone}`,
-          email: `${phone}@freshferme.local`,
-          phone: phone,
-          password,
-          role: selectedRole,
-        })
+        name: `User ${phone}`,
+        email: `${phone}@freshferme.local`,
+        phone: phone,
+        password,
+        role: selectedRole,
+      })
 
     if (response.success && response.user) {
       navigate(roleOptions.find((role) => role.id === response.user?.role)?.route || '/retailer')
@@ -63,27 +63,28 @@ export function RoleSelection() {
           {roleOptions.map((role) => {
             const isSelected = selectedRole === role.id
             return (
-            <div
-              key={role.id}
-              className={`group rounded-[1.7rem] border bg-gradient-to-br from-white to-emerald-50 p-6 text-left transition ${isSelected ? 'border-emerald-500 shadow-lg ring-2 ring-emerald-100' : 'border-slate-200 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-lg'}`}
-            >
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-xl font-black text-emerald-700">
-                {role.title.charAt(0)}
-              </div>
-              <h2 className="text-2xl font-black text-slate-900">{role.title}</h2>
-              <p className="mt-3 text-base leading-7 text-slate-600">{role.description}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedRole(role.id as UserRole)
-                  setError('')
-                }}
-                className="mt-6 inline-flex rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              <div
+                key={role.id}
+                className={`group rounded-[1.7rem] border bg-gradient-to-br from-white to-emerald-50 p-6 text-left transition ${isSelected ? 'border-emerald-500 shadow-lg ring-2 ring-emerald-100' : 'border-slate-200 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-lg'}`}
               >
-                {mode === 'login' ? 'Sign in' : 'Join now'}
-              </button>
-            </div>
-          )})}
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-xl font-black text-emerald-700">
+                  {role.title.charAt(0)}
+                </div>
+                <h2 className="text-2xl font-black text-slate-900">{role.title}</h2>
+                <p className="mt-3 text-base leading-7 text-slate-600">{role.description}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedRole(role.id as UserRole)
+                    setError('')
+                  }}
+                  className="mt-6 inline-flex rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                >
+                  {mode === 'login' ? 'Sign in' : 'Join now'}
+                </button>
+              </div>
+            )
+          })}
         </div>
 
         {selectedRole && (

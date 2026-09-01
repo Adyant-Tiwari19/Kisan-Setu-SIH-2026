@@ -128,9 +128,8 @@ export function BulkBuyerDashboard() {
                 key={item}
                 type="button"
                 onClick={() => handleNavClick(item)}
-                className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition ${
-                  item === activeNav ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'
-                }`}
+                className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition ${item === activeNav ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'
+                  }`}
               >
                 {item}
               </button>

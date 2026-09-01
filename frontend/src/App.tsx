@@ -2,23 +2,25 @@ import { Footer } from './components/Footer'
 import { Hero } from './components/Hero'
 import { HowItWorks } from './components/HowItWorks'
 import { Benefits } from './components/Benefits'
-import { CustomerTypes } from './components/CustomerTypes'
-import { AISection } from './components/AISection'
-import { ImpactSection } from './components/ImpactSection'
 import { Header } from './components/Header'
+import { ImpactBand } from './components/ImpactBand'
+import { MarketplacePreview } from './components/MarketplacePreview'
+import { TestimonialsSection } from './components/TestimonialsSection'
+import { FinalCTA } from './components/FinalCTA'
 
 function App() {
   return (
-    <div className="min-h-screen bg-[#f7f5ef] text-slate-900">
+    <div style={{ minHeight: '100vh', background: 'var(--ff-cream)', color: 'var(--ff-navy)' }}>
       <Header />
 
       <main>
         <Hero />
+        <ImpactBand />
         <HowItWorks />
+        <MarketplacePreview />
         <Benefits />
-        <CustomerTypes />
-        <AISection />
-        <ImpactSection />
+        <TestimonialsSection />
+        <FinalCTA />
       </main>
 
       <Footer />

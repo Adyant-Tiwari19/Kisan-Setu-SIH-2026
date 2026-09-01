@@ -1,35 +1,173 @@
-const steps = [
-  { title: 'Onboard', description: 'Farmers and buyers register with simple profiles and produce needs.' },
-  { title: 'List / Request', description: 'Farmers list harvests or FPOs publish demand and quality preferences.' },
-  { title: 'Smart Match', description: 'AI aligns nearby supply with buyer demand and expected quality.' },
-  { title: 'Transparent Price', description: 'Farmgate, logistics, and market comparison are clearly shared.' },
-  { title: 'Delivery', description: 'Consolidated pickup and routing reduce cost and time for everyone.' },
-  { title: 'Settlement', description: 'Secure, fair payouts and tracking close the loop with trust.' },
+const stages = [
+  {
+    label: 'Farmer Onboards',
+    desc: 'Simple registration with crop profile and location.',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Lists Harvest',
+    desc: 'Crop type, quantity, quality grade, and available date.',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+      </svg>
+    ),
+  },
+  {
+    label: 'AI Smart Match',
+    desc: 'Algorithm aligns supply with nearby demand in real time.',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3" /><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+      </svg>
+    ),
+    highlight: true,
+  },
+  {
+    label: 'Fair Price Set',
+    desc: 'Farmgate, logistics, and market rates shown transparently.',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Pickup & Delivery',
+    desc: 'Consolidated routes reduce cost and preserve freshness.',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="1" y="3" width="15" height="13" rx="1" /><path d="M16 8h4l3 5v3h-7V8z" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Secure Settlement',
+    desc: 'Fair payouts with full traceability and buyer confirmation.',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" />
+      </svg>
+    ),
+  },
 ]
 
 export function HowItWorks() {
   return (
-    <section className="bg-white/70 py-20">
-      <div className="section-shell">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">How it works</div>
-          <h2 className="mt-4 text-3xl font-black tracking-[-0.05em] text-slate-900 md:text-5xl">
-            A simpler route from harvest to happy customers.
+    <section
+      id="how-it-works"
+      style={{ background: '#f0faf4', paddingTop: '5rem', paddingBottom: '0' }}
+    >
+      <div className="container">
+        {/* Header */}
+        <div className="scroll-reveal" style={{ textAlign: 'center', marginBottom: '4rem' }}>
+          <span className="eyebrow text-fresh" style={{ display: 'block', marginBottom: '0.875rem' }}>How it works</span>
+          <h2 className="display-lg" style={{ color: 'var(--ff-navy)', maxWidth: '36rem', margin: '0 auto' }}>
+            The journey from harvest to happy customers.
           </h2>
         </div>
 
-        <div className="mt-12 grid gap-5 md:grid-cols-3">
-          {steps.map((step, index) => (
-            <div key={step.title} className="soft-card rounded-[1.75rem] p-6">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 text-sm font-black text-emerald-700">
-                0{index + 1}
+        {/* Desktop: horizontal journey */}
+        <div className="scroll-reveal" style={{ position: 'relative' }}>
+
+          {/* Dotted path line */}
+          <div style={{
+            position: 'absolute',
+            top: '2.5rem',
+            left: '5%',
+            right: '5%',
+            height: '2px',
+            background: 'repeating-linear-gradient(90deg, var(--ff-mint) 0, var(--ff-mint) 8px, transparent 8px, transparent 18px)',
+            zIndex: 0,
+          }} />
+
+          {/* Stages */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(6, 1fr)',
+            gap: '0.5rem',
+            position: 'relative',
+            zIndex: 1,
+          }}>
+            {stages.map((stage, i) => (
+              <div
+                key={stage.label}
+                className="scroll-reveal"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  animationDelay: `${i * 80}ms`,
+                }}
+              >
+                {/* Node */}
+                <div style={{
+                  width: '5rem',
+                  height: '5rem',
+                  borderRadius: '50%',
+                  background: stage.highlight ? 'var(--ff-deep)' : '#fff',
+                  border: `2px solid ${stage.highlight ? 'var(--ff-deep)' : 'var(--ff-mint)'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: stage.highlight
+                    ? '0 8px 24px rgba(27,67,50,0.3)'
+                    : '0 4px 16px rgba(27,67,50,0.08)',
+                  color: stage.highlight ? '#fff' : 'var(--ff-deep)',
+                  marginBottom: '1.25rem',
+                  transition: 'transform 0.2s',
+                  cursor: 'default',
+                }}
+                  onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.08) translateY(-2px)')}
+                  onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                >
+                  {stage.icon}
+                </div>
+
+                {/* Step number */}
+                <div style={{
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: 'var(--ff-fresh)',
+                  marginBottom: '0.35rem',
+                }}>
+                  Step {String(i + 1).padStart(2, '0')}
+                </div>
+
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--ff-navy)', lineHeight: 1.3, marginBottom: '0.5rem' }}>
+                  {stage.label}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--ff-muted)', lineHeight: 1.65 }}>
+                  {stage.desc}
+                </div>
               </div>
-              <h3 className="mt-5 text-2xl font-bold text-slate-900">{step.title}</h3>
-              <p className="mt-3 text-base leading-7 text-slate-600">{step.description}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* Wave divider */}
+      <div className="wave-divider" style={{ marginTop: '4rem' }}>
+        <svg viewBox="0 0 1440 60" preserveAspectRatio="none" style={{ height: '60px' }}>
+          <path d="M0,20 C480,60 960,0 1440,30 L1440,60 L0,60 Z" fill="#fff" />
+        </svg>
+      </div>
+
+      <style>{`
+        @media (max-width: 900px) {
+          .journey-grid { grid-template-columns: repeat(3,1fr) !important; }
+        }
+        @media (max-width: 600px) {
+          .journey-grid { grid-template-columns: repeat(2,1fr) !important; }
+        }
+      `}</style>
     </section>
   )
 }
