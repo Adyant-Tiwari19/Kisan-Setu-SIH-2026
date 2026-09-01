@@ -256,6 +256,8 @@ def delete_listing(
             detail="Forbidden: You can only delete your own listings."
         )
 
-    db.delete(listing)
+    listing.is_active = False
+
     db.commit()
+    db.refresh(listing)
     return {"success": True, "message": f"Listing #{lid} removed successfully."}

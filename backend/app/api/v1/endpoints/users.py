@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, select
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
@@ -39,7 +39,7 @@ def get_farmer_income_dashboard(
             detail="Access restricted to Farmers and FPOs."
         )
 
-    farmer_listing_ids = db.query(Listing.lid).filter(Listing.fid == current_user.uid).subquery()
+    farmer_listing_ids = select(Listing.lid).where(Listing.fid == current_user.uid)
 
     settled_query = db.query(
         func.coalesce(func.sum(Order.produce_price), 0.0).label("total_earnings"),
