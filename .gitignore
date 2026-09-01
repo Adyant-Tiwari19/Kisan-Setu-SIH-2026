@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+backend/seed_testing_nodes.py

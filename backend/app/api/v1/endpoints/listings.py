@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, cast
 from geoalchemy2.functions import ST_Distance, ST_MakePoint, ST_SetSRID
+from geoalchemy2.types import Geography
 from pydantic import BaseModel
 
 from app.database import get_db
@@ -78,49 +79,79 @@ def get_my_listings(
 
 
 # 3. Spatial Listing Search (Case-insensitive & Alias enabled)
-@router.get("/search", response_model=List[ListingResponse])
+@router.get("/search")
 def search_listings(
-    crop_name: str,
-    buyer_lat: float,
-    buyer_lon: float,
-    max_distance_km: float = 50.0,
+    crop_name: str = Query(..., description="Name or alias of the crop"),
+    lat: float = Query(..., description="Buyer Latitude"),
+    lon: float = Query(..., description="Buyer Longitude"),
+    radius_km: float = Query(50.0, description="Search radius in kilometers"),
     db: Session = Depends(get_db)
 ):
     clean_name = crop_name.strip().lower()
 
-    crop = db.query(Crop).filter(
-        or_(
-            Crop.name.ilike(clean_name),
-            func.lower(func.array_to_string(Crop.aliases, ',')).contains(clean_name)
+    # 1. Match Crop by name or aliases
+    crop = (
+        db.query(Crop)
+        .filter(
+            or_(
+                Crop.name.ilike(f"%{clean_name}%"),
+                func.lower(func.array_to_string(Crop.aliases, ",")).contains(clean_name)
+            )
         )
-    ).first()
+        .first()
+    )
 
     if not crop:
-        all_crops = db.query(Crop).all()
-        for c in all_crops:
-            if c.name.lower() == clean_name:
-                crop = c
-                break
-            if c.aliases and any(clean_name in alias.lower() for alias in c.aliases):
-                crop = c
-                break
+        return []
 
-    if not crop:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No crop matching '{crop_name}' found in catalog."
+    # 2. Construct spatial point for the buyer (SRID 4326)
+    buyer_point = ST_SetSRID(ST_MakePoint(lon, lat), 4326)
+
+    # Convert radius_km to meters for PostGIS Geography calculation
+    radius_meters = radius_km * 1000.0
+
+    # 3. Calculate dynamic distance in km
+    distance_km_col = (
+        func.ST_Distance(
+            cast(Listing.location, Geography),
+            cast(buyer_point, Geography)
+        ) / 1000.0
+    ).label("distance_km")
+
+    # 4. Filter by crop, active status, AND spatial distance radius
+    results = (
+        db.query(Listing, distance_km_col)
+        .filter(
+            Listing.cid == crop.cid,
+            Listing.is_active == True,
+            Listing.quantity_available > 0,
+            # Filter strictly within the requested radius
+            func.ST_DWithin(
+                cast(Listing.location, Geography),
+                cast(buyer_point, Geography),
+                radius_meters
+            )
         )
+        .order_by(distance_km_col)
+        .all()
+    )
 
-    buyer_point = ST_SetSRID(ST_MakePoint(buyer_lon, buyer_lat), 4326)
+    formatted_listings = []
+    for listing, dist in results:
+        formatted_listings.append({
+            "lid": listing.lid,
+            "fid": listing.fid,
+            "cid": listing.cid,
+            "crop_name": crop.name,
+            "quantity_available": listing.quantity_available,
+            "price_per_unit": listing.price_per_unit,
+            "listing_type": listing.listing_type,
+            "distance_km": round(float(dist), 2) if dist is not None else 0.0,
+            "harvested_at": listing.harvested_at,
+            "expiry_date": listing.expiry_date
+        })
 
-    listings = db.query(Listing).filter(
-        Listing.cid == crop.cid,
-        Listing.is_active == True,
-        (ST_Distance(Listing.location, buyer_point, use_spheroid=True) / 1000.0) <= max_distance_km
-    ).all()
-
-    return [format_listing_response(l, db) for l in listings]
-
+    return formatted_listings
 
 # 4. Create Produce Listing
 @router.post("/", response_model=ListingResponse, status_code=status.HTTP_201_CREATED)

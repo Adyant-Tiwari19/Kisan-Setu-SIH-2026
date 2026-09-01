@@ -1,13 +1,14 @@
 from datetime import datetime, timezone
 from typing import Dict, List
 from app.database import get_db
-from app.models.listing import Crop,Listing
+from app.models.listing import Crop, Listing
 from app.services.ranking_engine import calculate_seller_score
 from app.services.routing import cluster_orders_for_delivery
 from fastapi import APIRouter, Depends, HTTPException, status
 from geoalchemy2.functions import ST_Distance, ST_MakePoint, ST_SetSRID
+from geoalchemy2.types import Geography
 from pydantic import BaseModel
-from sqlalchemy import func, or_, String
+from sqlalchemy import func, or_, cast
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -39,13 +40,18 @@ def rank_sellers_for_buyer(
     if not crop:
         return []
 
+    # 1. Construct buyer coordinate point in SRID 4326
     buyer_point = ST_SetSRID(ST_MakePoint(req.buyer_lon, req.buyer_lat), 4326)
+
+    # 2. Cast both geometries to Geography to measure distance accurately in meters
+    distance_in_meters = func.ST_Distance(
+        cast(Listing.location, Geography),
+        cast(buyer_point, Geography)
+    )
 
     listings = db.query(
         Listing,
-        (
-            ST_Distance(Listing.location, buyer_point, use_spheroid=True) / 1000.0
-        ).label("distance_km")
+        (distance_in_meters / 1000.0).label("distance_km")
     ).filter(
         Listing.cid == crop.cid,
         Listing.is_active == True,
