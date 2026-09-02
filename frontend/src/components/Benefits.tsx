@@ -113,6 +113,7 @@ export function Benefits() {
             {roles.map(r => (
               <button
                 key={r.id}
+                id={r.id === 'farmers' ? 'for-farmers' : r.id === 'buyers' ? 'for-buyers' : undefined}
                 className={`tab-btn${active === r.id ? ' active' : ''}`}
                 onClick={() => setActive(r.id)}
                 style={active === r.id ? { background: role.color } : {}}

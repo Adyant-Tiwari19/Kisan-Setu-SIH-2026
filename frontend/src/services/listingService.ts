@@ -1,6 +1,6 @@
 /**
  * Fresh Ferme - Listing Service
- * Communicates with FastAPI /api/v1/listings endpoints for crop catalog & produce inventory.
+ * Centralizes search requests and keeps the marketplace live-data mapping isolated.
  */
 
 import { apiClient } from './apiClient'
@@ -32,6 +32,23 @@ export interface Listing {
   badge?: string
 }
 
+export interface MarketplaceListing {
+  id: number | string
+  crop_name: string
+  farmer_name: string
+  origin: string
+  quantity_available: number | null
+  price_per_unit: number | null
+  estimated_landed_price: number | null
+  distance_km: number | null
+  freshness_score: number | null
+  trust_score: number | null
+  listing_type: string
+  harvested_at: string | null
+  is_active: boolean
+  badge?: string
+}
+
 export interface ListingCreatePayload {
   cid?: number
   crop_name?: string
@@ -50,74 +67,81 @@ export interface InventoryUpdatePayload {
   is_active?: boolean
 }
 
-// Fallback catalog if backend is not running
-const MOCK_CROPS: Crop[] = [
-  { cid: 1, name: 'Tomato', aliases: ['tomatoes', 'tamatar'] },
-  { cid: 2, name: 'Onion', aliases: ['onions', 'pyaz'] },
-  { cid: 3, name: 'Potato', aliases: ['potatoes', 'aloo'] },
-  { cid: 4, name: 'Banana', aliases: ['bananas', 'kela'] },
-  { cid: 5, name: 'Rice', aliases: ['paddy', 'chawal'] },
-]
+export interface SearchListingsParams {
+  crop_name: string
+  lat: number
+  lon: number
+  radius_km?: number
+}
 
-const MOCK_LISTINGS: Listing[] = [
-  {
-    lid: 101,
-    fid: 1,
-    cid: 1,
-    crop_name: 'Tomatoes',
-    farmer_name: 'Green Valley FPO',
-    origin: 'Nashik',
-    quantity_available: 180,
-    price_per_unit: 38,
-    listing_type: 'Grade A Hybrid',
-    harvested_at: new Date(Date.now() - 2 * 3600000).toISOString(),
-    expiry_date: new Date(Date.now() + 5 * 86400000).toISOString(),
-    is_active: true,
-    distance_km: 4.8,
-    estimated_landed_price: 52,
-    freshness_score: 96,
-    trust_score: 4.9,
-    badge: 'Best value',
-  },
-  {
-    lid: 102,
-    fid: 2,
-    cid: 4,
-    crop_name: 'Bananas',
-    farmer_name: 'Sundaram Farms',
-    origin: 'Coimbatore',
-    quantity_available: 240,
-    price_per_unit: 28,
-    listing_type: 'G9 Cavendish',
-    harvested_at: new Date(Date.now() - 1 * 3600000).toISOString(),
-    expiry_date: new Date(Date.now() + 4 * 86400000).toISOString(),
-    is_active: true,
-    distance_km: 7.2,
-    estimated_landed_price: 39,
-    freshness_score: 94,
-    trust_score: 4.8,
-    badge: 'Freshest',
-  },
-  {
-    lid: 103,
-    fid: 3,
-    cid: 5,
-    crop_name: 'Rice',
-    farmer_name: 'Aaranya Collective',
-    origin: 'Kurnool',
-    quantity_available: 410,
-    price_per_unit: 24,
-    listing_type: 'Sona Masoori Single Polish',
-    harvested_at: new Date().toISOString(),
-    expiry_date: new Date(Date.now() + 90 * 86400000).toISOString(),
-    is_active: true,
-    distance_km: 12.4,
-    estimated_landed_price: 32,
-    freshness_score: 92,
-    trust_score: 4.7,
-    badge: 'Cheapest',
-  },
-]
+const toNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return null
+}
+
+const toText = (value: unknown): string => {
+  if (typeof value === 'string' && value.trim()) return value.trim()
+  if (typeof value === 'number') return String(value)
+  return 'Not available'
+}
+
+const toDateText = (value: unknown): string | null => {
+  if (!value) return null
+  const text = toText(value)
+  if (text === 'Not available') return null
+  return text
+}
+
+/**
+ * TODO: replace this mapping as soon as the backend JSON contract is shared.
+ * The backend search response may return a different field layout.
+ */
+export function mapSearchResponseItem(raw: Record<string, unknown>): MarketplaceListing {
+  const idValue: string | number =
+    typeof raw.id === 'string' || typeof raw.id === 'number'
+      ? raw.id
+      : typeof raw.lid === 'string' || typeof raw.lid === 'number'
+        ? raw.lid
+        : typeof raw.listing_id === 'string' || typeof raw.listing_id === 'number'
+          ? raw.listing_id
+          : typeof raw.listingId === 'string' || typeof raw.listingId === 'number'
+            ? raw.listingId
+            : typeof raw.uuid === 'string' || typeof raw.uuid === 'number'
+              ? raw.uuid
+              : typeof raw._id === 'string' || typeof raw._id === 'number'
+                ? raw._id
+                : 'not-available'
+
+  const cropName =
+    toText(raw.crop_name ?? raw.crop ?? raw.cropName ?? raw.name ?? raw.title)
+
+  const farmerName =
+    toText(raw.farmer_name ?? raw.farmerName ?? raw.farm_name ?? raw.seller_name ?? raw.sellerName)
+
+  const originText =
+    toText(raw.origin ?? raw.location ?? raw.area ?? raw.region ?? raw.city)
+
+  return {
+    id: idValue,
+    crop_name: cropName,
+    farmer_name: farmerName,
+    origin: originText,
+    quantity_available: toNumber(raw.quantity_available ?? raw.qty ?? raw.stock_kg ?? raw.available_quantity),
+    price_per_unit: toNumber(raw.price_per_unit ?? raw.unit_price ?? raw.price_per_kg ?? raw.price),
+    estimated_landed_price: toNumber(raw.estimated_landed_price ?? raw.delivered_price ?? raw.landed_price),
+    distance_km: toNumber(raw.distance_km ?? raw.distance ?? raw.radius_km),
+    freshness_score: toNumber(raw.freshness_score ?? raw.freshness ?? raw.freshness_pct),
+    trust_score: toNumber(raw.trust_score ?? raw.trust ?? raw.rating),
+    listing_type: toText(raw.listing_type ?? raw.category ?? raw.grade ?? raw.variant),
+    harvested_at: toDateText(raw.harvested_at ?? raw.harvest_date ?? raw.harvestedAt),
+    is_active: Boolean(raw.is_active ?? raw.active ?? true),
+    badge: toText(raw.badge ?? raw.tag ?? raw.label),
+  }
+}
 
 class ListingService {
   /**
@@ -127,32 +151,26 @@ class ListingService {
     try {
       return await apiClient.get<Crop[]>('/listings/crops')
     } catch {
-      return MOCK_CROPS
+      return []
     }
   }
 
   /**
-   * Get all active listings across marketplace
+   * Get all active listings across marketplace.
+   * No mocked marketplace catalogue is used.
    */
-  async getAllListings(cropName?: string): Promise<Listing[]> {
+  async getAllListings(): Promise<Listing[]> {
     try {
-      const endpoint = cropName ? `/listings/?crop_name=${encodeURIComponent(cropName)}` : '/listings/'
-      const res = await apiClient.get<Listing[]>(endpoint)
+      const res = await apiClient.get<Listing[]>('/listings/')
       if (Array.isArray(res)) return res
     } catch {
-      // Backend offline
+      // No fallback data is used for marketplace results.
     }
-
-    if (cropName) {
-      return MOCK_LISTINGS.filter((l) =>
-        l.crop_name?.toLowerCase().includes(cropName.toLowerCase())
-      )
-    }
-    return MOCK_LISTINGS
+    return []
   }
 
   /**
-   * Get listings created specifically by the authenticated farmer
+   * Get listings created specifically by the authenticated farmer.
    */
   async getMyListings(): Promise<Listing[]> {
     try {
@@ -165,58 +183,45 @@ class ListingService {
   }
 
   /**
-   * Spatial search by crop name, coordinates, and maximum radius (km)
+   * Search for nearby listings by crop using the required API contract.
    */
   async searchListings(
     cropName: string,
-    buyerLat = 19.9975,
-    buyerLon = 73.7898,
-    maxDistanceKm = 50.0
-  ): Promise<Listing[]> {
-    try {
-      const params = new URLSearchParams({
-        crop_name: cropName,
-        buyer_lat: buyerLat.toString(),
-        buyer_lon: buyerLon.toString(),
-        max_distance_km: maxDistanceKm.toString(),
-      })
-      const results = await apiClient.get<Listing[]>(`/listings/search?${params.toString()}`)
-      if (results && results.length > 0) return results
-    } catch {
-      // Fallback
+    lat: number | string,
+    lon: number | string,
+    radiusKm = 10
+  ): Promise<MarketplaceListing[]> {
+    const safeCropName = cropName.trim()
+    if (!safeCropName || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) {
+      return []
     }
 
-    return MOCK_LISTINGS.filter(
-      (l) => !cropName || l.crop_name?.toLowerCase().includes(cropName.toLowerCase())
-    )
+    const params = new URLSearchParams({
+      crop_name: safeCropName,
+      lat: String(lat),
+      lon: String(lon),
+      radius_km: radiusKm.toString(),
+    })
+
+    const response = await apiClient.get<unknown>(`/listings/search?${params.toString()}`)
+    const payload = Array.isArray(response)
+      ? response
+      : response && typeof response === 'object'
+        ? Array.isArray((response as Record<string, unknown>).items)
+          ? (response as Record<string, unknown>).items
+          : Array.isArray((response as Record<string, unknown>).data)
+            ? (response as Record<string, unknown>).data
+            : []
+        : []
+
+    return (payload as Record<string, unknown>[]).map((entry) => mapSearchResponseItem(entry))
   }
 
   /**
    * Create a new produce listing (Farmer)
    */
   async createListing(data: ListingCreatePayload): Promise<Listing> {
-    try {
-      return await apiClient.post<Listing>('/listings/', data)
-    } catch (err: any) {
-      console.warn('[ListingService] Backend offline - creating simulated listing')
-      const mockListing: Listing = {
-        lid: Date.now(),
-        fid: 1,
-        cid: data.cid || 1,
-        crop_name: data.crop_name || 'Produce',
-        farmer_name: 'My Farm',
-        origin: 'Local Harvest',
-        quantity_available: data.quantity_available,
-        price_per_unit: data.price_per_unit,
-        listing_type: data.listing_type || 'Standard',
-        harvested_at: data.harvested_at || new Date().toISOString(),
-        expiry_date: data.expiry_date || new Date(Date.now() + 5 * 86400000).toISOString(),
-        is_active: true,
-        freshness_score: 95,
-        trust_score: 4.9,
-      }
-      return mockListing
-    }
+    return apiClient.post<Listing>('/listings/', data)
   }
 
   /**
@@ -230,23 +235,14 @@ class ListingService {
    * Take down or reactivate a listing
    */
   async toggleListingActive(lid: number): Promise<Listing> {
-    try {
-      return await apiClient.patch<Listing>(`/listings/${lid}/toggle-active`, {})
-    } catch {
-      // Offline fallback
-      return { lid, is_active: false } as Listing
-    }
+    return apiClient.patch<Listing>(`/listings/${lid}/toggle-active`, {})
   }
 
   /**
    * Delete a listing completely
    */
   async deleteListing(lid: number): Promise<{ success: boolean; message: string }> {
-    try {
-      return await apiClient.delete<{ success: boolean; message: string }>(`/listings/${lid}`)
-    } catch {
-      return { success: true, message: `Listing #${lid} deleted.` }
-    }
+    return apiClient.delete<{ success: boolean; message: string }>(`/listings/${lid}`)
   }
 }
 
