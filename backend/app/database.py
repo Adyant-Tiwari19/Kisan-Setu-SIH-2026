@@ -54,7 +54,7 @@ try:
 except Exception as e:
     print(f"[Database Notice] {e}")
 
-engine = create_engine(settings.DATABASE_URL)
+engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True, pool_recycle=300, pool_timeout=30)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_db():

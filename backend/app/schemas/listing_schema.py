@@ -24,8 +24,6 @@ class ListingCreate(BaseModel):
     listing_type: Optional[str] = "Standard"
     harvested_at: Optional[datetime] = None
     expiry_date: Optional[datetime] = None
-    lat: Optional[float] = None
-    lon: Optional[float] = None
     location: Optional[LocationPoint] = None
 
 class ListingResponse(BaseModel):
