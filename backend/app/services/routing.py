@@ -1,65 +1,64 @@
-from typing import Dict, List
 import math
+from typing import List, Dict, Any
 
-def cluster_orders_for_delivery(
-    order_locations: List[Dict[str, float]],
-    eps_km: float = 10.0
-) -> Dict:
+def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371.0  # Earth radius in km
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) ** 2 + 
+         math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2)
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+def cluster_orders_for_delivery(order_locations: List[Dict[str, Any]], max_cluster_radius_km: float = 30.0) -> Dict[str, Any]:
     if not order_locations:
-        return {
-            "total_orders": 0,
-            "clusters_count": 0,
-            "allocations": [],
-            "estimated_route_savings": "0%"
-        }
+        return {"total_orders": 0, "clusters_count": 0, "allocations": [], "estimated_route_savings": "0.0%"}
 
-    # Try scikit-learn DBSCAN if installed, otherwise pure Python clustering
-    try:
-        import numpy as np
-        from sklearn.cluster import DBSCAN
-        coords = np.array([[loc["lat"], loc["lon"]] for loc in order_locations])
-        coords_km = coords * 111.0
-        clustering = DBSCAN(eps=eps_km, min_samples=1).fit(coords_km)
-        labels = [int(lbl) for lbl in clustering.labels_]
-    except Exception:
-        # Pure Python greedy distance clustering (zero external compilation dependencies)
-        labels = [-1] * len(order_locations)
-        cluster_id = 0
-        for i, loc1 in enumerate(order_locations):
-            if labels[i] != -1:
-                continue
-            labels[i] = cluster_id
-            for j, loc2 in enumerate(order_locations):
-                if labels[j] == -1:
-                    d_lat = (loc1["lat"] - loc2["lat"]) * 111.0
-                    d_lon = (loc1["lon"] - loc2["lon"]) * 111.0
-                    dist = math.sqrt(d_lat * d_lat + d_lon * d_lon)
-                    if dist <= eps_km:
-                        labels[j] = cluster_id
-            cluster_id += 1
-
+    clusters = []
     allocations = []
-    for idx, label in enumerate(labels):
-        item = order_locations[idx]
+
+    for order in order_locations:
+        order_id = order.get("oid") or order.get("order_id")
+        lat = order["lat"]
+        lon = order["lon"]
+        
+        assigned_cluster = None
+
+        for cluster in clusters:
+            dist = haversine_distance(lat, lon, cluster["center_lat"], cluster["center_lon"])
+            if dist <= max_cluster_radius_km:
+                assigned_cluster = cluster
+                break
+
+        if assigned_cluster:
+            assigned_cluster["orders"].append(order_id)
+            # Recalculate cluster centroid
+            n = len(assigned_cluster["orders"])
+            assigned_cluster["center_lat"] = ((assigned_cluster["center_lat"] * (n - 1)) + lat) / n
+            assigned_cluster["center_lon"] = ((assigned_cluster["center_lon"] * (n - 1)) + lon) / n
+            cluster_id = assigned_cluster["id"]
+        else:
+            cluster_id = len(clusters)
+            clusters.append({
+                "id": cluster_id,
+                "center_lat": lat,
+                "center_lon": lon,
+                "orders": [order_id]
+            })
+
         allocations.append({
-            "oid": item.get("oid", item.get("order_id", idx + 1)),
-            "cluster_id": label,
-            "lat": item["lat"],
-            "lon": item["lon"]
+            "oid": order_id,
+            "cluster_id": cluster_id,
+            "lat": lat,
+            "lon": lon
         })
 
-    total_clusters = len(set(labels))
-    total_orders = len(order_locations)
-
-    savings_pct = (
-        0
-        if total_orders == 0
-        else round(((total_orders - total_clusters) / total_orders) * 100, 1)
-    )
+    unconsolidated_clusters = len(order_locations)
+    actual_clusters = len(clusters)
+    savings_pct = round(((unconsolidated_clusters - actual_clusters) / unconsolidated_clusters) * 100, 1)
 
     return {
-        "total_orders": total_orders,
-        "clusters_count": total_clusters,
+        "total_orders": len(order_locations),
+        "clusters_count": actual_clusters,
         "allocations": allocations,
         "estimated_route_savings": f"{savings_pct}% distance reduction via consolidation"
     }
