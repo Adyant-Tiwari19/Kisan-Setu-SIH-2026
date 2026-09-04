@@ -24,6 +24,7 @@ class ListingCreate(BaseModel):
     listing_type: Optional[str] = "Standard"
     harvested_at: Optional[datetime] = None
     expiry_date: Optional[datetime] = None
+    address: Optional[datetime] = None
     location: Optional[LocationPoint] = None
 
 class ListingResponse(BaseModel):
@@ -37,6 +38,9 @@ class ListingResponse(BaseModel):
     expiry_date: datetime
     is_active: bool
     crop_name: Optional[str] = None
+
+    latitude: float
+    longitude: float
 
     class Config:
         from_attributes = True

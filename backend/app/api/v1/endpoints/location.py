@@ -1,4 +1,7 @@
+# app/api/v1/endpoints/location.py
+
 import os
+import re
 import requests
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
@@ -6,8 +9,7 @@ from typing import Optional
 
 router = APIRouter()
 
-# Cleans up quotation marks or accidental whitespace from .env
-MAPPLS_REST_KEY = os.getenv("MAPPLS_REST_KEY", "").strip("\"' ")
+LOCATIONIQ_KEY = os.getenv("LOCATIONIQ_KEY", "").strip("\"' ")
 
 class GeocodeResponse(BaseModel):
     latitude: float
@@ -18,74 +20,61 @@ class GeocodeResponse(BaseModel):
     pincode: Optional[str] = None
     wkt_point: str
 
+def clean_indian_address(address: str) -> str:
+    cleaned = re.sub(r'sector\s*-\s*(\d+)', r'Sector \1', address, flags=re.IGNORECASE)
+    return cleaned.strip()
+
 @router.get("/geocode", response_model=GeocodeResponse)
-def geocode_address_mappls(
+def geocode_address(
     address: str = Query(..., description="House/Apartment, Street, Landmark, or Sector")
 ):
-    """
-    Converts Indian address text into precise (lat, lon) coordinates via Mappls REST API.
-    """
-    if not MAPPLS_REST_KEY:
+    if not LOCATIONIQ_KEY:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="MAPPLS_REST_KEY not found in environment variables."
+            detail="LOCATIONIQ_KEY not configured."
         )
 
-    # Correct Mappls Geocoding Endpoint
-    geocode_url = "https://atlas.mappls.com/api/places/geocode"
-    
-    # Static key passed as access_token parameter
+    cleaned_addr = clean_indian_address(address)
+
+    url = "https://us1.locationiq.com/v1/search"
     params = {
-        "address": address,
-        "access_token": MAPPLS_REST_KEY
+        "key": LOCATIONIQ_KEY,
+        "q": cleaned_addr,
+        "format": "json",
+        "countrycodes": "in",
+        "addressdetails": 1,
+        "limit": 1
     }
 
     try:
-        response = requests.get(geocode_url, params=params, timeout=5)
+        response = requests.get(url, params=params, timeout=5)
         
-        if response.status_code != 200:
+        if response.status_code != 200 or not response.json():
             raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Mappls geocoding service returned status code {response.status_code}."
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No coordinates found for the provided address."
             )
 
-        data = response.json()
+        match = response.json()[0]
         
-        # Mappls copResults contains place metadata
-        cop_results = data.get("copResults", {})
-        if isinstance(cop_results, list):
-            if not cop_results:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="No coordinates found for the provided address."
-                )
-            match = cop_results[0]
-        elif isinstance(cop_results, dict) and cop_results:
-            match = cop_results
-        else:
-            # Fallback to 'results' key if copResults is absent
-            results_list = data.get("results", [])
-            if not results_list:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="No coordinates found for the provided address."
-                )
-            match = results_list[0]
+        # PostGIS expects X=Longitude, Y=Latitude -> ST_MakePoint(lon, lat)
+        lat = float(match.get("lat"))
+        lon = float(match.get("lon"))
 
-        lat = float(match.get("lat") or match.get("latitude"))
-        lon = float(match.get("lng") or match.get("longitude"))
-        formatted_address = match.get("formattedAddress", address)
-        city = match.get("city") or match.get("district")
-        state = match.get("state")
-        pincode = match.get("pincode")
+        address_details = match.get("address", {})
+        city = (
+            address_details.get("city")
+            or address_details.get("town")
+            or address_details.get("suburb")
+        )
 
         return GeocodeResponse(
             latitude=lat,
             longitude=lon,
-            display_name=formatted_address,
+            display_name=match.get("display_name", address),
             city=city,
-            state=state,
-            pincode=pincode,
+            state=address_details.get("state"),
+            pincode=address_details.get("postcode"),
             wkt_point=f"SRID=4326;POINT({lon} {lat})"
         )
 

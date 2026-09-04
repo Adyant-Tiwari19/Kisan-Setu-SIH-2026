@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
-from typing import Dict, List
+from typing import Dict, List, Optional
 from app.database import get_db
 from app.models.listing import Crop, Listing
+from app.models.user import User
 from app.services.ranking_engine import calculate_seller_score
 from app.services.routing import cluster_orders_for_delivery
-from fastapi import APIRouter, Depends, HTTPException, status
+from app.api.v1.endpoints.location import geocode_address
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from geoalchemy2.functions import ST_Distance, ST_MakePoint, ST_SetSRID
 from geoalchemy2.types import Geography
 from pydantic import BaseModel
@@ -13,19 +15,27 @@ from sqlalchemy.orm import Session
 
 router = APIRouter()
 
-class RecommendationRequest(BaseModel):
-    crop_name: str
-    buyer_lat: float
-    buyer_lon: float
-
 class RouteClusterRequest(BaseModel):
     orders: List[Dict[str, float]]
 
 @router.post("/rank-sellers")
 def rank_sellers_for_buyer(
-    req: RecommendationRequest, db: Session = Depends(get_db)
+    crop_name: str = Query(..., description="Crop to be ranked for."), 
+    address: Optional[str] = Query(None, description="Buyer Location address string."),
+    db: Session = Depends(get_db)
 ):
-    clean_name = req.crop_name.strip().lower()
+
+    geo_res = geocode_address(address=address)
+    lat = geo_res.latitude
+    lon = geo_res.longitude
+
+    if lat is None or lon is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Provide valid buyer coordinates or a resolvable address. "
+        )
+    
+    clean_name = crop_name.strip().lower()
 
     crop = (
         db.query(Crop)
@@ -41,7 +51,7 @@ def rank_sellers_for_buyer(
         return []
 
     # 1. Construct buyer coordinate point in SRID 4326
-    buyer_point = ST_SetSRID(ST_MakePoint(req.buyer_lon, req.buyer_lat), 4326)
+    buyer_point = ST_SetSRID(ST_MakePoint(lon,lat), 4326)
 
     # 2. Cast both geometries to Geography to measure distance accurately in meters
     distance_in_meters = func.ST_Distance(
@@ -49,14 +59,15 @@ def rank_sellers_for_buyer(
         cast(buyer_point, Geography)
     )
 
-    listings = db.query(
-        Listing,
-        (distance_in_meters / 1000.0).label("distance_km")
-    ).filter(
-        Listing.cid == crop.cid,
-        Listing.is_active == True,
-        Listing.quantity_available > 0
-    ).all()
+    listings = (db.query(
+            Listing,
+            (distance_in_meters / 1000.0).label("distance_km")
+        ).filter(
+            Listing.cid == crop.cid,
+            Listing.is_active == True,
+            Listing.quantity_available > 0
+        ).all()
+    )
 
     if not listings:
         return []

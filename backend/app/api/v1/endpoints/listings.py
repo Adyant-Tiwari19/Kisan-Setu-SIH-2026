@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, cast
 from geoalchemy2.functions import ST_Distance, ST_MakePoint, ST_SetSRID
-from geoalchemy2.types import Geography
+from geoalchemy2.types import Geography, Geometry
 from pydantic import BaseModel
 
 from app.database import get_db
@@ -12,6 +12,7 @@ from app.models.listing import Listing, Crop
 from app.models.user import User
 from app.schemas.listing_schema import CropResponse, ListingCreate, ListingResponse
 from app.api.v1.endpoints.auth import get_current_user
+from app.api.v1.endpoints.location import geocode_address
 
 router = APIRouter()
 
@@ -25,6 +26,10 @@ class InventoryUpdateSchema(BaseModel):
 # Helper to attach crop_name to listing response
 def format_listing_response(listing: Listing, db: Session) -> ListingResponse:
     crop = db.query(Crop).filter(Crop.cid == listing.cid).first()
+
+    lat = db.scalar(func.ST_Y(cast(listing.location , Geometry))) or 0.0
+    lon = db.scalar(func.ST_X(cast(listing.location , Geometry))) or 0.0
+
     return ListingResponse(
         lid=listing.lid,
         fid=listing.fid,
@@ -35,7 +40,9 @@ def format_listing_response(listing: Listing, db: Session) -> ListingResponse:
         harvested_at=listing.harvested_at,
         expiry_date=listing.expiry_date,
         is_active=listing.is_active,
-        crop_name=crop.name if crop else f"Crop #{listing.cid}"
+        crop_name=crop.name if crop else f"Crop #{listing.cid}",
+        latitude= round(float(lat), 6),
+        longitude= round(float(lon), 6)
     )
 
 
@@ -82,11 +89,26 @@ def get_my_listings(
 @router.get("/search")
 def search_listings(
     crop_name: str = Query(..., description="Name or alias of the crop"),
-    lat: float = Query(..., description="Buyer Latitude"),
-    lon: float = Query(..., description="Buyer Longitude"),
+    lat: Optional[float] = Query(None, description="Buyer Latitude"),
+    lon: Optional[float] = Query(None, description="Buyer Longitude"),
+    address: Optional[str] = Query(None, description="Buyer location address text"),
     radius_km: float = Query(50.0, description="Search radius in kilometers"),
     db: Session = Depends(get_db)
 ):
+
+    buyer_lat, buyer_lon = lat,lon
+    if (buyer_lat is None or buyer_lon is None) and address:
+        geo_res = geocode_address(address=address)
+        buyer_lat = geo_res.latitude
+        buyer_lon = geo_res.longitude
+
+    if (buyer_lat is None or buyer_lon is None):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Must Provide either(lat,lon) coords or a valid address."
+        )
+
+    
     clean_name = crop_name.strip().lower()
 
     # 1. Match Crop by name or aliases
@@ -105,7 +127,7 @@ def search_listings(
         return []
 
     # 2. Construct spatial point for the buyer (SRID 4326)
-    buyer_point = ST_SetSRID(ST_MakePoint(lon, lat), 4326)
+    buyer_point = ST_SetSRID(ST_MakePoint(buyer_lon, buyer_lat), 4326)
 
     # Convert radius_km to meters for PostGIS Geography calculation
     radius_meters = radius_km * 1000.0
@@ -120,12 +142,11 @@ def search_listings(
 
     # 4. Filter by crop, active status, AND spatial distance radius
     results = (
-        db.query(Listing, distance_km_col)
+        db.query(Listing, distance_km_col, func.ST_Y(cast(Listing.location, Geometry)).label("listing_lat"), func.ST_X(cast(Listing.location, Geometry)).label("listing_lon"))
         .filter(
             Listing.cid == crop.cid,
             Listing.is_active == True,
             Listing.quantity_available > 0,
-            # Filter strictly within the requested radius
             func.ST_DWithin(
                 cast(Listing.location, Geography),
                 cast(buyer_point, Geography),
@@ -137,7 +158,7 @@ def search_listings(
     )
 
     formatted_listings = []
-    for listing, dist in results:
+    for listing, dist, l_lat, l_lon in results:
         formatted_listings.append({
             "lid": listing.lid,
             "fid": listing.fid,
@@ -147,6 +168,8 @@ def search_listings(
             "price_per_unit": listing.price_per_unit,
             "listing_type": listing.listing_type,
             "distance_km": round(float(dist), 2) if dist is not None else 0.0,
+            "longitude": round(float(l_lat),6) if l_lat else 0.0,
+            "latitude": round(float(l_lon), 6) if l_lon else 0.0,
             "harvested_at": listing.harvested_at,
             "expiry_date": listing.expiry_date
         })
@@ -189,9 +212,20 @@ def create_listing(
         )
 
     # Resolve coordinates
-    lat = listing_in.lat or (listing_in.location.latitude if listing_in.location else 19.9975)
-    lon = listing_in.lon or (listing_in.location.longitude if listing_in.location else 73.7898)
-    point = ST_SetSRID(ST_MakePoint(lon, lat), 4326)
+    lat = listing_in.lat or (listing_in.location.latitude if listing_in.location else None)
+    lon = listing_in.lon or (listing_in.location.longitude if listing_in.location else None)
+    if (lat is None or lon is None) and listing_in.address:
+        geo_res = geocode_address(address=listing_in.address)
+        lat = geo_res.latitude
+        lon = geo_res.longitude
+
+    if lat is None or lon is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Provide valid coordinates (lat/lon) or a resolvable address. "
+        )
+
+    point = ST_SetSRID(ST_MakePoint(lat, lon), 4326)
     
     now = datetime.now(timezone.utc)
     harvested_at = listing_in.harvested_at or now
