@@ -7,12 +7,14 @@ import jwt
 from pydantic import BaseModel,Field
 from app.database import get_db
 from app.models.user import User, UserRole
+from app.api.v1.endpoints.location import geocode_address
 from app.schemas.user_schema import UserCreate, UserResponse
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 from app.core.config import settings
+from geoalchemy2.functions import ST_SetSRID, ST_MakePoint
 
 router = APIRouter()
 
@@ -30,6 +32,8 @@ class UserRegisterSchema(BaseModel):
     pincode: Optional[str] = None
     account_num: Optional[str] = None
     ifsc: Optional[str] = None
+
+    address: str
 
 class ForgotPasswordRequest(BaseModel):
     phone: str
@@ -148,13 +152,19 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED
 )
-def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
+def register_user(user_in: UserRegisterSchema, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.phone == user_in.phone).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User with this phone number is already registered."
         )
+
+    geo_res = geocode_address(address= user_in.address)
+    lat = geo_res.latitude
+    lon = geo_res.longitude
+
+    location_point = ST_SetSRID(ST_MakePoint(lon,lat), 4326)
     try:
         user = User(
             name = user_in.name,
@@ -164,7 +174,8 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
             address= user_in.address,
             pincode= user_in.pincode,
             account_num= user_in.account_num,
-            ifsc= user_in.ifsc
+            ifsc= user_in.ifsc,
+            location= location_point
         )
         db.add(user)
         db.commit()

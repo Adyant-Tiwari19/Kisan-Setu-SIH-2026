@@ -1,6 +1,7 @@
 import enum
 from sqlalchemy import Column, DateTime, Enum, Float, Integer, String
 from app.database import Base
+from geoalchemy2 import Geometry
 
 
 class UserRole(str, enum.Enum):
@@ -29,3 +30,5 @@ class User(Base):
 
   account_num = Column(String(18), nullable=True)
   ifsc = Column(String(11), nullable=True)
+
+  location = Column(Geometry(geometry_type="POINT", srid = 4326, spatial_index=True), nullable = False)

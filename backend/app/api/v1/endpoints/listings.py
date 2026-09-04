@@ -211,13 +211,27 @@ def create_listing(
             detail="Either cid or a valid crop_name must be provided."
         )
 
-    # Resolve coordinates
-    lat = listing_in.lat or (listing_in.location.latitude if listing_in.location else None)
-    lon = listing_in.lon or (listing_in.location.longitude if listing_in.location else None)
-    if (lat is None or lon is None) and listing_in.address:
-        geo_res = geocode_address(address=listing_in.address)
-        lat = geo_res.latitude
-        lon = geo_res.longitude
+    address_filled = listing_in.address
+
+    if not address_filled:
+        address_filled = current_user.address
+
+    if not address_filled:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your address is missing. Please update your profile with a valid address. "
+        )
+
+
+    geo_res = geocode_address(address=address_filled)
+    lat = geo_res.latitude
+    lon = geo_res.longitude
+
+    if not geo_res or geo_res.latitude is None or geo_res.longitude is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unable to resolve spatial coordinates for address: '{address_filled}'"
+        )
 
     if lat is None or lon is None:
         raise HTTPException(
@@ -225,7 +239,7 @@ def create_listing(
             detail="Provide valid coordinates (lat/lon) or a resolvable address. "
         )
 
-    point = ST_SetSRID(ST_MakePoint(lat, lon), 4326)
+    point = ST_SetSRID(ST_MakePoint(lon, lat), 4326)
     
     now = datetime.now(timezone.utc)
     harvested_at = listing_in.harvested_at or now
@@ -245,7 +259,24 @@ def create_listing(
     db.add(listing)
     db.commit()
     db.refresh(listing)
-    return format_listing_response(listing, db)
+
+    seller_lat = db.scalar(func.ST_Y(listing.location)) or 0.0
+    seller_lon = db.scalar(func.ST_X(listing.location)) or 0.0
+
+    return {
+        "lid" : listing.lid,
+        "fid" : listing.fid,
+        "cid" : listing.cid,
+        "crop_name" : listing_in.crop_name,
+        "quantity_available": listing.quantity_available,
+        "price_per_unit" : listing.price_per_unit,
+        "listing_type" : listing.listing_type,
+        "harvested_at" : listing.harvested_at,
+        "expiry_date" : listing.expiry_date,
+        "is_active" : listing.is_active,
+        "latitude" : round(float(seller_lat),6),
+        "longitude": round(float(seller_lon),6)
+    }
 
 
 # 5. Restock or Edit Inventory
@@ -324,5 +355,4 @@ def delete_listing(
     listing.is_active = False
 
     db.commit()
-    db.refresh(listing)
     return {"success": True, "message": f"Listing #{lid} removed successfully."}

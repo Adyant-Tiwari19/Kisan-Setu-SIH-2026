@@ -24,8 +24,8 @@ class ListingCreate(BaseModel):
     listing_type: Optional[str] = "Standard"
     harvested_at: Optional[datetime] = None
     expiry_date: Optional[datetime] = None
-    address: Optional[datetime] = None
-    location: Optional[LocationPoint] = None
+    address: Optional[str] = None
+
 
 class ListingResponse(BaseModel):
     lid: int
