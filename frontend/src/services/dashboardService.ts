@@ -15,6 +15,7 @@ export interface RecentPayout {
 
 export interface FarmerIncomeDashboard {
   total_earnings: number
+  monthly_earnings: number
   pending_escrow: number
   total_quantity_sold: number
   total_completed_orders: number
@@ -24,6 +25,7 @@ export interface FarmerIncomeDashboard {
 
 const DEFAULT_FARMER_DASHBOARD: FarmerIncomeDashboard = {
   total_earnings: 0,
+  monthly_earnings: 0,
   pending_escrow: 0,
   total_quantity_sold: 0,
   total_completed_orders: 0,

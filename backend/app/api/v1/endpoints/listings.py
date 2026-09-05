@@ -2,7 +2,8 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_, cast
+from sqlalchemy import func, or_, cast, literal
+from sqlalchemy.exc import IntegrityError
 from geoalchemy2.functions import ST_Distance, ST_MakePoint, ST_SetSRID
 from geoalchemy2.types import Geography, Geometry
 from pydantic import BaseModel
@@ -10,7 +11,7 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.models.listing import Listing, Crop
 from app.models.user import User
-from app.schemas.listing_schema import CropResponse, ListingCreate, ListingResponse
+from app.schemas.listing_schema import CropResponse, ListingCreate, ListingResponse, ListingUpdate
 from app.api.v1.endpoints.auth import get_current_user
 from app.api.v1.endpoints.location import geocode_address
 
@@ -21,6 +22,11 @@ class InventoryUpdateSchema(BaseModel):
     add_quantity: float
     price_per_unit: Optional[float] = None
     is_active: Optional[bool] = True
+
+
+class ListingDeleteResponse(BaseModel):
+    success: bool
+    message: str
 
 
 # Helper to attach crop_name to listing response
@@ -41,6 +47,7 @@ def format_listing_response(listing: Listing, db: Session) -> ListingResponse:
         expiry_date=listing.expiry_date,
         is_active=listing.is_active,
         crop_name=crop.name if crop else f"Crop #{listing.cid}",
+        sample_img_url=crop.sample_img_url if crop else None,
         latitude= round(float(lat), 6),
         longitude= round(float(lon), 6)
     )
@@ -81,7 +88,9 @@ def get_my_listings(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    listings = db.query(Listing).filter(Listing.fid == current_user.uid).order_by(Listing.lid.desc()).all()
+    listings = db.query(Listing).filter(
+        Listing.fid == current_user.uid
+    ).order_by(Listing.lid.desc()).all()
     return [format_listing_response(l, db) for l in listings]
 
 
@@ -92,17 +101,18 @@ def search_listings(
     lat: Optional[float] = Query(None, description="Buyer Latitude"),
     lon: Optional[float] = Query(None, description="Buyer Longitude"),
     address: Optional[str] = Query(None, description="Buyer location address text"),
-    radius_km: float = Query(50.0, description="Search radius in kilometers"),
+    radius_km: Optional[float] = Query(50.0, description="Search radius in kilometers; omit for all listings"),
     db: Session = Depends(get_db)
 ):
 
     buyer_lat, buyer_lon = lat,lon
-    if (buyer_lat is None or buyer_lon is None) and address:
+    search_all_distances = radius_km is None
+    if not search_all_distances and (buyer_lat is None or buyer_lon is None) and address:
         geo_res = geocode_address(address=address)
         buyer_lat = geo_res.latitude
         buyer_lon = geo_res.longitude
 
-    if (buyer_lat is None or buyer_lon is None):
+    if not search_all_distances and (buyer_lat is None or buyer_lon is None):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Must Provide either(lat,lon) coords or a valid address."
@@ -127,43 +137,68 @@ def search_listings(
         return []
 
     # 2. Construct spatial point for the buyer (SRID 4326)
-    buyer_point = ST_SetSRID(ST_MakePoint(buyer_lon, buyer_lat), 4326)
+    buyer_point = (
+        None
+        if search_all_distances
+        else ST_SetSRID(ST_MakePoint(buyer_lon, buyer_lat), 4326)
+    )
 
     # Convert radius_km to meters for PostGIS Geography calculation
-    radius_meters = radius_km * 1000.0
+    radius_meters = radius_km * 1000.0 if radius_km is not None else None
 
     # 3. Calculate dynamic distance in km
     distance_km_col = (
-        func.ST_Distance(
-            cast(Listing.location, Geography),
-            cast(buyer_point, Geography)
-        ) / 1000.0
+        literal(None)
+        if search_all_distances
+        else (
+            func.ST_Distance(
+                cast(Listing.location, Geography),
+                cast(buyer_point, Geography)
+            ) / 1000.0
+        )
     ).label("distance_km")
 
     # 4. Filter by crop, active status, AND spatial distance radius
     results = (
-        db.query(Listing, distance_km_col, func.ST_Y(cast(Listing.location, Geometry)).label("listing_lat"), func.ST_X(cast(Listing.location, Geometry)).label("listing_lon"))
+        db.query(
+            Listing,
+            Crop,
+            User,
+            distance_km_col,
+            func.ST_Y(cast(Listing.location, Geometry)).label("listing_lat"),
+            func.ST_X(cast(Listing.location, Geometry)).label("listing_lon")
+        )
+        .join(Crop, Crop.cid == Listing.cid)
+        .join(User, User.uid == Listing.fid)
         .filter(
-            Listing.cid == crop.cid,
+            Crop.cid == crop.cid,
             Listing.is_active == True,
             Listing.quantity_available > 0,
+        )
+    )
+    if not search_all_distances:
+        results = results.filter(
             func.ST_DWithin(
                 cast(Listing.location, Geography),
                 cast(buyer_point, Geography),
                 radius_meters
             )
-        )
-        .order_by(distance_km_col)
-        .all()
-    )
+        ).order_by(distance_km_col)
+    else:
+        results = results.order_by(Listing.lid.desc())
+    results = results.all()
 
     formatted_listings = []
-    for listing, dist, l_lat, l_lon in results:
+    for listing, listing_crop, listing_farmer, dist, l_lat, l_lon in results:
         formatted_listings.append({
             "lid": listing.lid,
             "fid": listing.fid,
             "cid": listing.cid,
-            "crop_name": crop.name,
+            "crop_name": listing_crop.name,
+            "sample_img_url": listing_crop.sample_img_url,
+            "farmer_name": listing_farmer.name,
+            "farmer_address": listing_farmer.address,
+            "farmer_phone": listing_farmer.phone,
             "quantity_available": listing.quantity_available,
             "price_per_unit": listing.price_per_unit,
             "listing_type": listing.listing_type,
@@ -280,6 +315,29 @@ def create_listing(
 
 
 # 5. Restock or Edit Inventory
+@router.put("/{lid}", response_model=ListingResponse)
+def update_listing(
+    lid: int,
+    listing_in: ListingUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    listing = db.query(Listing).filter(Listing.lid == lid).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing record not found.")
+    if listing.fid != current_user.uid:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only edit your own listings.")
+    if listing_in.quantity_available < 0 or listing_in.price_per_unit <= 0:
+        raise HTTPException(status_code=400, detail="Quantity cannot be negative and price must be greater than zero.")
+
+    listing.quantity_available = listing_in.quantity_available
+    listing.price_per_unit = listing_in.price_per_unit
+    listing.is_active = listing_in.quantity_available > 0
+    db.commit()
+    db.refresh(listing)
+    return format_listing_response(listing, db)
+
+
 @router.patch("/{lid}/inventory", response_model=ListingResponse)
 def restock_inventory(
     lid: int, 
@@ -336,7 +394,7 @@ def toggle_listing_active(
 
 
 # 7. Delete listing completely
-@router.delete("/{lid}")
+@router.delete("/{lid}", response_model=ListingDeleteResponse)
 def delete_listing(
     lid: int,
     db: Session = Depends(get_db),
@@ -352,7 +410,15 @@ def delete_listing(
             detail="Forbidden: You can only delete your own listings."
         )
 
-    listing.is_active = False
+    try:
+        db.delete(listing)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This listing cannot be deleted because it has existing orders. "
+                   "Set its quantity to zero or keep it inactive instead."
+        )
 
-    db.commit()
     return {"success": True, "message": f"Listing #{lid} removed successfully."}

@@ -27,6 +27,11 @@ class ListingCreate(BaseModel):
     address: Optional[str] = None
 
 
+class ListingUpdate(BaseModel):
+    quantity_available: float
+    price_per_unit: float
+
+
 class ListingResponse(BaseModel):
     lid: int
     fid: int
@@ -38,6 +43,7 @@ class ListingResponse(BaseModel):
     expiry_date: datetime
     is_active: bool
     crop_name: Optional[str] = None
+    sample_img_url: Optional[str] = None
 
     latitude: float
     longitude: float

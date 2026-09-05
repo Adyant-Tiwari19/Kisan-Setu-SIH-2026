@@ -19,6 +19,8 @@ export interface User {
   backendRole?: BackendUserRole
   address?: string
   pincode?: string
+  account_num?: string
+  ifsc?: string
   organization?: string
   location?: string
   reliability_score?: number
@@ -242,6 +244,8 @@ class AuthService {
           backendRole: backendUser.role,
           address: backendUser.address,
           pincode: backendUser.pincode,
+          account_num: backendUser.account_num,
+          ifsc: backendUser.ifsc,
           location: backendUser.address || 'India',
           createdAt: new Date().toISOString(),
         }
@@ -352,6 +356,8 @@ class AuthService {
           backendRole: backendUser.role,
           address: backendUser.address,
           pincode: backendUser.pincode,
+          account_num: backendUser.account_num,
+          ifsc: backendUser.ifsc,
           location: backendUser.address || 'India',
         }
         this.saveSession(data.access_token, user)
@@ -446,6 +452,33 @@ class AuthService {
   /**
    * Verify Registration OTP & Create User
    */
+  async getCurrentUserProfile(): Promise<User> {
+    const backendUser = await apiClient.get<{
+      uid: number
+      name: string
+      phone: string
+      role: string
+      address?: string
+      pincode?: string
+      account_num?: string
+      ifsc?: string
+    }>('/auth/me')
+
+    return {
+      id: backendUser.uid,
+      uid: backendUser.uid,
+      name: backendUser.name,
+      phone: backendUser.phone,
+      role: backendToFrontendRole(backendUser.role),
+      backendRole: backendUser.role as BackendUserRole,
+      address: backendUser.address,
+      pincode: backendUser.pincode,
+      account_num: backendUser.account_num,
+      ifsc: backendUser.ifsc,
+      location: backendUser.address || 'India',
+    }
+  }
+
   async verifyRegisterOtp(data: RegisterData, otp: string): Promise<AuthResponse> {
     const cleanPhone = data.phone.replace(/\D/g, '').slice(0, 10)
     const cleanOtp = otp.trim()
@@ -475,6 +508,8 @@ class AuthService {
           backendRole: backendUser.role,
           address: backendUser.address,
           pincode: backendUser.pincode,
+          account_num: backendUser.account_num,
+          ifsc: backendUser.ifsc,
           location: backendUser.address || 'India',
         }
         this.saveSession(res.access_token, user)
@@ -554,6 +589,15 @@ class AuthService {
         JSON.stringify({ token, user, timestamp: Date.now() })
       )
       localStorage.setItem('farm-direct-logged-in', 'true')
+    } catch {
+      // ignore
+    }
+  }
+
+  clearSession() {
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem('farm-direct-logged-in')
     } catch {
       // ignore
     }

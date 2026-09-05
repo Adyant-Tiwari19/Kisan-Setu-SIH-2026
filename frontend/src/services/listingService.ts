@@ -17,6 +17,7 @@ export interface Listing {
   fid: number
   cid: number
   crop_name?: string
+  sample_img_url?: string | null
   farmer_name?: string
   origin?: string
   quantity_available: number
@@ -34,8 +35,11 @@ export interface Listing {
 
 export interface MarketplaceListing {
   id: number | string
+  sample_img_url?: string | null
   crop_name: string
   farmer_name: string
+  farmer_address?: string | null
+  farmer_phone?: string | null
   origin: string
   quantity_available: number | null
   price_per_unit: number | null
@@ -127,8 +131,11 @@ export function mapSearchResponseItem(raw: Record<string, unknown>): Marketplace
 
   return {
     id: idValue,
+    sample_img_url: typeof raw.sample_img_url === 'string' ? raw.sample_img_url : null,
     crop_name: cropName,
     farmer_name: farmerName,
+    farmer_address: typeof raw.farmer_address === 'string' ? raw.farmer_address : null,
+    farmer_phone: typeof raw.farmer_phone === 'string' ? raw.farmer_phone : null,
     origin: originText,
     quantity_available: toNumber(raw.quantity_available ?? raw.qty ?? raw.stock_kg ?? raw.available_quantity),
     price_per_unit: toNumber(raw.price_per_unit ?? raw.unit_price ?? raw.price_per_kg ?? raw.price),
@@ -189,19 +196,19 @@ class ListingService {
     cropName: string,
     lat: number | string,
     lon: number | string,
-    radiusKm = 10
+    radiusKm: number | null = 10
   ): Promise<MarketplaceListing[]> {
     const safeCropName = cropName.trim()
-    if (!safeCropName || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) {
+    if (!safeCropName || (radiusKm !== null && (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon)))) ) {
       return []
     }
 
-    const params = new URLSearchParams({
-      crop_name: safeCropName,
-      lat: String(lat),
-      lon: String(lon),
-      radius_km: radiusKm.toString(),
-    })
+    const params = new URLSearchParams({ crop_name: safeCropName })
+    if (radiusKm !== null) {
+      params.set('lat', String(lat))
+      params.set('lon', String(lon))
+      params.set('radius_km', radiusKm.toString())
+    }
 
     const response = await apiClient.get<unknown>(`/listings/search?${params.toString()}`)
     const payload = Array.isArray(response)
@@ -231,6 +238,10 @@ class ListingService {
     return apiClient.patch<Listing>(`/listings/${lid}/inventory`, payload)
   }
 
+  async updateListing(lid: number, payload: { quantity_available: number; price_per_unit: number }): Promise<Listing> {
+    return apiClient.put<Listing>(`/listings/${lid}`, payload)
+  }
+
   /**
    * Take down or reactivate a listing
    */
@@ -247,4 +258,3 @@ class ListingService {
 }
 
 export const listingService = new ListingService()
-

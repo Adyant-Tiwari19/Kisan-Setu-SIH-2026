@@ -69,15 +69,15 @@ def place_order(
             status_code=404, detail="Listing is no longer active or available."
         )
 
-    # If requested quantity is larger than single listing, fulfill maximum available stock
+    if order_in.quantity <= 0:
+        raise HTTPException(status_code=400, detail="Order quantity must be greater than zero.")
+    if order_in.quantity > listing.quantity_available:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only {listing.quantity_available} kg is available for this listing."
+        )
+
     actual_quantity = order_in.quantity
-    if listing.quantity_available < order_in.quantity:
-        if listing.quantity_available > 0:
-            actual_quantity = listing.quantity_available
-        else:
-            raise HTTPException(
-                status_code=400, detail="Insufficient stock available for this order."
-            )
 
     produce_price = listing.price_per_unit * actual_quantity
     logistics_price = round(actual_quantity * 1.5, 2)  
