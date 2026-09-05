@@ -102,11 +102,16 @@ def search_listings(
     lon: Optional[float] = Query(None, description="Buyer Longitude"),
     address: Optional[str] = Query(None, description="Buyer location address text"),
     radius_km: Optional[float] = Query(50.0, description="Search radius in kilometers; omit for all listings"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
 
     buyer_lat, buyer_lon = lat,lon
     search_all_distances = radius_km is None
+
+    if address == None:
+        address = current_user.address
+
     if not search_all_distances and (buyer_lat is None or buyer_lon is None) and address:
         geo_res = geocode_address(address=address)
         buyer_lat = geo_res.latitude
