@@ -9,12 +9,13 @@ from app.database import get_db
 from app.models.user import User, UserRole
 from app.api.v1.endpoints.location import geocode_address
 from app.schemas.user_schema import UserCreate, UserResponse
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 from app.core.config import settings
 from geoalchemy2.functions import ST_SetSRID, ST_MakePoint
+import bcrypt
 
 router = APIRouter()
 
@@ -91,14 +92,7 @@ class Token(BaseModel):
     token_type: str
     user: UserResponse
 
-class ProfileUpdate(BaseModel):
-    name: str | None = None
-    address: str | None = None
-    pincode: str | None = None
-    account_num: str | None = None
-    ifsc: str | None = None
 
-import bcrypt
 
 def get_password_hash(password: str) -> str:
     pwd_bytes = password.encode('utf-8')[:72]
@@ -471,13 +465,25 @@ def read_users_me(current_user: User = Depends(get_current_user)):
 
 @router.patch("/me", response_model=UserResponse)
 def update_user_profile(
-    profile_in: ProfileUpdate,
+    name: Optional[str] = Query(None,description="Name of the User"),
+    address: Optional[str] = Query(None,description="Address of the User"),
+    account_num: Optional[str] = Query(None,description="Account Number of the user"),
+    ifsc: Optional[str] = Query(None,description="IFSC code of User's acc"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    update_data = profile_in.model_dump(exclude_unset=True)
-    for field,value in update_data.items():
-        setattr(current_user, field, value)
+
+    if (current_user.name != name and name != None):
+        current_user.name = name
+
+    if (current_user.address != address and address != None):
+        current_user.address = address
+
+    if (current_user.account_num != account_num and account_num):
+        current_user.account_num = account_num
+
+    if (current_user.ifsc != ifsc and ifsc):
+        current_user.ifsc = ifsc
 
     db.commit()
     db.refresh(current_user)
