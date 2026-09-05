@@ -12,6 +12,8 @@ interface AuthContextType {
   token: string | null
   isAuthenticated: boolean
   isLoading: boolean
+  isProfileVisible: boolean
+  toggleProfile: () => void
   login: (credentials: LoginCredentials) => Promise<AuthResponse>
   verifyLoginOtp: (phone: string, otp: string) => Promise<AuthResponse>
   verifyRegisterOtp: (data: RegisterData, otp: string) => Promise<AuthResponse>
@@ -24,6 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(() => authService.getCurrentUser())
   const [token, setToken] = useState<string | null>(() => authService.getAuthToken())
   const [isLoading, setIsLoading] = useState(false)
+  const [isProfileVisible, setIsProfileVisible] = useState(false)
 
   const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     setIsLoading(true)
@@ -71,6 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await authService.logout()
     setUser(null)
     setToken(null)
+    setIsProfileVisible(false)
   }
 
   return (
@@ -80,6 +84,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         token,
         isAuthenticated: !!user,
         isLoading,
+        isProfileVisible,
+        toggleProfile: () => setIsProfileVisible((visible) => !visible),
         login,
         verifyLoginOtp,
         verifyRegisterOtp,

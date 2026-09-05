@@ -1,44 +1,36 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authService } from '../services/authService'
+import { useAuth } from '../context/AuthContext'
+import { orderService, type Order } from '../services/orderService'
 
-const orderNotifications = [
-  {
-    id: 'notif-1',
-    title: 'Order confirmed',
-    detail: 'Your latest harvest order #FDR-2048 has been confirmed by buyer.',
-    time: '15m ago',
-    type: 'success',
-  },
-  {
-    id: 'notif-2',
-    title: 'Pickup reminder',
-    detail: 'Scheduled pickup slot today at 2:30 PM (Tomato, 150 kg).',
-    time: '2h ago',
-    type: 'alert',
-  },
-  {
-    id: 'notif-3',
-    title: 'Demand surge alert',
-    detail: 'Tomato & Onion regional demand is trending +18% higher this week.',
-    time: '1d ago',
-    type: 'info',
-  },
-]
+const formatOrderStatus = (status: Order['status']) =>
+  status.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
 
 export function DashboardHeader() {
   const navigate = useNavigate()
+  const { user, toggleProfile } = useAuth()
   const [openMenu, setOpenMenu] = useState<'notifications' | 'profile' | null>(null)
+  const [orders, setOrders] = useState<Order[]>([])
+  const [loadedOrderPhone, setLoadedOrderPhone] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  const user = authService.getCurrentUser()
   const displayName = user?.name || 'Fresh Ferme Member'
-  const roleName =
-    user?.role === 'bulk-buyer'
-      ? 'Bulk Buyer'
-      : user?.role
-        ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
-        : 'Farmer'
+
+  useEffect(() => {
+    let isMounted = true
+    void orderService.getMyOrders().then((userOrders) => {
+      if (isMounted) {
+        setOrders(userOrders)
+        setLoadedOrderPhone(user?.phone || null)
+      }
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [user?.phone])
+
+  const currentOrders = loadedOrderPhone === user?.phone ? orders : []
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -62,7 +54,7 @@ export function DashboardHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-emerald-100/90 bg-white/95 shadow-sm backdrop-blur-xl">
-      <div className="section-shell flex min-h-20 items-center justify-between gap-4">
+      <div className="section-shell flex min-h-16 items-center justify-between gap-4 px-4 py-3 sm:px-6 md:min-h-20 md:px-8 md:py-4">
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-3" aria-label="Fresh Ferme home">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-lime-400 text-xl font-black text-white shadow-lg shadow-emerald-500/25">
@@ -95,7 +87,7 @@ export function DashboardHeader() {
               </svg>
               <span>Orders</span>
               <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 text-xs font-bold text-white">
-                {orderNotifications.length}
+                {currentOrders.length}
               </span>
             </button>
 
@@ -110,7 +102,7 @@ export function DashboardHeader() {
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-bold text-slate-900">Order notifications</h3>
                     <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                      {orderNotifications.length} New
+                      {currentOrders.length} Orders
                     </span>
                   </div>
                   <button
@@ -123,29 +115,26 @@ export function DashboardHeader() {
                 </div>
 
                 <div className="mt-3 space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
-                  {orderNotifications.map((notification) => (
+                  {currentOrders.length === 0 && (
+                    <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-500">
+                      No order notifications available.
+                    </div>
+                  )}
+                  {currentOrders.map((order) => (
                     <div
-                      key={notification.id}
+                      key={order.oid}
                       className="group rounded-xl border border-transparent bg-slate-50 p-3 transition hover:border-emerald-100 hover:bg-emerald-50/60"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`h-2 w-2 rounded-full ${notification.type === 'success'
-                              ? 'bg-emerald-500'
-                              : notification.type === 'alert'
-                                ? 'bg-amber-500'
-                                : 'bg-sky-500'
-                              }`}
-                          />
-                          <span className="text-sm font-bold text-slate-900">{notification.title}</span>
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                          <span className="text-sm font-bold text-slate-900">
+                            Order #{order.oid} · {formatOrderStatus(order.status)}
+                          </span>
                         </div>
-                        <span className="shrink-0 text-[11px] font-medium text-slate-400">
-                          {notification.time}
-                        </span>
                       </div>
                       <p className="mt-1.5 text-xs leading-5 text-slate-600">
-                        {notification.detail}
+                        {order.crop_name || 'Crop not available'} · {order.quantity} kg · ₹{order.produce_price.toLocaleString('en-IN')}
                       </p>
                     </div>
                   ))}
@@ -209,23 +198,16 @@ export function DashboardHeader() {
                   </div>
                 </div>
 
-                <div className="my-3 flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2">
-                  <span className="text-xs font-semibold text-emerald-800">Current Role</span>
-                  <span className="rounded-full bg-emerald-600 px-2.5 py-0.5 text-[11px] font-bold text-white uppercase tracking-wider">
-                    {roleName}
-                  </span>
-                </div>
-
-                <div className="space-y-1 text-sm text-slate-600">
-                  <Link
-                    to="/role-selection"
-                    onClick={() => setOpenMenu(null)}
-                    className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left font-medium text-slate-700 hover:bg-slate-50 hover:text-emerald-700"
-                  >
-                    <span>Switch Role / View</span>
-                    <span className="text-xs text-slate-400">→</span>
-                  </Link>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleProfile()
+                    setOpenMenu(null)
+                  }}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 py-2.5 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100"
+                >
+                  View my profile
+                </button>
 
                 <button
                   type="button"

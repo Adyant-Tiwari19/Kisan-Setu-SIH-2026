@@ -105,6 +105,14 @@ class ApiClient {
     })
   }
 
+  put<T>(endpoint: string, data?: any, options?: RequestInit): Promise<T> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'PUT',
+      body: data !== undefined ? JSON.stringify(data) : undefined,
+    })
+  }
+
   delete<T>(endpoint: string, options?: RequestInit): Promise<T> {
     return this.request<T>(endpoint, { ...options, method: 'DELETE' })
   }

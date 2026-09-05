@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { listingService, type MarketplaceListing } from '../services/listingService'
+import { orderService, type Order } from '../services/orderService'
+import { useAuth } from '../context/AuthContext'
 
 const navItems = ['Home', 'Marketplace', 'Cart', 'Orders']
-const radiusOptions = [5, 10, 25, 50]
-const orderTimeline = ['Confirmed', 'Pickup', 'In Transit', 'Delivered']
+const radiusOptions: Array<number | null> = [20, 50, 100, 500]
 const searchLatitude = '28.6139'
 const searchLongitude = '77.2090'
 
@@ -23,11 +24,6 @@ const formatDistance = (value: number | null | undefined) => {
   return `${value} km`
 }
 
-const formatQuantity = (value: number | null | undefined) => {
-  if (value === null || value === undefined || Number.isNaN(value)) return 'Not available'
-  return `${value} kg`
-}
-
 const formatHarvestDate = (value: string | null) => {
   if (!value) return 'Not available'
   const date = new Date(value)
@@ -36,22 +32,40 @@ const formatHarvestDate = (value: string | null) => {
 
 const getUnitPrice = (listing: MarketplaceListing) => listing.estimated_landed_price ?? listing.price_per_unit
 
+const getCropImageUrl = (sampleImageUrl: string | null | undefined) => {
+  if (!sampleImageUrl) return null
+  const filename = sampleImageUrl.split(/[\\/]/).pop()?.trim()
+  if (!filename || filename === '.' || filename === '..') return null
+  return `/images/${encodeURIComponent(filename)}`
+}
+
 const formatLineTotal = (listing: MarketplaceListing, quantity: number) => {
   const unitPrice = getUnitPrice(listing)
   return formatCurrency(unitPrice === null ? null : unitPrice * quantity)
 }
 
-export function RetailMarketplace() {
+interface RetailMarketplaceProps {
+  embedded?: boolean
+  wholesale?: boolean
+}
+
+export function RetailMarketplace({ embedded = false, wholesale = false }: RetailMarketplaceProps) {
+  const { user } = useAuth()
   const [showCheckout, setShowCheckout] = useState(false)
   const [activeNav, setActiveNav] = useState('Marketplace')
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [cropQuery, setCropQuery] = useState('')
-  const [radiusKm, setRadiusKm] = useState(10)
+  const [radiusKm, setRadiusKm] = useState<number | null>(20)
   const [cart, setCart] = useState<Record<string | number, number>>({})
   const [dashboardMessage, setDashboardMessage] = useState('')
   const [listings, setListings] = useState<MarketplaceListing[]>([])
   const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'success' | 'empty' | 'apiError'>('idle')
   const [validationMessage, setValidationMessage] = useState('')
+  const [orders, setOrders] = useState<Order[]>([])
+
+  useEffect(() => {
+    void orderService.getMyOrders().then(setOrders)
+  }, [])
 
   const visibleProducts = useMemo(() => {
     if (!listings.length) return []
@@ -82,21 +96,24 @@ export function RetailMarketplace() {
     })
   }
 
-  const updateQuantity = (listingId: string | number, quantity: number) => {
+  const updateQuantity = (listing: MarketplaceListing, quantity: number) => {
+    const availableQuantity = listing.quantity_available ?? 0
+    if (quantity > availableQuantity) {
+      setDashboardMessage(`Only ${availableQuantity} kg of ${listing.crop_name} is available.`)
+      return
+    }
     setCart((current) => {
       const next = { ...current }
-      if (quantity <= 0) delete next[listingId]
-      else next[listingId] = Math.min(quantity, 10)
+      if (quantity <= 0) delete next[listing.id]
+      else next[listing.id] = quantity
       return next
     })
     setOrderPlaced(false)
   }
 
   const addToCart = (listing: MarketplaceListing) => {
-    setCart((current) => ({
-      ...current,
-      [listing.id]: Math.min((current[listing.id] ?? 0) + 1, 10),
-    }))
+    const nextQuantity = (cart[listing.id] ?? 0) + 1
+    updateQuantity(listing, nextQuantity)
   }
 
   const handleSearch = async () => {
@@ -133,14 +150,36 @@ export function RetailMarketplace() {
     void handleSearch()
   }
 
+  const placeOrder = async () => {
+    try {
+      const createdOrders = await Promise.all(
+        cartItems
+          .filter((listing) => typeof listing.id === 'number' && (cart[listing.id] ?? 0) > 0)
+          .map((listing) =>
+            orderService.placeOrder({
+              lid: listing.id as number,
+              quantity: cart[listing.id] ?? 0,
+            })
+          )
+      )
+      setOrders((current) => [...createdOrders, ...current])
+      setCart({})
+      setOrderPlaced(true)
+      setShowCheckout(false)
+      setActiveNav('Orders')
+    } catch (error) {
+      setDashboardMessage(error instanceof Error ? error.message : 'Unable to place order with the requested quantity.')
+    }
+  }
+
   return (
-    <section className="section-shell py-16">
+    <section className={embedded ? 'w-full' : 'section-shell py-16'}>
       <div className="mx-auto max-w-6xl rounded-4xl border border-slate-200 bg-white p-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-6">
         <div className="rounded-3xl bg-linear-to-br from-emerald-50 via-white to-amber-50 p-4 md:p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Retail Consumer</div>
-              <h2 className="mt-2 text-2xl font-black tracking-tighter text-slate-900 md:text-3xl">Fresh picks near you</h2>
+              <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{wholesale ? 'Wholesale User' : 'Retail Consumer'}</div>
+              <h2 className="mt-2 text-2xl font-black tracking-tighter text-slate-900 md:text-3xl">{wholesale ? 'Fresh picks at best prices' : 'Fresh picks near you'}</h2>
             </div>
             <button type="button" onClick={() => scrollToSection('retail-cart')} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
               Cart ({cartCount})
@@ -177,7 +216,7 @@ export function RetailMarketplace() {
                     setCropQuery(value)
                     if (!value.trim()) setSearchStatus('idle')
                   }}
-                  placeholder="Search crop name (required)"
+                  placeholder="Search crop"
                   className="w-full rounded-full border border-slate-200 bg-slate-50 px-5 py-3 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-100"
                 />
               </div>
@@ -190,7 +229,7 @@ export function RetailMarketplace() {
                     onClick={() => setRadiusKm(option)}
                     className={`rounded-full px-3 py-2 text-sm font-medium transition ${radiusKm === option ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
                   >
-                    {option} km
+                    {option} kms
                   </button>
                 ))}
               </div>
@@ -240,7 +279,9 @@ export function RetailMarketplace() {
             {searchStatus === 'empty' && (
               <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">
                 <div className="text-3xl">📍</div>
-                <h3 className="mt-4 text-xl font-black text-slate-900">No fresh produce was found within {radiusKm} km for {cropQuery.trim()}.</h3>
+                <h3 className="mt-4 text-xl font-black text-slate-900">
+                  No fresh produce was found {radiusKm === null ? '' : `within ${radiusKm} km `}for {cropQuery.trim()}.
+                </h3>
                 <p className="mt-2 text-sm text-slate-500">Try a wider radius or another crop.</p>
               </div>
             )}
@@ -249,31 +290,33 @@ export function RetailMarketplace() {
               <div className="grid gap-5 lg:grid-cols-3">
                 {visibleProducts.map((listing) => (
                   <article key={String(listing.id)} className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
-                    <div className="flex items-center justify-between">
-                      <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-700">
-                        {listing.badge && listing.badge !== 'Not available' ? listing.badge : 'Not available'}
-                      </span>
-                      <span className="text-xs font-semibold text-slate-500">{formatQuantity(listing.quantity_available)}</span>
+                    <div className="mt-4 h-28 overflow-hidden rounded-2xl bg-linear-to-br from-emerald-200 via-lime-100 to-amber-100">
+                      {getCropImageUrl(listing.sample_img_url) && (
+                        <img
+                          src={getCropImageUrl(listing.sample_img_url) || undefined}
+                          alt={listing.crop_name}
+                          className="h-full w-full object-cover"
+                          onError={(event) => {
+                            event.currentTarget.style.display = 'none'
+                          }}
+                        />
+                      )}
                     </div>
-
-                    <div className="mt-4 h-28 rounded-2xl bg-linear-to-br from-emerald-200 via-lime-100 to-amber-100" />
 
                     <div className="mt-4 flex items-start justify-between gap-3">
                       <div>
                         <h3 className="text-2xl font-black text-slate-900">{listing.crop_name}</h3>
-                        <p className="mt-1 text-sm text-slate-500">{listing.farmer_name}</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-slate-500">Freshness</div>
-                        <div className="text-lg font-black text-emerald-700">{listing.freshness_score ?? 'Not available'}</div>
+                        {wholesale && (
+                          <div className="mt-2 space-y-1 text-sm text-slate-600">
+                            <div><span className="font-semibold text-slate-800">Farmer:</span> {listing.farmer_name || 'Not available'}</div>
+                            <div><span className="font-semibold text-slate-800">Address:</span> {listing.farmer_address || 'Not available'}</div>
+                            <div><span className="font-semibold text-slate-800">Phone:</span> {listing.farmer_phone || 'Not available'}</div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div className="mt-4 space-y-2 text-sm text-slate-600">
-                      <div className="flex items-center justify-between">
-                        <span>Origin</span>
-                        <span className="font-semibold text-slate-800">{listing.origin}</span>
-                      </div>
                       <div className="flex items-center justify-between">
                         <span>Distance</span>
                         <span className="font-semibold text-slate-800">{formatDistance(listing.distance_km)}</span>
@@ -291,17 +334,18 @@ export function RetailMarketplace() {
                         <span className="text-sm text-slate-500">Price / kg</span>
                         <span className="text-xl font-black text-slate-900">{formatCurrency(listing.price_per_unit)}</span>
                       </div>
-                      <div className="mt-2 flex items-center justify-between text-sm">
-                        <span className="text-slate-500">Delivered</span>
-                        <span className="font-bold text-emerald-700">{formatCurrency(listing.estimated_landed_price)}</span>
-                      </div>
                     </div>
 
-                    <div className="mt-5 flex items-center justify-between">
-                      <div>
-                        <div className="text-xs text-slate-500">Trust</div>
-                        <div className="text-lg font-black text-slate-900">{listing.trust_score ?? 'Not available'}</div>
-                      </div>
+                    <div className="mt-5 flex flex-wrap justify-end gap-2">
+                      {wholesale && (
+                        <a
+                          href={listing.farmer_phone ? `tel:${listing.farmer_phone}` : undefined}
+                          aria-disabled={!listing.farmer_phone}
+                          className={`rounded-full px-4 py-2.5 text-sm font-semibold ${listing.farmer_phone ? 'bg-slate-900 text-white' : 'cursor-not-allowed bg-slate-200 text-slate-400'}`}
+                        >
+                          Contact now
+                        </a>
+                      )}
                       <button
                         type="button"
                         onClick={() => addToCart(listing)}
@@ -337,8 +381,8 @@ export function RetailMarketplace() {
                   <div>
                     <div className="mb-2 text-sm text-slate-300">Delivery address</div>
                     <div className="rounded-2xl bg-white/10 p-3 text-sm leading-7 text-slate-100">
-                      24 Market Road, BTM Layout<br />
-                      Bengaluru, Karnataka 560076
+                      {user?.address || 'Delivery address is not available'}
+                      {user?.pincode && <><br />{user.pincode}</>}
                     </div>
                   </div>
 
@@ -349,7 +393,7 @@ export function RetailMarketplace() {
 
                   <div>
                     <div className="mb-2 text-sm text-slate-300">Payment method</div>
-                    <div className="rounded-2xl bg-white/10 p-3 text-sm text-slate-100">UPI · farmerdirect@upi</div>
+                    <div className="rounded-2xl bg-white/10 p-3 text-sm text-slate-100">Cash on delivery (COD)</div>
                   </div>
                 </div>
 
@@ -380,11 +424,7 @@ export function RetailMarketplace() {
                   <button
                     type="button"
                     disabled={cartCount === 0}
-                    onClick={() => {
-                      setOrderPlaced(true)
-                      setShowCheckout(false)
-                      setActiveNav('Orders')
-                    }}
+                    onClick={() => void placeOrder()}
                     className="mt-5 w-full rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Place order
@@ -402,11 +442,28 @@ export function RetailMarketplace() {
                     <div key={String(listing.id)} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3">
                       <div>
                         <div className="font-bold text-slate-900">{listing.crop_name}</div>
-                        <div className="text-sm text-slate-500">Qty: {cart[listing.id]} kg</div>
+                        <div className="text-sm text-slate-500">Price: {formatCurrency(listing.price_per_unit)} / kg</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button type="button" onClick={() => updateQuantity(listing.id, (cart[listing.id] ?? 1) - 1)} className="h-8 w-8 rounded-full bg-white text-lg ring-1 ring-slate-200">−</button>
-                        <span className="min-w-12 text-center font-bold text-slate-900">{formatLineTotal(listing, cart[listing.id] ?? 0)}</span>
+                        <button type="button" onClick={() => updateQuantity(listing, (cart[listing.id] ?? 1) - 1)} className="h-8 w-8 rounded-full bg-white text-lg ring-1 ring-slate-200">−</button>
+                        <input
+                          type="number"
+                          min="0"
+                          max={listing.quantity_available ?? undefined}
+                          step="any"
+                          value={cart[listing.id] ?? 0}
+                          onChange={(event) => {
+                            const value = Number(event.target.value)
+                            if (event.target.value === '') {
+                              updateQuantity(listing, 0)
+                            } else if (Number.isFinite(value) && value >= 0) {
+                              updateQuantity(listing, value)
+                            }
+                          }}
+                          aria-label={`Quantity of ${listing.crop_name} in kilograms`}
+                          className="h-8 w-20 rounded-lg border border-slate-200 bg-white px-2 text-center text-sm font-bold text-slate-900"
+                        />
+                        <span className="text-xs font-semibold text-slate-500">kg</span>
                         <button type="button" onClick={() => addToCart(listing)} className="h-8 w-8 rounded-full bg-white text-lg ring-1 ring-slate-200">+</button>
                       </div>
                     </div>
@@ -432,24 +489,18 @@ export function RetailMarketplace() {
               <div id="retail-orders" className="scroll-mt-24 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
                 <h3 className="text-xl font-black text-slate-900">Orders</h3>
                 <div className="mt-4 space-y-4">
-                  <div className="rounded-2xl bg-emerald-50 p-3">
-                    <div className="mb-3 flex items-center justify-between text-sm text-slate-600">
-                      <span>Order #FDR-2048</span>
-                      <span className="font-bold text-emerald-700">{orderPlaced ? 'Placed' : 'Confirmed'}</span>
+                  {!orders.length && <div className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-500">No previous orders found.</div>}
+                  {orders.map((order) => (
+                    <div key={order.oid} className="rounded-2xl bg-emerald-50 p-3">
+                      <div className="mb-3 flex items-center justify-between text-sm text-slate-600">
+                        <span>Order #{order.oid}</span>
+                        <span className="font-bold text-emerald-700">{order.status.replace(/_/g, ' ')}</span>
+                      </div>
+                      <div className="text-sm text-slate-600">
+                        {order.crop_name || 'Crop not available'} · {order.quantity} kg · ₹{order.landed_price.toLocaleString('en-IN')}
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      {orderTimeline.map((step, index) => (
-                        <div key={step} className="flex flex-col items-center gap-2">
-                          <div
-                            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${index === 0 ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'}`}
-                          >
-                            {index + 1}
-                          </div>
-                          <span className="text-[10px] text-slate-500">{step}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>

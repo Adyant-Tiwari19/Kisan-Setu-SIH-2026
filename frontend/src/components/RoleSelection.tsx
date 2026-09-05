@@ -2,10 +2,12 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { roleOptions } from '../data/mockData'
 import { authService, type UserRole } from '../services/authService'
+import { useAuth } from '../context/AuthContext'
 
 export function RoleSelection() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
+  const { verifyLoginOtp, verifyRegisterOtp } = useAuth()
   const mode = pathname === '/join-now' ? 'signup' : 'login'
 
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
@@ -37,7 +39,6 @@ export function RoleSelection() {
 
   const handleLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!selectedRole) return
     if (!phone || phone.length < 10) {
       setError('Please enter a valid 10-digit registered phone number.')
       return
@@ -50,6 +51,7 @@ export function RoleSelection() {
     setError('')
     setIsSubmitting(true)
     try {
+      authService.clearSession()
       const res = await authService.validateCredentialsAndSendOtp(phone, password)
       if (res.success) {
         setOtpStep(true)
@@ -104,7 +106,7 @@ export function RoleSelection() {
     setIsSubmitting(true)
     try {
       if (mode === 'login') {
-        const response = await authService.verifyLoginOtp(phone, enteredOtp)
+        const response = await verifyLoginOtp(phone, enteredOtp)
         if (response.success && response.user) {
           const targetRoute =
             response.user.role === 'farmer'
@@ -117,7 +119,7 @@ export function RoleSelection() {
           setError(response.error || 'Incorrect or expired OTP. Please try again.')
         }
       } else {
-        const response = await authService.verifyRegisterOtp(
+        const response = await verifyRegisterOtp(
           {
             name: name.trim(),
             phone,
@@ -140,8 +142,8 @@ export function RoleSelection() {
           setError(response.error || 'Failed to complete registration.')
         }
       }
-    } catch (err: any) {
-      setError(err.message || 'Authentication error.')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Authentication error.')
     } finally {
       setIsSubmitting(false)
     }
@@ -188,15 +190,16 @@ export function RoleSelection() {
             {mode === 'login' ? 'Sign In with Two-Factor OTP' : 'Choose Your Role'}
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-            {selectedRole
+            {mode === 'login'
+              ? 'Enter your registered mobile number and password. We will identify your role automatically.'
+              : selectedRole
               ? `Continue as a ${roleOptions.find((role) => role.id === selectedRole)?.title}.`
               : 'Select your role to access your dedicated workspace.'}
           </p>
         </div>
 
-        {!selectedRole && (
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
-            {roleOptions.map((role) => (
+        {mode === 'signup' && <div className="mt-10 grid gap-5 md:grid-cols-3">
+          {roleOptions.map((role) => (
               <div
                 key={role.id}
                 className="group flex flex-col justify-between rounded-[1.7rem] border border-slate-200 bg-gradient-to-br from-white to-emerald-50/50 p-6 text-left transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-lg"
@@ -214,17 +217,16 @@ export function RoleSelection() {
                     onClick={() => handleRoleSelect(role.id as UserRole)}
                     className="inline-flex w-full items-center justify-center rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 shadow-sm"
                   >
-                    {mode === 'login' ? `Sign in as ${role.title}` : `Join as ${role.title}`}
+                    Join as {role.title}
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+          ))}
+        </div>}
 
-        {selectedRole && (
+        {(selectedRole || mode === 'login') && (
           <div className="scroll-mt-24 mx-auto mt-12 max-w-lg border-t border-slate-200 pt-10">
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 shadow-sm">
+            {mode === 'signup' && <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-xl text-white shadow-md shadow-emerald-600/20">
@@ -232,7 +234,7 @@ export function RoleSelection() {
                   </div>
                   <div>
                     <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
-                      {mode === 'login' ? 'Signing in as' : 'Registering for role:'}
+                      Registering for role:
                     </div>
                     <div className="text-lg font-black text-slate-900">
                       {roleOptions.find((r) => r.id === selectedRole)?.title || 'Selected Role'}
@@ -247,7 +249,7 @@ export function RoleSelection() {
                   Change role
                 </button>
               </div>
-            </div>
+            </div>}
 
             {!otpStep ? (
               <form
