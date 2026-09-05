@@ -8,6 +8,7 @@ import { Hero } from './components/Hero'
 import { ImpactBand } from './components/ImpactBand'
 import { HowItWorks } from './components/HowItWorks'
 import { Benefits } from './components/Benefits'
+import { MarketplacePreview } from './components/MarketplacePreview'
 import { TestimonialsSection } from './components/TestimonialsSection'
 
 export function AppRoutes() {
@@ -19,6 +20,7 @@ export function AppRoutes() {
             <Hero />
             <ImpactBand />
             <HowItWorks />
+            <MarketplacePreview />
             <Benefits />
             <TestimonialsSection />
           </>

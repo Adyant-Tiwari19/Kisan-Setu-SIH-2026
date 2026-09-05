@@ -1,34 +1,11 @@
-import { useEffect, useState } from 'react'
-import { listingService, type Listing } from '../services/listingService'
-
-const formatCurrency = (value: number) =>
-  `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}/kg`
-
-const getImageUrl = (sampleImageUrl?: string | null) => {
-  if (!sampleImageUrl) return null
-  const filename = sampleImageUrl.split(/[\\/]/).pop()?.trim()
-  return filename ? `/images/${encodeURIComponent(filename)}` : null
-}
+const crops = [
+  { name: 'Tomatoes', image: '/images/tomato.jpg', location: 'Nashik, Maharashtra', quantity: '240 kg', price: '₹28–34/kg', freshness: '< 12h harvest', background: '#fef2f2' },
+  { name: 'Potatoes', image: '/images/potato.jpg', location: 'Agra, Uttar Pradesh', quantity: '480 kg', price: '₹22–28/kg', freshness: '< 18h harvest', background: '#fffbeb' },
+  { name: 'Apples', image: '/images/apple.jpg', location: 'Shimla, Himachal Pradesh', quantity: '180 kg', price: '₹90–120/kg', freshness: '< 24h harvest', background: '#fff1f2' },
+  { name: 'Onions', image: '/images/onion.jpg', location: 'Lasalgaon, Maharashtra', quantity: '1.2 tonnes', price: '₹18–22/kg', freshness: '< 6h harvest', background: '#faf5ff' },
+]
 
 export function MarketplacePreview() {
-  const [listings, setListings] = useState<Listing[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    let isMounted = true
-
-    listingService.getAllListings().then((data) => {
-      if (isMounted) {
-        setListings(data.slice(0, 4))
-        setIsLoading(false)
-      }
-    })
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
   return (
     <section
       id="marketplace"
@@ -50,45 +27,28 @@ export function MarketplacePreview() {
         </div>
 
         <div className="scroll-reveal produce-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem' }}>
-          {isLoading && (
-            <div style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center', color: 'var(--ff-muted)' }}>
-              Loading live listings...
-            </div>
-          )}
-          {!isLoading && listings.length === 0 && (
-            <div style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center', color: 'var(--ff-muted)' }}>
-              No active listings are available right now.
-            </div>
-          )}
-          {listings.map((listing, index) => {
-            const imageUrl = getImageUrl(listing.sample_img_url)
-            return (
+          {crops.map((crop, index) => (
               <div
-                key={listing.lid}
+                key={crop.name}
                 className="produce-card scroll-reveal"
                 style={{ animationDelay: `${index * 70}ms`, cursor: 'pointer', position: 'relative' }}
               >
-                <div style={{ background: '#f0fdf4', height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-                  {imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt={listing.crop_name || 'Crop listing'}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(event) => { event.currentTarget.style.display = 'none' }}
-                    />
-                  ) : (
-                    <span style={{ fontSize: '3.5rem' }}>🌱</span>
-                  )}
+                <div style={{ background: crop.background, height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+                  <img
+                    src={crop.image}
+                    alt={crop.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
                 </div>
 
                 <div style={{ padding: '1.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.5rem', gap: '0.5rem' }}>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--ff-navy)', lineHeight: 1.2 }}>
-                        {listing.crop_name || `Crop #${listing.cid}`}
+                        {crop.name}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--ff-muted)', marginTop: '0.2rem' }}>
-                        Listing #{listing.lid}
+                        {crop.location}
                       </div>
                     </div>
                   </div>
@@ -97,29 +57,22 @@ export function MarketplacePreview() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--ff-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.2rem' }}>Available</div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--ff-slate)' }}>{listing.quantity_available} kg</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--ff-slate)' }}>{crop.quantity}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '0.72rem', color: 'var(--ff-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.2rem' }}>Price</div>
-                      <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--ff-deep)', letterSpacing: '-0.02em' }}>{formatCurrency(listing.price_per_unit)}</div>
+                      <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--ff-deep)', letterSpacing: '-0.02em' }}>{crop.price}</div>
                     </div>
                   </div>
 
-                  <a href="/marketplace" style={{ display: 'block', marginTop: '0.875rem', width: '100%', background: 'var(--ff-deep)', color: '#fff', borderRadius: '0.75rem', padding: '0.6rem', fontSize: '0.82rem', fontWeight: 700, textAlign: 'center', textDecoration: 'none' }}>
-                    View listing →
-                  </a>
+                  <div style={{ marginTop: '0.875rem', background: '#f0fdf4', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', fontSize: '0.72rem', fontWeight: 600, color: '#15803d', textAlign: 'center' }}>
+                    {crop.freshness}
+                  </div>
                 </div>
               </div>
-            )
-          })}
+          ))}
         </div>
 
-        <div className="scroll-reveal" style={{ textAlign: 'center', marginTop: '2.5rem' }}>
-          <a href="/marketplace" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--ff-deep)', textDecoration: 'none', borderBottom: '2px solid var(--ff-mint)', paddingBottom: '0.1rem' }}>
-            Browse all listings
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-          </a>
-        </div>
       </div>
 
       <style>{`
