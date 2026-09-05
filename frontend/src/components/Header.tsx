@@ -3,6 +3,12 @@ import { Link, useLocation } from 'react-router-dom'
 export function Header() {
   const location = useLocation()
   const isHome = location.pathname === '/'
+  const navItems = [
+    { label: 'How it Works', href: '#how-it-works' },
+    { label: 'Marketplace', href: '#marketplace' },
+    { label: 'Testimonials', href: '#testimonials' },
+    { label: 'Difference', href: '#benefits' },
+  ]
 
   return (
     <header
@@ -40,10 +46,10 @@ export function Header() {
         {/* Nav — desktop */}
         {isHome && (
           <nav style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }} className="hidden-mobile">
-            {['How it Works', 'Marketplace', 'For Farmers', 'For Buyers'].map(item => (
+            {navItems.map(item => (
               <a
-                key={item}
-                href={`#${item.toLowerCase().replace(/ /g, '-')}`}
+                key={item.label}
+                href={item.href}
                 style={{
                   padding: '0.45rem 0.9rem',
                   fontSize: '0.875rem',
@@ -56,7 +62,7 @@ export function Header() {
                 onMouseEnter={e => { (e.target as HTMLElement).style.color = 'var(--ff-deep)'; (e.target as HTMLElement).style.background = 'var(--ff-pale)'; }}
                 onMouseLeave={e => { (e.target as HTMLElement).style.color = 'var(--ff-slate)'; (e.target as HTMLElement).style.background = 'transparent'; }}
               >
-                {item}
+                {item.label}
               </a>
             ))}
           </nav>

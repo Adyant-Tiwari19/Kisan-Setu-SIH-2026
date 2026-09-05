@@ -30,6 +30,7 @@ const partners = [
 export function TestimonialsSection() {
   return (
     <section
+      id="testimonials"
       style={{ background: 'var(--ff-cream)', paddingTop: '5rem', paddingBottom: '5rem' }}
     >
       <div className="container">
