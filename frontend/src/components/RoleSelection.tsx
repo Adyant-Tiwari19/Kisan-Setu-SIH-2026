@@ -194,17 +194,12 @@ export function RoleSelection() {
           </p>
         </div>
 
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
-          {roleOptions.map((role) => {
-            const isSelected = selectedRole === role.id
-            return (
+        {!selectedRole && (
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
+            {roleOptions.map((role) => (
               <div
                 key={role.id}
-                className={`group flex flex-col justify-between rounded-[1.7rem] border bg-gradient-to-br from-white to-emerald-50/50 p-6 text-left transition ${
-                  isSelected
-                    ? 'border-emerald-500 shadow-lg ring-2 ring-emerald-100'
-                    : 'border-slate-200 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-lg'
-                }`}
+                className="group flex flex-col justify-between rounded-[1.7rem] border border-slate-200 bg-gradient-to-br from-white to-emerald-50/50 p-6 text-left transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-lg"
               >
                 <div>
                   <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-xl font-black text-emerald-700">
@@ -223,9 +218,9 @@ export function RoleSelection() {
                   </button>
                 </div>
               </div>
-            )
-          })}
-        </div>
+            ))}
+          </div>
+        )}
 
         {selectedRole && (
           <div className="scroll-mt-24 mx-auto mt-12 max-w-lg border-t border-slate-200 pt-10">
@@ -424,24 +419,6 @@ export function RoleSelection() {
                   </button>
                 </div>
 
-                {mode === 'login' && (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="text-sm font-semibold text-slate-700">Reset password</div>
-                    <div className="mt-3 flex gap-2">
-                      <input
-                        type="tel"
-                        value={resetMobile}
-                        onChange={(event) => setResetMobile(event.target.value.replace(/\D/g, '').slice(0, 10))}
-                        placeholder="Phone number"
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-emerald-500"
-                      />
-                      <button type="button" onClick={handleSendResetOtp} className="rounded-xl bg-slate-900 px-3 py-2.5 text-xs font-bold text-white">
-                        Send
-                      </button>
-                    </div>
-                    {resetMessage && <p className="mt-2 text-xs text-slate-600">{resetMessage}</p>}
-                  </div>
-                )}
               </form>
             )}
           </div>

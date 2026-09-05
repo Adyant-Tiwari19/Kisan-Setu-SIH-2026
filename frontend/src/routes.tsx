@@ -7,10 +7,8 @@ import { BulkBuyerDashboard } from './components/BulkBuyerDashboard'
 import { Hero } from './components/Hero'
 import { ImpactBand } from './components/ImpactBand'
 import { HowItWorks } from './components/HowItWorks'
-import { MarketplacePreview } from './components/MarketplacePreview'
 import { Benefits } from './components/Benefits'
 import { TestimonialsSection } from './components/TestimonialsSection'
-import { FinalCTA } from './components/FinalCTA'
 
 export function AppRoutes() {
   return (
@@ -21,10 +19,8 @@ export function AppRoutes() {
             <Hero />
             <ImpactBand />
             <HowItWorks />
-            <MarketplacePreview />
             <Benefits />
             <TestimonialsSection />
-            <FinalCTA />
           </>
         } />
         <Route path="sign-in" element={<RoleSelection key="sign-in" />} />

@@ -4,9 +4,7 @@ import { HowItWorks } from './components/HowItWorks'
 import { Benefits } from './components/Benefits'
 import { Header } from './components/Header'
 import { ImpactBand } from './components/ImpactBand'
-import { MarketplacePreview } from './components/MarketplacePreview'
 import { TestimonialsSection } from './components/TestimonialsSection'
-import { FinalCTA } from './components/FinalCTA'
 
 function App() {
   return (
@@ -17,10 +15,8 @@ function App() {
         <Hero />
         <ImpactBand />
         <HowItWorks />
-        <MarketplacePreview />
         <Benefits />
         <TestimonialsSection />
-        <FinalCTA />
       </main>
 
       <Footer />
