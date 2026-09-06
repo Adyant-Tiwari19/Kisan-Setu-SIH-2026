@@ -87,6 +87,14 @@ export function RoleSelection() {
       setError('Please enter a valid 10-digit phone number.')
       return
     }
+    if (!address.trim()) {
+      setError('Please enter your address.')
+      return
+    }
+    if (!pincode.trim()) {
+      setError('Please enter your pincode.')
+      return
+    }
     if (!password || password.length < 4) {
       setError('Password must be at least 4 characters long.')
       return
@@ -305,25 +313,27 @@ export function RoleSelection() {
                 {mode === 'signup' && (
                   <>
                     <label className="block text-sm font-semibold text-slate-700" htmlFor="address-field">
-                      Address (optional)
+                      Address
                       <input
                         id="address-field"
                         type="text"
                         value={address}
                         onChange={(event) => setAddress(event.target.value)}
                         placeholder="Street / locality"
+                        required
                         className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-base outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                       />
                     </label>
 
                     <label className="block text-sm font-semibold text-slate-700" htmlFor="pincode-field">
-                      Pincode (optional)
+                      Pincode
                       <input
                         id="pincode-field"
                         type="text"
                         value={pincode}
                         onChange={(event) => setPincode(event.target.value.replace(/\D/g, '').slice(0, 6))}
                         placeholder="e.g. 560038"
+                        required
                         className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-base outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                       />
                     </label>

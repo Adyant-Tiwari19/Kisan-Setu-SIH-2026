@@ -39,6 +39,21 @@ export interface AiMatchCard {
   crop_name?: string
 }
 
+export interface DemandForecast {
+  crop_id: number
+  crop_name: string
+  location: {
+    latitude: number
+    longitude: number
+  }
+  search_radius_km: number
+  current_active_supply_kg: number
+  avg_market_price: number
+  predicted_demand_kg: number
+  supply_gap_kg: number
+  model_status: string
+}
+
 class AiService {
   /**
    * AI Multi-Factor Seller Ranking Engine
@@ -103,6 +118,15 @@ class AiService {
       return await apiClient.post('/ai/optimize-routes', { orders })
     } catch {
       return { clusters: [{ cluster_id: 1, orders }] }
+    }
+  }
+
+  async predictDemand(cropId: number): Promise<DemandForecast | null> {
+    try {
+      const params = new URLSearchParams({ crop_id: String(cropId) })
+      return await apiClient.post<DemandForecast>(`/ai/predict-demand?${params.toString()}`)
+    } catch {
+      return null
     }
   }
 }
