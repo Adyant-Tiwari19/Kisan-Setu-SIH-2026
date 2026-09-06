@@ -116,7 +116,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
     updateQuantity(listing, nextQuantity)
   }
 
-  const handleSearch = async () => {
+  const handleSearch = async (selectedRadius = radiusKm) => {
     const trimmedCrop = cropQuery.trim()
 
     if (!trimmedCrop) {
@@ -130,7 +130,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
     setDashboardMessage('')
 
     try {
-      const results = await listingService.searchListings(trimmedCrop, searchLatitude, searchLongitude, radiusKm)
+      const results = await listingService.searchListings(trimmedCrop, searchLatitude, searchLongitude, selectedRadius)
       setListings(results)
 
       if (!results.length) {
@@ -226,7 +226,10 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                   <button
                     key={option}
                     type="button"
-                    onClick={() => setRadiusKm(option)}
+                    onClick={() => {
+                      setRadiusKm(option)
+                      void handleSearch(option)
+                    }}
                     className={`rounded-full px-3 py-2 text-sm font-medium transition ${radiusKm === option ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
                   >
                     {option} kms

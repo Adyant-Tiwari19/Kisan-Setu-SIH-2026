@@ -1,5 +1,5 @@
 /**
- * Fresh Ferme - Authentication Service
+ * Kisan Setu - Authentication Service
  * Strictly enforces that ONLY registered users can sign in.
  * Supports Password Login, OTP Login, and OTP-verified Registration.
  */

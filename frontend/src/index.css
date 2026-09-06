@@ -41,8 +41,8 @@ body {
 * { box-sizing: border-box; }
 
 ::selection {
-  background: rgba(82, 183, 136, 0.25);
-  color: var(--ff-deep);
+  background: var(--ff-mint);
+  color: var(--ff-navy);
 }
 
 h1,h2,h3,h4,h5,h6,p { overflow-wrap: break-word; }

@@ -14,7 +14,7 @@ export function MarketplacePreview() {
       <div className="container">
         <div className="scroll-reveal" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <span className="eyebrow text-fresh" style={{ display: 'block', marginBottom: '0.75rem' }}>Live on Fresh Ferme</span>
+            <span className="eyebrow text-fresh" style={{ display: 'block', marginBottom: '0.75rem' }}>Live on Kisan Setu</span>
             <h2 className="display-md" style={{ color: 'var(--ff-navy)' }}>
               Fresh from the field,{' '}
               <span style={{ color: 'var(--ff-deep)' }}>right now.</span>

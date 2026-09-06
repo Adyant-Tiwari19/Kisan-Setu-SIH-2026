@@ -1,5 +1,5 @@
 /**
- * Fresh Ferme - AI & Optimization Service
+ * Kisan Setu - AI & Optimization Service
  * Communicates with FastAPI /api/v1/ai endpoints for seller ranking & cluster route optimization.
  */
 

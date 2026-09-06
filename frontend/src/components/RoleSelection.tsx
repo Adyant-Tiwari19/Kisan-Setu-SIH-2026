@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { roleOptions } from '../data/mockData'
 import { authService, type UserRole } from '../services/authService'
@@ -24,10 +24,22 @@ export function RoleSelection() {
   const [isResetOpen, setIsResetOpen] = useState(false)
   const [resetMobile, setResetMobile] = useState('')
   const [resetMessage, setResetMessage] = useState('')
+  const formSectionRef = useRef<HTMLDivElement>(null)
+  const roleSelectionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
   }, [pathname])
+
+  useEffect(() => {
+    if (mode !== 'signup' || !selectedRole) return
+
+    const frame = window.requestAnimationFrame(() => {
+      formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [mode, selectedRole])
 
   const handleRoleSelect = (role: UserRole) => {
     setSelectedRole(role)
@@ -183,7 +195,7 @@ export function RoleSelection() {
 
   return (
     <div className="section-shell py-16 md:py-20">
-      <div className="mx-auto max-w-5xl rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] ring-1 ring-slate-200 md:p-10">
+      <div ref={roleSelectionRef} className="scroll-mt-24 mx-auto max-w-5xl rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] ring-1 ring-slate-200 md:p-10">
         <div className="text-center">
           <div className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">Farm Direct Portal</div>
           <h1 className="mt-4 text-4xl font-black tracking-[-0.06em] text-slate-900 md:text-5xl">
@@ -225,7 +237,7 @@ export function RoleSelection() {
         </div>}
 
         {(selectedRole || mode === 'login') && (
-          <div className="scroll-mt-24 mx-auto mt-12 max-w-lg border-t border-slate-200 pt-10">
+          <div ref={formSectionRef} className="scroll-mt-24 mx-auto mt-12 max-w-lg border-t border-slate-200 pt-10">
             {mode === 'signup' && <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -243,7 +255,12 @@ export function RoleSelection() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setSelectedRole(null)}
+                  onClick={() => {
+                    setSelectedRole(null)
+                    window.requestAnimationFrame(() => {
+                      roleSelectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    })
+                  }}
                   className="text-sm font-semibold text-slate-500 underline decoration-slate-300 underline-offset-4 hover:text-emerald-700"
                 >
                   Change role
@@ -372,7 +389,7 @@ export function RoleSelection() {
                 </button>
 
                 <p className="text-center text-sm text-slate-600">
-                  {mode === 'login' ? 'New to Fresh Ferme?' : 'Already have an account?'}{' '}
+                  {mode === 'login' ? 'New to Kisan Setu?' : 'Already have an account?'}{' '}
                   <button
                     type="button"
                     onClick={() => navigate(mode === 'login' ? '/join-now' : '/sign-in')}

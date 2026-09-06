@@ -9,7 +9,7 @@ export function DashboardHeader() {
   const [openMenu, setOpenMenu] = useState<'profile' | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  const displayName = user?.name || 'Fresh Ferme Member'
+  const displayName = user?.name || 'Kisan Setu Member'
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -35,12 +35,12 @@ export function DashboardHeader() {
     <header className="sticky top-0 z-50 border-b border-emerald-100/90 bg-white/95 shadow-sm backdrop-blur-xl">
       <div className="section-shell flex min-h-16 items-center justify-between gap-4 px-4 py-3 sm:px-6 md:min-h-20 md:px-8 md:py-4">
         {/* Brand Logo */}
-        <Link to="/" className="flex items-center gap-3" aria-label="Fresh Ferme home">
+        <Link to="/" className="flex items-center gap-3" aria-label="Kisan Setu home">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-lime-400 text-xl font-black text-white shadow-lg shadow-emerald-500/25">
             F
           </div>
           <div>
-            <div className="text-lg font-extrabold tracking-tight text-slate-900">Fresh Ferme</div>
+            <div className="text-lg font-extrabold tracking-tight text-slate-900">Kisan Setu</div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-700/80">
               from farm to market
             </div>

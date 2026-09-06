@@ -65,23 +65,23 @@ export function Benefits() {
     <section id="benefits" className="benefits-story">
       <div className="container">
         <div className="benefits-story-header scroll-reveal">
-          <span className="eyebrow text-fresh">THE FRESH FERME DIFFERENCE</span>
+          <span className="eyebrow text-fresh">THE KISAN SETU DIFFERENCE</span>
           <h2 className="display-lg">From fragmented trade to a fresher, fairer flow.</h2>
-          <p>See how Fresh Ferme turns uncertainty, delays, and wastage into a connected supply chain built for better decisions.</p>
+          <p>See how Kisan Setu turns uncertainty, delays, and wastage into a connected supply chain built for better decisions.</p>
         </div>
 
         <div className="benefits-comparison scroll-reveal">
           <RouteIllustration />
           <div className="benefits-side benefits-before">
-            <div className="benefits-side-heading"><div className="benefits-side-mark"><LineIcon name="crate" muted /></div><div><span className="benefits-kicker">The old way</span><h3>Before Fresh Ferme</h3></div></div>
+            <div className="benefits-side-heading"><div className="benefits-side-mark"><LineIcon name="crate" muted /></div><div><span className="benefits-kicker">The old way</span><h3>Before Kisan Setu</h3></div></div>
             <p className="benefits-side-intro">Good produce, held back by gaps in visibility and coordination.</p>
             <div className="benefits-items">{beforeItems.map((item, index) => <ComparisonRow key={item.title} item={item} index={index} active={activeRow} onHover={setActiveRow} />)}</div>
           </div>
 
-          <div className="benefits-bridge" aria-hidden="true"><span>Fresh Ferme</span><svg viewBox="0 0 90 24" fill="none"><path d="M2 12h80M68 3l10 9-10 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div>
+          <div className="benefits-bridge" aria-hidden="true"><span>Kisan Setu</span><svg viewBox="0 0 90 24" fill="none"><path d="M2 12h80M68 3l10 9-10 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div>
 
           <div className="benefits-side benefits-after">
-            <div className="benefits-side-heading"><div className="benefits-side-mark"><LineIcon name="leaf" /></div><div><span className="benefits-kicker">The connected way</span><h3>With Fresh Ferme</h3></div></div>
+            <div className="benefits-side-heading"><div className="benefits-side-mark"><LineIcon name="leaf" /></div><div><span className="benefits-kicker">The connected way</span><h3>With Kisan Setu</h3></div></div>
             <p className="benefits-side-intro">A clearer path from harvest to buyer, with every handoff in view.</p>
             <div className="benefits-items">{afterItems.map((item, index) => <ComparisonRow key={item.title} item={item} index={index} active={activeRow} onHover={setActiveRow} />)}</div>
             <div className="benefits-endpoint"><LineIcon name="route" /><span>Farm to buyer, in one flow</span></div>
