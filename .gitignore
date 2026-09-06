@@ -8,3 +8,17 @@ __pycache__/
 backend/seed_testing_nodes.py
 backend/seed_data.py
 backend/firebase-credentials.json
+
+# Android build outputs & binaries
+frontend/android/app/build/
+frontend/android/build/
+frontend/android/.gradle/
+frontend/android/captures/
+frontend/android/app/app.iml
+frontend/android/*.iml
+
+# Local machine path configurations (JDK/SDK paths)
+frontend/android/local.properties
+
+# Android Studio & IDE state
+frontend/android/.idea/

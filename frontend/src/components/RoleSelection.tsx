@@ -3,12 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { roleOptions } from '../data/mockData'
 import { authService, type UserRole } from '../services/authService'
 import { useAuth } from '../context/AuthContext'
-import { sendFirebaseOtp, verifyFirebaseOtp, type ConfirmationResult } from '../config/firebase'
 
 export function RoleSelection() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { loginWithFirebase } = useAuth()
+  const { verifyLoginOtp, verifyRegisterOtp } = useAuth()
   const mode = pathname === '/join-now' ? 'signup' : 'login'
 
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
@@ -19,7 +18,6 @@ export function RoleSelection() {
   const [pincode, setPincode] = useState('')
   const [otpStep, setOtpStep] = useState(false)
   const [enteredOtp, setEnteredOtp] = useState('')
-  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null)
   const [error, setError] = useState('')
   const [infoMessage, setInfoMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -49,22 +47,6 @@ export function RoleSelection() {
     setInfoMessage('')
     setOtpStep(false)
     setEnteredOtp('')
-    setConfirmation(null)
-  }
-
-  const triggerSendOtp = async (phoneNumber: string) => {
-    setError('')
-    setIsSubmitting(true)
-    try {
-      const confirmationResult = await sendFirebaseOtp(phoneNumber)
-      setConfirmation(confirmationResult)
-      setOtpStep(true)
-      setInfoMessage(`Firebase OTP sent to +91 ${phoneNumber.slice(-10)}. Enter the 6-digit code.`)
-    } catch (err: any) {
-      setError(err?.message || 'Failed to send OTP via Firebase. Please try again.')
-    } finally {
-      setIsSubmitting(false)
-    }
   }
 
   const handleLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -73,9 +55,27 @@ export function RoleSelection() {
       setError('Please enter a valid 10-digit registered phone number.')
       return
     }
+    if (!password) {
+      setError('Please enter your password.')
+      return
+    }
 
-    authService.clearSession()
-    await triggerSendOtp(phone)
+    setError('')
+    setIsSubmitting(true)
+    try {
+      authService.clearSession()
+      const res = await authService.validateCredentialsAndSendOtp(phone, password)
+      if (res.success) {
+        setOtpStep(true)
+        setInfoMessage(res.message)
+      } else {
+        setError(res.error || 'Credentials verification failed.')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to send OTP. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleSignupSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -89,8 +89,26 @@ export function RoleSelection() {
       setError('Please enter a valid 10-digit phone number.')
       return
     }
+    if (!password || password.length < 4) {
+      setError('Please create a password (at least 4 characters).')
+      return
+    }
 
-    await triggerSendOtp(phone)
+    setError('')
+    setIsSubmitting(true)
+    try {
+      const res = await authService.requestRegisterOtp(phone)
+      if (res.success) {
+        setOtpStep(true)
+        setInfoMessage(res.message)
+      } else {
+        setError(res.error || 'Failed to send verification OTP.')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to send OTP. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleVerifyOtpAndProceed = async (event: FormEvent<HTMLFormElement>) => {
@@ -100,23 +118,26 @@ export function RoleSelection() {
       return
     }
 
-    if (!confirmation) {
-      setError('OTP session invalid or expired. Please request a new code.')
-      return
-    }
-
     setError('')
     setIsSubmitting(true)
     try {
-      const { idToken } = await verifyFirebaseOtp(confirmation, enteredOtp)
-      const roleToUse: UserRole = selectedRole || 'retailer'
-      const response = await loginWithFirebase({
-        idToken,
-        phoneNumber: phone,
-        role: roleToUse,
-        name: mode === 'signup' ? name.trim() : undefined,
-        address: mode === 'signup' ? address.trim() : undefined,
-      })
+      let response
+      if (mode === 'login') {
+        response = await verifyLoginOtp(phone, enteredOtp)
+      } else {
+        const roleToUse: UserRole = selectedRole || 'retailer'
+        response = await verifyRegisterOtp(
+          {
+            name: name.trim(),
+            phone,
+            password,
+            role: roleToUse,
+            address: address.trim(),
+            pincode: pincode.trim(),
+          },
+          enteredOtp
+        )
+      }
 
       if (response.success && response.user) {
         const targetRoute =
@@ -127,7 +148,7 @@ export function RoleSelection() {
               : '/buyer'
         navigate(targetRoute)
       } else {
-        setError(response.error || 'Failed to verify token with backend.')
+        setError(response.error || 'Failed to verify OTP.')
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Invalid OTP code or verification failed.')
@@ -139,11 +160,23 @@ export function RoleSelection() {
   const handleResendOtp = async () => {
     if (!phone || phone.length < 10) return
     setError('')
-    setInfoMessage('Resending OTP via Firebase...')
+    setInfoMessage('Resending OTP...')
     try {
-      const confirmationResult = await sendFirebaseOtp(phone)
-      setConfirmation(confirmationResult)
-      setInfoMessage(`New Firebase OTP sent to +91 ${phone.slice(-10)}.`)
+      if (mode === 'login') {
+        const res = await authService.validateCredentialsAndSendOtp(phone, password)
+        if (res.success) {
+          setInfoMessage(res.message)
+        } else {
+          setError(res.error || 'Failed to resend OTP.')
+        }
+      } else {
+        const res = await authService.requestRegisterOtp(phone)
+        if (res.success) {
+          setInfoMessage(res.message)
+        } else {
+          setError(res.error || 'Failed to resend OTP.')
+        }
+      }
     } catch (err: any) {
       setError(err?.message || 'Failed to resend OTP.')
     }

@@ -16,7 +16,6 @@ from sqlalchemy.exc import IntegrityError
 from app.core.config import settings
 from geoalchemy2.functions import ST_SetSRID, ST_MakePoint
 import bcrypt
-from firebase_admin import auth
 
 router = APIRouter()
 
@@ -492,105 +491,4 @@ def update_user_profile(
 
     db.commit()
     db.refresh(current_user)
-    return current_user
-
-class FirebaseTokenRequest(BaseModel):
-    id_token: str
-    role: str 
-    name: str | None = None
-
-@router.post("/firebase-login")
-def login_with_firebase(
-    authorization: str = Header(
-        ..., description="Bearer token sent automatically by app"
-    ),
-    phone_number: str = Query(..., description="10-digit mobile number"),
-    role: str = Query(
-        ..., description="Role selected on app"
-    ),
-    address: str | None = Query(None, description="Physical address"),
-    name: str | None = Query(None , description="User Full Name"),
-    db: Session = Depends(get_db)
-):
-
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Authorization header must start with 'Bearer '"
-        )
-
-    id_token = authorization.split("Bearer ")[1]
-    
-    try:
-        decoded_token = auth.verify_id_token(id_token)
-        firebase_phone = decoded_token.get("phone_number")
-
-        if not firebase_phone:
-            raise ValueError("No phone number found in token.")
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid Firebase Token : {str(e)}"
-        )
-
-    clean_name = name.strip() if name and name.strip() else None
-    if clean_name in ("null", "undefined", ""):
-        clean_name = None
-
-    clean_address = address.strip() if address and address.strip() else None
-    if clean_address in ("null", "undefined", ""):
-        clean_address = None
-
-    clean_phone = firebase_phone.replace("+91", "").strip()[-10:]
-
-    user = db.query(User).filter(User.phone == clean_phone).first()
-
-    if user:
-        if clean_name and (not user.name or user.name.startswith("User_") or user.name == "User"):
-            user.name = clean_name
-            db.commit()
-            db.refresh(user)
-        if clean_address and not user.address:
-            user.address = clean_address
-            db.commit()
-            db.refresh(user)
-
-        role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
-        access_token = create_access_token(data={"sub": user.phone, "uid": user.uid, "role": role_str})
-        return {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user_id": user.uid,
-            "name": user.name,
-            "phone": user.phone,
-            "role": user.role,
-            "address": user.address,
-            "is_new_user": False
-        }
-
-    user = User(
-        name=clean_name or "User",
-        phone=clean_phone,
-        role=role,
-        address=clean_address,
-        hashed_password="FIREBASE_EXTERNAL_AUTH",
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-
-    role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
-    access_token = create_access_token(data={"sub": user.phone, "uid": user.uid, "role": role_str})
-
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user_uid": user.uid,
-        "user_id": user.uid,
-        "name": user.name,
-        "phone": user.phone,
-        "role": user.role,
-        "address": user.address,
-        "is_new_user": True
-    }
+    return current_user
