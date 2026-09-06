@@ -7,7 +7,6 @@ import { BulkBuyerDashboard } from './components/BulkBuyerDashboard'
 import { Hero } from './components/Hero'
 import { HowItWorks } from './components/HowItWorks'
 import { Benefits } from './components/Benefits'
-import { MarketplacePreview } from './components/MarketplacePreview'
 
 export function AppRoutes() {
   return (
@@ -17,7 +16,6 @@ export function AppRoutes() {
           <>
             <Hero />
             <HowItWorks />
-            <MarketplacePreview />
             <Benefits />
           </>
         } />

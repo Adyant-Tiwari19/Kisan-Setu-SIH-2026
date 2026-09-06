@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import logo from '../assets/KISAN-SETU_logo.jpeg'
 
 export function Footer() {
   return (
@@ -18,22 +19,8 @@ export function Footer() {
 
         {/* Brand column */}
         <div>
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', textDecoration: 'none', marginBottom: '1.5rem' }}>
-            <div style={{
-              width: '2.25rem', height: '2.25rem',
-              borderRadius: '0.75rem',
-              background: 'linear-gradient(135deg, var(--ff-deep) 0%, var(--ff-mint) 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M12 2a9 9 0 0 0-9 9c0 4.17 2.84 7.67 6.69 8.69L12 22l2.31-2.31C18.16 18.67 21 15.17 21 11A9 9 0 0 0 12 2z" />
-                <circle cx="12" cy="11" r="3" />
-              </svg>
-            </div>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#fff', letterSpacing: '-0.02em', lineHeight: 1 }}>Kisan Setu</div>
-              <div style={{ fontSize: '0.58rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ff-mint)', marginTop: '0.15rem' }}>Farm to Market</div>
-            </div>
+          <Link to="/" style={{ display: 'inline-flex', textDecoration: 'none', marginBottom: '1.5rem' }}>
+            <img src={logo} alt="Kisan Setu" style={{ width: '4.5rem', height: '4.5rem', objectFit: 'contain' }} />
           </Link>
 
           <p style={{ fontSize: '0.95rem', lineHeight: 1.7, color: 'rgba(255,255,255,0.62)', maxWidth: '21rem', margin: 0 }}>
