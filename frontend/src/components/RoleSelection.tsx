@@ -89,21 +89,6 @@ export function RoleSelection() {
       setError('Please enter a valid 10-digit phone number.')
       return
     }
-<<<<<<< HEAD
-=======
-    if (!address.trim()) {
-      setError('Please enter your address.')
-      return
-    }
-    if (!pincode.trim()) {
-      setError('Please enter your pincode.')
-      return
-    }
-    if (!password || password.length < 4) {
-      setError('Password must be at least 4 characters long.')
-      return
-    }
->>>>>>> ff8338039fe0088cd726847b62be153e5bc8a01b
 
     await triggerSendOtp(phone)
   }
