@@ -3,7 +3,6 @@ import { Hero } from './components/Hero'
 import { HowItWorks } from './components/HowItWorks'
 import { Benefits } from './components/Benefits'
 import { Header } from './components/Header'
-import { MarketplacePreview } from './components/MarketplacePreview'
 
 function App() {
   return (
@@ -13,7 +12,6 @@ function App() {
       <main>
         <Hero />
         <HowItWorks />
-        <MarketplacePreview />
         <Benefits />
       </main>
 
