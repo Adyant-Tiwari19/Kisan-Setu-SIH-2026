@@ -24,6 +24,7 @@ PyJWT>=2.9.0
 
 # HTTP Client (for Geocoding API Calls)
 httpx>=0.27.2
+requests>=2.31.0
 
 # Environment Variables
 python-dotenv>=1.0.1
