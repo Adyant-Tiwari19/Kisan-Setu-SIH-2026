@@ -4,6 +4,14 @@ from fastapi.responses import HTMLResponse, FileResponse
 from app.api.v1.router import api_router
 from app.config import settings
 from pathlib import Path
+import os
+import firebase_admin
+from firebase_admin import credentials
+
+cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS" , "firebase-credentials.json")
+if not firebase_admin._apps:
+    cred = credentials.Certificate(cred_path)
+    firebase_admin.initialize_app(cred)
 
 app = FastAPI(
     title= settings.PROJECT_NAME,

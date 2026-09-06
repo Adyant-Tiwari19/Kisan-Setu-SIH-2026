@@ -7,3 +7,4 @@ __pycache__/
 *.pyd
 backend/seed_testing_nodes.py
 backend/seed_data.py
+backend/firebase-credentials.json

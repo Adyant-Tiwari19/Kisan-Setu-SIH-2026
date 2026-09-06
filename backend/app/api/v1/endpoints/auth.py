@@ -9,13 +9,14 @@ from app.database import get_db
 from app.models.user import User, UserRole
 from app.api.v1.endpoints.location import geocode_address
 from app.schemas.user_schema import UserCreate, UserResponse
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Header
 from sqlalchemy.orm import Session
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 from app.core.config import settings
 from geoalchemy2.functions import ST_SetSRID, ST_MakePoint
 import bcrypt
+from firebase_admin import auth
 
 router = APIRouter()
 
@@ -488,3 +489,80 @@ def update_user_profile(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+class FirebaseTokenRequest(BaseModel):
+    id_token: str
+    role: str 
+    name: str | None = None
+
+@router.post("/firebase-login")
+def login_with_firebase(
+    authorization: str = Header(
+        ..., description="Bearer token sent automatically by app"
+    ),
+    phone_number: str = Query(..., description="10-digit mobile number"),
+    role: str = Query(
+        ..., description="Role selected on app"
+    ),
+    address: str | None = Query(None, description="Physical address"),
+    name: str | None = Query(None , description="User Full Name"),
+    db: Session = Depends(get_db)
+):
+
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Authorization header must start with 'Bearer '"
+        )
+
+    id_token = authorization.split("Bearer ")[1]
+    
+    try:
+        decoded_token = auth.verify_id_token(id_token)
+        firebase_phone = decoded_token.get("phone_number")
+
+        if not firebase_phone:
+            raise ValueError("No phone number found in token.")
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid Firebase Token : {str(e)}"
+        )
+
+    clean_phone = firebase_phone.replace("+91" , "").strip()[-10:]
+
+    user = db.query(User).filter(User.phone == clean_phone).first()
+
+    if user:
+        access_token = create_access_token(data={"sub": str(user.uid)})
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user_id": user.uid,
+            "phone": user.phone,
+            "role": user.role,
+            "is_new_user": False
+        }
+
+    user = User(
+        name= name or f"User_{clean_phone[-4:]}",
+        phone= clean_phone,
+        role= role,
+        hashed_password="FIREBASE_EXTERNAL_AUTH",
+        address= address
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    access_token = create_access_token(data={"sub": str(user.uid)})
+
+    return {
+        "access_token" : access_token,
+        "token_type": "bearer",
+        "user_uid": user.uid,
+        "phone": user.phone,
+        "role": user.role,
+        "is_new_user": True
+    }
