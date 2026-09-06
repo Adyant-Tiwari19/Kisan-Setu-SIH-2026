@@ -123,8 +123,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        phone: str = payload.get("sub")
-        if phone is None:
+        sub: str = payload.get("sub")
+        if sub is None:
             raise credentials_exception
     except Exception as e:
         raise HTTPException(
@@ -133,7 +133,11 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
             headers={"WWW-Authenticate": "Bearer"}
         )
 
-    user = db.query(User).filter(User.phone == phone).first()
+    if str(sub).isdigit():
+        user = db.query(User).filter((User.phone == str(sub)) | (User.uid == int(sub))).first()
+    else:
+        user = db.query(User).filter(User.phone == sub).first()
+
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -530,39 +534,63 @@ def login_with_firebase(
             detail=f"Invalid Firebase Token : {str(e)}"
         )
 
-    clean_phone = firebase_phone.replace("+91" , "").strip()[-10:]
+    clean_name = name.strip() if name and name.strip() else None
+    if clean_name in ("null", "undefined", ""):
+        clean_name = None
+
+    clean_address = address.strip() if address and address.strip() else None
+    if clean_address in ("null", "undefined", ""):
+        clean_address = None
+
+    clean_phone = firebase_phone.replace("+91", "").strip()[-10:]
 
     user = db.query(User).filter(User.phone == clean_phone).first()
 
     if user:
-        access_token = create_access_token(data={"sub": str(user.uid)})
+        if clean_name and (not user.name or user.name.startswith("User_") or user.name == "User"):
+            user.name = clean_name
+            db.commit()
+            db.refresh(user)
+        if clean_address and not user.address:
+            user.address = clean_address
+            db.commit()
+            db.refresh(user)
+
+        role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
+        access_token = create_access_token(data={"sub": user.phone, "uid": user.uid, "role": role_str})
         return {
             "access_token": access_token,
             "token_type": "bearer",
             "user_id": user.uid,
+            "name": user.name,
             "phone": user.phone,
             "role": user.role,
+            "address": user.address,
             "is_new_user": False
         }
 
     user = User(
-        name= name or f"User_{clean_phone[-4:]}",
-        phone= clean_phone,
-        role= role,
+        name=clean_name or "User",
+        phone=clean_phone,
+        role=role,
+        address=clean_address,
         hashed_password="FIREBASE_EXTERNAL_AUTH",
-        address= address
     )
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    access_token = create_access_token(data={"sub": str(user.uid)})
+    role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
+    access_token = create_access_token(data={"sub": user.phone, "uid": user.uid, "role": role_str})
 
     return {
-        "access_token" : access_token,
+        "access_token": access_token,
         "token_type": "bearer",
         "user_uid": user.uid,
+        "user_id": user.uid,
+        "name": user.name,
         "phone": user.phone,
         "role": user.role,
+        "address": user.address,
         "is_new_user": True
     }

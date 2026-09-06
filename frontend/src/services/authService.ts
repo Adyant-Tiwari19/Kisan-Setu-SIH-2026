@@ -59,14 +59,19 @@ export interface OtpResponse {
 const STORAGE_KEY = 'farm_direct_auth_session'
 const REGISTERED_USERS_KEY = 'farm_direct_registered_users'
 
-export function frontendToBackendRole(role: UserRole): BackendUserRole {
+export function frontendToBackendRole(role: string): BackendUserRole {
   switch (role) {
     case 'farmer':
+    case 'FARMER_FPO':
       return 'FARMER_FPO'
     case 'retailer':
+    case 'RETAIL_BUYER':
       return 'RETAIL_BUYER'
     case 'bulk-buyer':
+    case 'BULK_BUYER':
       return 'BULK_BUYER'
+    default:
+      return 'RETAIL_BUYER'
   }
 }
 
@@ -550,6 +555,83 @@ class AuthService {
   }
 
   /**
+   * Login or Register via Firebase ID Token
+   * POST /api/v1/auth/firebase-login?phone_number=<10_DIGIT_PHONE>&role=<SELECTED_ROLE>&name=<NAME>&address=<ADDRESS>
+   * Authorization: Bearer <FIREBASE_ID_TOKEN>
+   */
+  async loginWithFirebase(params: {
+    idToken: string
+    phoneNumber: string
+    role: UserRole
+    name?: string
+    address?: string
+  }): Promise<AuthResponse> {
+    const cleanPhone = params.phoneNumber.replace(/\D/g, '').slice(0, 10)
+    const backendRole = frontendToBackendRole(params.role)
+
+    const queryParams = new URLSearchParams({
+      phone_number: cleanPhone,
+      role: backendRole,
+    })
+    if (params.name?.trim()) {
+      queryParams.set('name', params.name.trim())
+    }
+    if (params.address?.trim()) {
+      queryParams.set('address', params.address.trim())
+    }
+
+    const endpoint = `/auth/firebase-login?${queryParams.toString()}`
+
+    try {
+      const data = await apiClient.post<any>(
+        endpoint,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${params.idToken}`,
+          },
+        }
+      )
+
+      if (data && data.access_token) {
+        const mappedRole = data.role ? backendToFrontendRole(data.role) : params.role
+        const displayName = data.name || params.name?.trim() || 'User'
+        const user: User = {
+          id: data.user_id || data.user_uid || `usr_${Date.now()}`,
+          uid: data.user_id || data.user_uid,
+          name: displayName,
+          phone: data.phone || cleanPhone,
+          role: mappedRole,
+          backendRole: data.role as BackendUserRole,
+          address: data.address || params.address?.trim() || 'India',
+          location: data.address || params.address?.trim() || 'India',
+        }
+        this.saveSession(data.access_token, user)
+        return { success: true, token: data.access_token, user }
+      }
+      return { success: false, error: 'Firebase authentication failed on backend.' }
+    } catch (err: any) {
+      if (err.message && !err.message.includes('Failed to fetch')) {
+        return { success: false, error: err.message }
+      }
+      // Offline / Fallback mode if backend is unreachable
+      const user: User = {
+        id: `usr_${Date.now()}`,
+        uid: Math.floor(Math.random() * 9000) + 1000,
+        name: params.name?.trim() || 'User',
+        phone: cleanPhone,
+        role: params.role,
+        backendRole: backendRole,
+        address: params.address?.trim() || 'India',
+        location: params.address?.trim() || 'India',
+      }
+      const token = `firebase_session_${params.idToken.slice(0, 10)}_${Date.now()}`
+      this.saveSession(token, user)
+      return { success: true, token, user }
+    }
+  }
+
+  /**
    * Request Password Reset OTP
    */
   async forgotPassword(phone: string): Promise<{ success: boolean; message: string; error?: string }> {
@@ -588,6 +670,8 @@ class AuthService {
         STORAGE_KEY,
         JSON.stringify({ token, user, timestamp: Date.now() })
       )
+      localStorage.setItem('token', token)
+      localStorage.setItem('access_token', token)
       localStorage.setItem('farm-direct-logged-in', 'true')
     } catch {
       // ignore
@@ -597,6 +681,8 @@ class AuthService {
   clearSession() {
     try {
       localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem('token')
+      localStorage.removeItem('access_token')
       localStorage.removeItem('farm-direct-logged-in')
     } catch {
       // ignore

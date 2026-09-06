@@ -3,11 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { roleOptions } from '../data/mockData'
 import { authService, type UserRole } from '../services/authService'
 import { useAuth } from '../context/AuthContext'
+import { sendFirebaseOtp, verifyFirebaseOtp, type ConfirmationResult } from '../config/firebase'
 
 export function RoleSelection() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { verifyLoginOtp, verifyRegisterOtp } = useAuth()
+  const { loginWithFirebase } = useAuth()
   const mode = pathname === '/join-now' ? 'signup' : 'login'
 
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
@@ -18,6 +19,7 @@ export function RoleSelection() {
   const [pincode, setPincode] = useState('')
   const [otpStep, setOtpStep] = useState(false)
   const [enteredOtp, setEnteredOtp] = useState('')
+  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null)
   const [error, setError] = useState('')
   const [infoMessage, setInfoMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -47,6 +49,22 @@ export function RoleSelection() {
     setInfoMessage('')
     setOtpStep(false)
     setEnteredOtp('')
+    setConfirmation(null)
+  }
+
+  const triggerSendOtp = async (phoneNumber: string) => {
+    setError('')
+    setIsSubmitting(true)
+    try {
+      const confirmationResult = await sendFirebaseOtp(phoneNumber)
+      setConfirmation(confirmationResult)
+      setOtpStep(true)
+      setInfoMessage(`Firebase OTP sent to +91 ${phoneNumber.slice(-10)}. Enter the 6-digit code.`)
+    } catch (err: any) {
+      setError(err?.message || 'Failed to send OTP via Firebase. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -55,25 +73,9 @@ export function RoleSelection() {
       setError('Please enter a valid 10-digit registered phone number.')
       return
     }
-    if (!password) {
-      setError('Please enter your password.')
-      return
-    }
 
-    setError('')
-    setIsSubmitting(true)
-    try {
-      authService.clearSession()
-      const res = await authService.validateCredentialsAndSendOtp(phone, password)
-      if (res.success) {
-        setOtpStep(true)
-        setInfoMessage(res.message || `Password verified! 6-digit OTP sent to ${phone}.`)
-      } else {
-        setError(res.error || 'Invalid credentials or user not registered.')
-      }
-    } finally {
-      setIsSubmitting(false)
-    }
+    authService.clearSession()
+    await triggerSendOtp(phone)
   }
 
   const handleSignupSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -87,24 +89,8 @@ export function RoleSelection() {
       setError('Please enter a valid 10-digit phone number.')
       return
     }
-    if (!password || password.length < 4) {
-      setError('Password must be at least 4 characters long.')
-      return
-    }
 
-    setError('')
-    setIsSubmitting(true)
-    try {
-      const res = await authService.requestRegisterOtp(phone)
-      if (res.success) {
-        setOtpStep(true)
-        setInfoMessage(`Verification OTP dispatched to ${phone}.`)
-      } else {
-        setError(res.error || 'Failed to send verification code.')
-      }
-    } finally {
-      setIsSubmitting(false)
-    }
+    await triggerSendOtp(phone)
   }
 
   const handleVerifyOtpAndProceed = async (event: FormEvent<HTMLFormElement>) => {
@@ -114,66 +100,52 @@ export function RoleSelection() {
       return
     }
 
+    if (!confirmation) {
+      setError('OTP session invalid or expired. Please request a new code.')
+      return
+    }
+
     setError('')
     setIsSubmitting(true)
     try {
-      if (mode === 'login') {
-        const response = await verifyLoginOtp(phone, enteredOtp)
-        if (response.success && response.user) {
-          const targetRoute =
-            response.user.role === 'farmer'
-              ? '/farmer'
-              : response.user.role === 'retailer'
-                ? '/retailer'
-                : '/buyer'
-          navigate(targetRoute)
-        } else {
-          setError(response.error || 'Incorrect or expired OTP. Please try again.')
-        }
+      const { idToken } = await verifyFirebaseOtp(confirmation, enteredOtp)
+      const roleToUse: UserRole = selectedRole || 'retailer'
+      const response = await loginWithFirebase({
+        idToken,
+        phoneNumber: phone,
+        role: roleToUse,
+        name: mode === 'signup' ? name.trim() : undefined,
+        address: mode === 'signup' ? address.trim() : undefined,
+      })
+
+      if (response.success && response.user) {
+        const targetRoute =
+          response.user.role === 'farmer'
+            ? '/farmer'
+            : response.user.role === 'retailer'
+              ? '/retailer'
+              : '/buyer'
+        navigate(targetRoute)
       } else {
-        const response = await verifyRegisterOtp(
-          {
-            name: name.trim(),
-            phone,
-            password,
-            role: selectedRole || 'retailer',
-            address: address.trim() || undefined,
-            pincode: pincode.trim() || undefined,
-          },
-          enteredOtp
-        )
-        if (response.success && response.user) {
-          const targetRoute =
-            response.user.role === 'farmer'
-              ? '/farmer'
-              : response.user.role === 'retailer'
-                ? '/retailer'
-                : '/buyer'
-          navigate(targetRoute)
-        } else {
-          setError(response.error || 'Failed to complete registration.')
-        }
+        setError(response.error || 'Failed to verify token with backend.')
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Authentication error.')
+      setError(err instanceof Error ? err.message : 'Invalid OTP code or verification failed.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleResendOtp = async () => {
+    if (!phone || phone.length < 10) return
     setError('')
-    setInfoMessage('Resending OTP...')
-    if (mode === 'login') {
-      const res = await authService.validateCredentialsAndSendOtp(phone, password)
-      if (res.success) {
-        setInfoMessage(`New OTP sent to ${phone}.`)
-      }
-    } else {
-      const res = await authService.requestRegisterOtp(phone)
-      if (res.success) {
-        setInfoMessage(`New verification code sent to ${phone}.`)
-      }
+    setInfoMessage('Resending OTP via Firebase...')
+    try {
+      const confirmationResult = await sendFirebaseOtp(phone)
+      setConfirmation(confirmationResult)
+      setInfoMessage(`New Firebase OTP sent to +91 ${phone.slice(-10)}.`)
+    } catch (err: any) {
+      setError(err?.message || 'Failed to resend OTP.')
     }
   }
 

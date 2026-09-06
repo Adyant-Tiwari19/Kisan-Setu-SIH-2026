@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState } from 'react'
 import {
   authService,
   type User,
+  type UserRole,
   type LoginCredentials,
   type RegisterData,
   type AuthResponse,
@@ -17,6 +18,13 @@ interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<AuthResponse>
   verifyLoginOtp: (phone: string, otp: string) => Promise<AuthResponse>
   verifyRegisterOtp: (data: RegisterData, otp: string) => Promise<AuthResponse>
+  loginWithFirebase: (params: {
+    idToken: string
+    phoneNumber: string
+    role: UserRole
+    name?: string
+    address?: string
+  }) => Promise<AuthResponse>
   logout: () => Promise<void>
 }
 
@@ -32,6 +40,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true)
     try {
       const res = await authService.login(credentials)
+      if (res.success && res.user) {
+        setUser(res.user)
+        setToken(res.token || authService.getAuthToken())
+      }
+      return res
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const loginWithFirebase = async (params: {
+    idToken: string
+    phoneNumber: string
+    role: UserRole
+    name?: string
+    address?: string
+  }): Promise<AuthResponse> => {
+    setIsLoading(true)
+    try {
+      const res = await authService.loginWithFirebase(params)
       if (res.success && res.user) {
         setUser(res.user)
         setToken(res.token || authService.getAuthToken())
@@ -87,6 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isProfileVisible,
         toggleProfile: () => setIsProfileVisible((visible) => !visible),
         login,
+        loginWithFirebase,
         verifyLoginOtp,
         verifyRegisterOtp,
         logout,
