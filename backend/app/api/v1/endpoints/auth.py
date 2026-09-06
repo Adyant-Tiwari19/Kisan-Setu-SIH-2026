@@ -122,8 +122,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        sub: str = payload.get("sub")
-        if sub is None:
+        phone: str = payload.get("sub")
+        if phone is None:
             raise credentials_exception
     except Exception as e:
         raise HTTPException(
@@ -132,11 +132,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
             headers={"WWW-Authenticate": "Bearer"}
         )
 
-    if str(sub).isdigit():
-        user = db.query(User).filter((User.phone == str(sub)) | (User.uid == int(sub))).first()
-    else:
-        user = db.query(User).filter(User.phone == sub).first()
-
+    user = db.query(User).filter(User.phone == phone).first()
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -211,7 +207,11 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     return {"access_token": access_token, "token_type": "bearer", "user": user}
 
 @router.post("/forgot-password")
-def request_password_reset_otp(req: ForgotPasswordRequest, db: Session = Depends(get_db)):
+def request_password_reset_otp(
+    req: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+    x_client_platform: Optional[str] = Header(None),
+):
     user = db.query(User).filter(User.phone == req.phone).first()
     if not user:
         return {"message":"If this phone number is registered, an OTP has been sent."}
@@ -225,7 +225,10 @@ def request_password_reset_otp(req: ForgotPasswordRequest, db: Session = Depends
     print(f"[SMS OTP MOCK] Phone : {user.phone} | OTP: {otp}")
     print("=" * 50 + "\n")
 
-    return {"message":"OTP sent successfully to your registered phone number."}
+    response = {"message": "OTP sent successfully to your registered phone number."}
+    if x_client_platform and x_client_platform.lower() == "android":
+        response["otp"] = otp
+    return response
 
 @router.post("/reset-password")
 def reset_password_with_otp(req: ResetPasswordRequest, db: Session = Depends(get_db)):
@@ -256,7 +259,11 @@ def reset_password_with_otp(req: ResetPasswordRequest, db: Session = Depends(get
 
 # 3. Two-Factor (Password + OTP) Login Endpoints
 @router.post("/login-validate-credentials")
-def validate_credentials_and_send_otp(req: LoginCredentialsRequest, db: Session = Depends(get_db)):
+def validate_credentials_and_send_otp(
+    req: LoginCredentialsRequest,
+    db: Session = Depends(get_db),
+    x_client_platform: Optional[str] = Header(None),
+):
     clean_phone = req.phone.strip()
     user = db.query(User).filter(User.phone == clean_phone).first()
     if not user or not verify_password(req.password, user.hashed_password):
@@ -274,14 +281,21 @@ def validate_credentials_and_send_otp(req: LoginCredentialsRequest, db: Session 
     print(f"[SMS 2FA LOGIN OTP] Phone : {user.phone} | OTP: {otp}")
     print("=" * 50 + "\n")
 
-    return {
+    response = {
         "success": True,
         "message": f"Password verified! 6-digit OTP sent to {user.phone}."
     }
+    if x_client_platform and x_client_platform.lower() == "android":
+        response["otp"] = otp
+    return response
 
 
 @router.post("/request-login-otp")
-def request_login_otp(req: OtpRequest, db: Session = Depends(get_db)):
+def request_login_otp(
+    req: OtpRequest,
+    db: Session = Depends(get_db),
+    x_client_platform: Optional[str] = Header(None),
+):
     clean_phone = req.phone.strip()
     user = db.query(User).filter(User.phone == clean_phone).first()
     if not user:
@@ -299,10 +313,13 @@ def request_login_otp(req: OtpRequest, db: Session = Depends(get_db)):
     print(f"[SMS LOGIN OTP] Phone : {user.phone} | OTP: {otp}")
     print("=" * 50 + "\n")
 
-    return {
+    response = {
         "success": True,
         "message": f"OTP sent to {user.phone}."
     }
+    if x_client_platform and x_client_platform.lower() == "android":
+        response["otp"] = otp
+    return response
 
 
 @router.post("/verify-login-otp", response_model=Token)
@@ -360,7 +377,11 @@ def check_phone_registered(phone: str, db: Session = Depends(get_db)):
 
 
 @router.post("/request-register-otp")
-def request_register_otp(req: OtpRequest, db: Session = Depends(get_db)):
+def request_register_otp(
+    req: OtpRequest,
+    db: Session = Depends(get_db),
+    x_client_platform: Optional[str] = Header(None),
+):
     clean_phone = req.phone.strip().replace(" ", "").replace("-", "")[-10:]
     existing_user = db.query(User).filter(User.phone == clean_phone).first()
     if existing_user:
@@ -381,10 +402,13 @@ def request_register_otp(req: OtpRequest, db: Session = Depends(get_db)):
     print(f"[SMS REGISTER OTP] Phone : {clean_phone} | OTP: {otp}")
     print("=" * 50 + "\n")
 
-    return {
+    response = {
         "success": True,
         "message": f"Verification OTP sent to {clean_phone}."
     }
+    if x_client_platform and x_client_platform.lower() == "android":
+        response["otp"] = otp
+    return response
 
 
 @router.post("/verify-register-otp", response_model=Token)
@@ -491,4 +515,4 @@ def update_user_profile(
 
     db.commit()
     db.refresh(current_user)
-    return current_user
+    return current_user
