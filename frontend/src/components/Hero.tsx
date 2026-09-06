@@ -83,7 +83,7 @@ export function Hero() {
               animationDelay: '160ms',
             }}
           >
-            Fresh Ferme connects farmers, FPOs, retailers, and bulk buyers through transparent pricing,
+            Kisan Setu connects farmers, FPOs, retailers, and bulk buyers through transparent pricing,
             AI-driven matching, and faster, fresher deliveries — directly from field to shelf.
           </p>
 
@@ -106,16 +106,7 @@ export function Hero() {
             className="anim-fade-up"
             style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', animationDelay: '320ms' }}
           >
-            {[
-              { icon: '🏛️', text: '12.4K+ farmers onboarded' },
-              { icon: '✅', text: 'APMC compliant' },
-              { icon: '🔒', text: 'Secure payouts' },
-            ].map(b => (
-              <div key={b.text} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span style={{ fontSize: '0.875rem' }}>{b.icon}</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--ff-muted)', letterSpacing: '0.01em' }}>{b.text}</span>
-              </div>
-            ))}
+            
           </div>
         </div>
 
@@ -148,18 +139,6 @@ export function Hero() {
               position: 'absolute', bottom: 0, left: 0, right: 0, height: '35%',
               background: 'linear-gradient(to top, rgba(27,67,50,0.35), transparent)',
             }} />
-            {/* Bottom overlay tag */}
-            <div style={{
-              position: 'absolute', bottom: '1.25rem', left: '1.25rem',
-              background: 'rgba(27,67,50,0.85)',
-              backdropFilter: 'blur(12px)',
-              borderRadius: '0.875rem',
-              padding: '0.75rem 1.25rem',
-              color: '#fff',
-            }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 600, opacity: 0.7, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.15rem' }}>Live today</div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 700 }}>3,840 orders matched</div>
-            </div>
           </div>
 
           {/* Floating badges */}

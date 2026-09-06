@@ -47,7 +47,7 @@ export function ImpactBand() {
 
         {/* Section label */}
         <div className="scroll-reveal" style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <span className="eyebrow" style={{ color: 'var(--ff-fresh)' }}>Fresh Ferme in numbers</span>
+          <span className="eyebrow" style={{ color: 'var(--ff-fresh)' }}>Kisan Setu in numbers</span>
         </div>
 
         {/* Connected metrics */}

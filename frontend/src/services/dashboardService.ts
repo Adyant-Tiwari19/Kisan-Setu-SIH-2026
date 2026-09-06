@@ -1,5 +1,5 @@
 /**
- * Fresh Ferme - Dashboard Service
+ * Kisan Setu - Dashboard Service
  * Communicates with FastAPI /api/v1/dashboard endpoints for farmer income & escrow metrics.
  */
 

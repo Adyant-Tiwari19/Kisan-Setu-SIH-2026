@@ -5,7 +5,7 @@ const testimonials = [
     location: 'Nashik, Maharashtra',
     image: '/farmer-portrait.png',
     quote:
-      'Before Fresh Ferme, I was getting ₹8 per kg. Middlemen took everything. Now I get ₹14–16 directly. My kids got new school books this year for the first time.',
+      'Before Kisan Setu, I was getting ₹8 per kg. Middlemen took everything. Now I get ₹14–16 directly. My kids got new school books this year for the first time.',
     result: '+85% farmgate income in 6 months',
     color: 'var(--ff-deep)',
     bg: 'var(--ff-pale)',

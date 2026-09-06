@@ -1,24 +1,17 @@
 import { Link } from 'react-router-dom'
 
-const nav = {
-  Platform: ['How it Works', 'AI Matching', 'Pricing', 'Route Optimization'],
-  Growers: ['Farmer Sign Up', 'FPO Registration', 'List Produce', 'Harvest Calendar'],
-  Buyers: ['Retailer Sign Up', 'Bulk Buyers', 'Standing Orders', 'Quality Grades'],
-  Company: ['About Us', 'Careers', 'Press Kit', 'Blog'],
-}
-
 export function Footer() {
   return (
     <footer style={{ background: 'var(--ff-navy)', color: 'rgba(255,255,255,0.7)' }}>
 
       {/* Main footer grid */}
       <div
-        className="container"
+        className="container footer-grid"
         style={{
           paddingTop: '4rem',
           paddingBottom: '3rem',
           display: 'grid',
-          gridTemplateColumns: '1.6fr repeat(4, 1fr)',
+          gridTemplateColumns: '1.6fr 1fr 1fr',
           gap: '3rem',
         }}
       >
@@ -38,61 +31,52 @@ export function Footer() {
               </svg>
             </div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#fff', letterSpacing: '-0.02em', lineHeight: 1 }}>Fresh Ferme</div>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#fff', letterSpacing: '-0.02em', lineHeight: 1 }}>Kisan Setu</div>
               <div style={{ fontSize: '0.58rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ff-mint)', marginTop: '0.15rem' }}>Farm to Market</div>
             </div>
           </Link>
 
-          <p style={{ fontSize: '0.875rem', lineHeight: 1.8, color: 'rgba(255,255,255,0.5)', maxWidth: '18rem', marginBottom: '1.75rem' }}>
-            India's most transparent AI-powered farm-to-market network. Connecting 12,400+ farmers with buyers across 8 states.
+          <p style={{ fontSize: '0.95rem', lineHeight: 1.7, color: 'rgba(255,255,255,0.62)', maxWidth: '21rem', margin: 0 }}>
+            Connecting farmers and buyers through smarter, fairer farm-to-market trade.
           </p>
 
-          {/* Contact */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {[
-              { icon: '✉', text: 'hello@freshferme.ai' },
-              { icon: '📞', text: '+91 98765 43210' },
-              { icon: '📍', text: 'Bengaluru, India' },
-            ].map(c => (
-              <div key={c.text} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)' }}>
-                <span>{c.icon}</span>
-                <span>{c.text}</span>
-              </div>
-            ))}
+        </div>
+
+        <div>
+          <div style={{
+            fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.15em',
+            textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)',
+            marginBottom: '1.25rem',
+          }}>
+            Contact Us
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+            <a href="mailto:hello@freshferme.ai" style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.55)', textDecoration: 'none' }}>
+              hello@freshferme.ai
+            </a>
+            <a href="tel:+919876543210" style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.55)', textDecoration: 'none' }}>
+              +91 98765 43210
+            </a>
           </div>
         </div>
 
-        {/* Nav columns */}
-        {Object.entries(nav).map(([heading, links]) => (
-          <div key={heading}>
-            <div style={{
-              fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.15em',
-              textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)',
-              marginBottom: '1.25rem',
-            }}>
-              {heading}
-            </div>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
-              {links.map(link => (
-                <li key={link}>
-                  <a
-                    href="#"
-                    style={{
-                      fontSize: '0.875rem',
-                      color: 'rgba(255,255,255,0.55)',
-                      textDecoration: 'none',
-                      transition: 'color 0.15s',
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-                    onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.55)')}
-                  >
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
+        <div>
+          <div style={{
+            fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.15em',
+            textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)',
+            marginBottom: '1.25rem',
+          }}>
+            Account
           </div>
-        ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+            <Link to="/sign-in" style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.55)', textDecoration: 'none' }}>
+              Login
+            </Link>
+            <Link to="/join-now" style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.55)', textDecoration: 'none' }}>
+              Join Now
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Divider */}
@@ -112,20 +96,10 @@ export function Footer() {
         }}
       >
         <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)' }}>
-          © 2026 Fresh Ferme Technologies Pvt. Ltd. · All rights reserved.
+          © 2026 Kisan Setu Technologies Pvt. Ltd. · All rights reserved.
         </span>
 
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          {/* Trust badges */}
-          {['APMC Compliant', 'FSSAI Registered', 'SSL Secured'].map(b => (
-            <span key={b} style={{
-              fontSize: '0.72rem', fontWeight: 600, color: 'rgba(255,255,255,0.3)',
-              letterSpacing: '0.04em',
-            }}>
-              ✓ {b}
-            </span>
-          ))}
-        </div>
+        
 
         {/* Social */}
         <div style={{ display: 'flex', gap: '0.75rem' }}>

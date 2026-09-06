@@ -5,11 +5,9 @@ import { FarmerDashboard } from './components/FarmerDashboard'
 import { RetailMarketplace } from './components/RetailMarketplace'
 import { BulkBuyerDashboard } from './components/BulkBuyerDashboard'
 import { Hero } from './components/Hero'
-import { ImpactBand } from './components/ImpactBand'
 import { HowItWorks } from './components/HowItWorks'
 import { Benefits } from './components/Benefits'
 import { MarketplacePreview } from './components/MarketplacePreview'
-import { TestimonialsSection } from './components/TestimonialsSection'
 
 export function AppRoutes() {
   return (
@@ -18,11 +16,9 @@ export function AppRoutes() {
         <Route index element={
           <>
             <Hero />
-            <ImpactBand />
             <HowItWorks />
             <MarketplacePreview />
             <Benefits />
-            <TestimonialsSection />
           </>
         } />
         <Route path="sign-in" element={<RoleSelection key="sign-in" />} />
