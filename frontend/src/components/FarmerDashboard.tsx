@@ -4,6 +4,7 @@ import { authService, type User } from '../services/authService'
 import { dashboardService, type FarmerIncomeDashboard } from '../services/dashboardService'
 import { listingService, type Listing } from '../services/listingService'
 import { orderService, type Order } from '../services/orderService'
+import { aiService, type DemandForecast } from '../services/aiService'
 import { RetailMarketplace } from './RetailMarketplace'
 
 const navItems = ['Home', 'My Crops', 'My Profile', 'Edit Listing', 'Orders', 'Demand Forecast', 'Earnings', 'Retail Dashboard']
@@ -39,6 +40,8 @@ export function FarmerDashboard() {
   const [listingEditValues, setListingEditValues] = useState<Record<number, { quantity: string; price: string }>>({})
   const [isEditingListings, setIsEditingListings] = useState(false)
   const [editingListingId, setEditingListingId] = useState<number | null>(null)
+  const [demandForecasts, setDemandForecasts] = useState<Record<number, DemandForecast>>({})
+  const [isLoadingDemandForecasts, setIsLoadingDemandForecasts] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -70,6 +73,18 @@ export function FarmerDashboard() {
         setOrders(orderData)
         setLoadedUserPhone(user?.phone || null)
         setIsLoading(false)
+
+        const cropIds = [...new Set(listingData.filter((listing) => listing.is_active).map((listing) => listing.cid))]
+        setDemandForecasts({})
+        setIsLoadingDemandForecasts(cropIds.length > 0)
+        void cropIds.reduce<Promise<Array<readonly [number, DemandForecast | null]>>>((requests, cropId) => requests.then(async (results) => {
+          const forecast = await aiService.predictDemand(cropId)
+          return [...results, [cropId, forecast] as const]
+        }), Promise.resolve([])).then((results) => {
+          if (!isMounted) return
+          setDemandForecasts(Object.fromEntries(results.filter(([, forecast]) => forecast).map(([cropId, forecast]) => [cropId, forecast as DemandForecast])))
+          setIsLoadingDemandForecasts(false)
+        })
       }
     }
 
@@ -566,9 +581,64 @@ export function FarmerDashboard() {
               </span>
             </div>
 
-            <div className="mt-4 rounded-[1.25rem] bg-slate-50 p-4 text-sm text-slate-600">
-              Demand forecasts will appear here when forecast data is available for your listings.
-            </div>
+            {isLoadingDemandForecasts && (
+              <div className="mt-4 rounded-[1.25rem] bg-slate-50 p-4 text-sm text-slate-600">
+                Preparing demand forecasts for your active crops...
+              </div>
+            )}
+
+            {!isLoadingDemandForecasts && currentListings.filter((listing) => listing.is_active).length === 0 && (
+              <div className="mt-4 rounded-[1.25rem] bg-slate-50 p-4 text-sm text-slate-600">
+                Activate a crop listing to see its local demand forecast.
+              </div>
+            )}
+
+            {!isLoadingDemandForecasts && currentListings.filter((listing) => listing.is_active).length > 0 && Object.keys(demandForecasts).length === 0 && (
+              <div className="mt-4 rounded-[1.25rem] bg-amber-50 p-4 text-sm text-amber-800">
+                Demand forecasts are temporarily unavailable. Please try again after checking your farm location.
+              </div>
+            )}
+
+            {Object.values(demandForecasts).length > 0 && (
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {Object.values(demandForecasts).map((forecast) => {
+                  const hasSurplus = forecast.supply_gap_kg < 0
+                  return (
+                    <article key={forecast.crop_id} className="rounded-[1.25rem] border border-slate-100 bg-slate-50 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h4 className="font-bold text-slate-900">{forecast.crop_name}</h4>
+                          <p className="mt-1 text-xs text-slate-500">Next demand estimate · {forecast.search_radius_km} km radius</p>
+                        </div>
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${hasSurplus ? 'bg-sky-100 text-sky-700' : 'bg-orange-100 text-orange-700'}`}>
+                          {hasSurplus ? 'Supply ahead' : 'Demand opportunity'}
+                        </span>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <p className="text-slate-500">Predicted demand</p>
+                          <p className="mt-1 text-lg font-bold text-slate-900">{formatQuantity(forecast.predicted_demand_kg)}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500">Active supply</p>
+                          <p className="mt-1 text-lg font-bold text-slate-900">{formatQuantity(forecast.current_active_supply_kg)}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500">Supply gap</p>
+                          <p className={`mt-1 font-bold ${hasSurplus ? 'text-sky-700' : 'text-orange-700'}`}>
+                            {forecast.supply_gap_kg > 0 ? '+' : ''}{formatQuantity(forecast.supply_gap_kg)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500">Avg. market price</p>
+                          <p className="mt-1 font-bold text-slate-900">{formatCurrency(forecast.avg_market_price)} / kg</p>
+                        </div>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
