@@ -83,10 +83,12 @@ export function RoleSelection() {
       const res = await authService.validateCredentialsAndSendOtp(phone, password)
       if (res.success) {
         setOtpStep(true)
-        setInfoMessage(res.message || `Password verified! 6-digit OTP sent to ${phone}.`)
+        setInfoMessage(res.message)
       } else {
-        setError(res.error || 'Invalid credentials or user not registered.')
+        setError(res.error || 'Credentials verification failed.')
       }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to send OTP. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -103,16 +105,8 @@ export function RoleSelection() {
       setError('Please enter a valid 10-digit phone number.')
       return
     }
-    if (!address.trim()) {
-      setError('Please enter your address.')
-      return
-    }
-    if (!pincode.trim()) {
-      setError('Please enter your pincode.')
-      return
-    }
     if (!password || password.length < 4) {
-      setError('Password must be at least 4 characters long.')
+      setError('Please create a password (at least 4 characters).')
       return
     }
 
@@ -122,10 +116,12 @@ export function RoleSelection() {
       const res = await authService.requestRegisterOtp(phone)
       if (res.success) {
         setOtpStep(true)
-        setInfoMessage(`Verification OTP dispatched to ${phone}.`)
+        setInfoMessage(res.message)
       } else {
-        setError(res.error || 'Failed to send verification code.')
+        setError(res.error || 'Failed to send verification OTP.')
       }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to send OTP. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -141,63 +137,64 @@ export function RoleSelection() {
     setError('')
     setIsSubmitting(true)
     try {
+      let response
       if (mode === 'login') {
-        const response = await verifyLoginOtp(phone, enteredOtp)
-        if (response.success && response.user) {
-          const targetRoute =
-            response.user.role === 'farmer'
-              ? '/farmer'
-              : response.user.role === 'retailer'
-                ? '/retailer'
-                : '/buyer'
-          navigate(targetRoute)
-        } else {
-          setError(response.error || 'Incorrect or expired OTP. Please try again.')
-        }
+        response = await verifyLoginOtp(phone, enteredOtp)
       } else {
-        const response = await verifyRegisterOtp(
+        const roleToUse: UserRole = selectedRole || 'retailer'
+        response = await verifyRegisterOtp(
           {
             name: name.trim(),
             phone,
             password,
-            role: selectedRole || 'retailer',
-            address: address.trim() || undefined,
-            pincode: pincode.trim() || undefined,
+            role: roleToUse,
+            address: address.trim(),
+            pincode: pincode.trim(),
           },
           enteredOtp
         )
-        if (response.success && response.user) {
-          const targetRoute =
-            response.user.role === 'farmer'
-              ? '/farmer'
-              : response.user.role === 'retailer'
-                ? '/retailer'
-                : '/buyer'
-          navigate(targetRoute)
-        } else {
-          setError(response.error || 'Failed to complete registration.')
-        }
+      }
+
+      if (response.success && response.user) {
+        const targetRoute =
+          response.user.role === 'farmer'
+            ? '/farmer'
+            : response.user.role === 'retailer'
+              ? '/retailer'
+              : '/buyer'
+        navigate(targetRoute)
+      } else {
+        setError(response.error || 'Failed to verify OTP.')
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Authentication error.')
+      setError(err instanceof Error ? err.message : 'Invalid OTP code or verification failed.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleResendOtp = async () => {
+    if (!phone || phone.length < 10) return
     setError('')
     setInfoMessage('Resending OTP...')
-    if (mode === 'login') {
-      const res = await authService.validateCredentialsAndSendOtp(phone, password)
-      if (res.success) {
-        setInfoMessage(`New OTP sent to ${phone}.`)
+    try {
+      if (mode === 'login') {
+        const res = await authService.validateCredentialsAndSendOtp(phone, password)
+        if (res.success) {
+          setInfoMessage(res.message)
+        } else {
+          setError(res.error || 'Failed to resend OTP.')
+        }
+      } else {
+        const res = await authService.requestRegisterOtp(phone)
+        if (res.success) {
+          setInfoMessage(res.message)
+        } else {
+          setError(res.error || 'Failed to resend OTP.')
+        }
       }
-    } else {
-      const res = await authService.requestRegisterOtp(phone)
-      if (res.success) {
-        setInfoMessage(`New verification code sent to ${phone}.`)
-      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to resend OTP.')
     }
   }
 

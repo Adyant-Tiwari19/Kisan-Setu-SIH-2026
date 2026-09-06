@@ -59,14 +59,19 @@ export interface OtpResponse {
 const STORAGE_KEY = 'farm_direct_auth_session'
 const REGISTERED_USERS_KEY = 'farm_direct_registered_users'
 
-export function frontendToBackendRole(role: UserRole): BackendUserRole {
+export function frontendToBackendRole(role: string): BackendUserRole {
   switch (role) {
     case 'farmer':
+    case 'FARMER_FPO':
       return 'FARMER_FPO'
     case 'retailer':
+    case 'RETAIL_BUYER':
       return 'RETAIL_BUYER'
     case 'bulk-buyer':
+    case 'BULK_BUYER':
       return 'BULK_BUYER'
+    default:
+      return 'RETAIL_BUYER'
   }
 }
 
@@ -588,6 +593,8 @@ class AuthService {
         STORAGE_KEY,
         JSON.stringify({ token, user, timestamp: Date.now() })
       )
+      localStorage.setItem('token', token)
+      localStorage.setItem('access_token', token)
       localStorage.setItem('farm-direct-logged-in', 'true')
     } catch {
       // ignore
@@ -597,6 +604,8 @@ class AuthService {
   clearSession() {
     try {
       localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem('token')
+      localStorage.removeItem('access_token')
       localStorage.removeItem('farm-direct-logged-in')
     } catch {
       // ignore

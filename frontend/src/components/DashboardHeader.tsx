@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authService } from '../services/authService'
 import { useAuth } from '../context/AuthContext'
+import logo from '../assets/KISAN-SETU_logo.jpeg'
 
 export function DashboardHeader() {
   const navigate = useNavigate()
@@ -35,16 +36,8 @@ export function DashboardHeader() {
     <header className="sticky top-0 z-50 border-b border-emerald-100/90 bg-white/95 shadow-sm backdrop-blur-xl">
       <div className="section-shell flex min-h-16 items-center justify-between gap-4 px-4 py-3 sm:px-6 md:min-h-20 md:px-8 md:py-4">
         {/* Brand Logo */}
-        <Link to="/" className="flex items-center gap-3" aria-label="Kisan Setu home">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-lime-400 text-xl font-black text-white shadow-lg shadow-emerald-500/25">
-            F
-          </div>
-          <div>
-            <div className="text-lg font-extrabold tracking-tight text-slate-900">Kisan Setu</div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-700/80">
-              from farm to market
-            </div>
-          </div>
+        <Link to="/" className="flex items-center" aria-label="Kisan Setu home">
+          <img src={logo} alt="Kisan Setu" className="h-14 w-14 object-contain" />
         </Link>
 
         {/* Right Menu Area */}

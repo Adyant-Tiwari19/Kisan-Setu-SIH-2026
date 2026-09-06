@@ -16,7 +16,6 @@ from sqlalchemy.exc import IntegrityError
 from app.core.config import settings
 from geoalchemy2.functions import ST_SetSRID, ST_MakePoint
 import bcrypt
-from firebase_admin import auth
 
 router = APIRouter()
 
@@ -123,8 +122,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        phone: str = payload.get("sub")
-        if phone is None:
+        sub: str = payload.get("sub")
+        if sub is None:
             raise credentials_exception
     except Exception as e:
         raise HTTPException(
@@ -133,7 +132,11 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
             headers={"WWW-Authenticate": "Bearer"}
         )
 
-    user = db.query(User).filter(User.phone == phone).first()
+    if str(sub).isdigit():
+        user = db.query(User).filter((User.phone == str(sub)) | (User.uid == int(sub))).first()
+    else:
+        user = db.query(User).filter(User.phone == sub).first()
+
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -488,81 +491,4 @@ def update_user_profile(
 
     db.commit()
     db.refresh(current_user)
-    return current_user
-
-class FirebaseTokenRequest(BaseModel):
-    id_token: str
-    role: str 
-    name: str | None = None
-
-@router.post("/firebase-login")
-def login_with_firebase(
-    authorization: str = Header(
-        ..., description="Bearer token sent automatically by app"
-    ),
-    phone_number: str = Query(..., description="10-digit mobile number"),
-    role: str = Query(
-        ..., description="Role selected on app"
-    ),
-    address: str | None = Query(None, description="Physical address"),
-    name: str | None = Query(None , description="User Full Name"),
-    db: Session = Depends(get_db)
-):
-
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Authorization header must start with 'Bearer '"
-        )
-
-    id_token = authorization.split("Bearer ")[1]
-    
-    try:
-        decoded_token = auth.verify_id_token(id_token)
-        firebase_phone = decoded_token.get("phone_number")
-
-        if not firebase_phone:
-            raise ValueError("No phone number found in token.")
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid Firebase Token : {str(e)}"
-        )
-
-    clean_phone = firebase_phone.replace("+91" , "").strip()[-10:]
-
-    user = db.query(User).filter(User.phone == clean_phone).first()
-
-    if user:
-        access_token = create_access_token(data={"sub": str(user.uid)})
-        return {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user_id": user.uid,
-            "phone": user.phone,
-            "role": user.role,
-            "is_new_user": False
-        }
-
-    user = User(
-        name= name or f"User_{clean_phone[-4:]}",
-        phone= clean_phone,
-        role= role,
-        hashed_password="FIREBASE_EXTERNAL_AUTH",
-        address= address
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-
-    access_token = create_access_token(data={"sub": str(user.uid)})
-
-    return {
-        "access_token" : access_token,
-        "token_type": "bearer",
-        "user_uid": user.uid,
-        "phone": user.phone,
-        "role": user.role,
-        "is_new_user": True
-    }
+    return current_user
