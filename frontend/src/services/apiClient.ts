@@ -15,9 +15,13 @@ class ApiClient {
   private getAuthToken(): string | null {
     try {
       const raw = localStorage.getItem('farm_direct_auth_session')
-      if (!raw) return null
-      const parsed = JSON.parse(raw)
-      return parsed.token || null
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed.token) return parsed.token
+      }
+      const directToken = localStorage.getItem('token') || localStorage.getItem('access_token')
+      if (directToken) return directToken
+      return null
     } catch {
       return null
     }
