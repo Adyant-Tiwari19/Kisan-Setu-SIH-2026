@@ -5,6 +5,8 @@
  */
 
 import { apiClient, API_BASE_URL } from './apiClient'
+import { Capacitor } from '@capacitor/core'
+import { LocalNotifications } from '@capacitor/local-notifications'
 
 export type UserRole = 'farmer' | 'retailer' | 'bulk-buyer'
 export type BackendUserRole = 'FARMER_FPO' | 'RETAIL_BUYER' | 'BULK_BUYER' | 'ADMIN'
@@ -56,22 +58,60 @@ export interface OtpResponse {
   error?: string
 }
 
+const isAndroidApp = Capacitor.getPlatform() === 'android'
+
+async function showAndroidOtpNotification(otp?: string): Promise<void> {
+  if (!isAndroidApp || !otp) return
+
+  try {
+    const permission = await LocalNotifications.requestPermissions()
+
+    if (permission.display !== 'granted') {
+      console.warn('Notification permission was not granted')
+      return
+    }
+
+    await LocalNotifications.createChannel({
+      id: 'otp',
+      name: 'OTP notifications',
+      description: 'One-time password notifications',
+      importance: 5,
+      visibility: 1,
+      sound: 'default',
+    })
+
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: Math.floor(Date.now() / 1000),
+          channelId: 'otp',
+          title: 'Kisan Setu OTP',
+          body: `Your one-time password is ${otp}. It expires in 10 minutes.`,
+          schedule: {
+            at: new Date(Date.now() + 500),
+          },
+          smallIcon: 'ic_launcher',
+        },
+      ],
+    })
+
+    console.log('OTP notification scheduled successfully')
+  } catch (error) {
+    console.error('Failed to show OTP notification:', error)
+  }
+}
+
 const STORAGE_KEY = 'farm_direct_auth_session'
 const REGISTERED_USERS_KEY = 'farm_direct_registered_users'
 
-export function frontendToBackendRole(role: string): BackendUserRole {
+export function frontendToBackendRole(role: UserRole): BackendUserRole {
   switch (role) {
     case 'farmer':
-    case 'FARMER_FPO':
       return 'FARMER_FPO'
     case 'retailer':
-    case 'RETAIL_BUYER':
       return 'RETAIL_BUYER'
     case 'bulk-buyer':
-    case 'BULK_BUYER':
       return 'BULK_BUYER'
-    default:
-      return 'RETAIL_BUYER'
   }
 }
 
@@ -169,10 +209,12 @@ class AuthService {
     }
 
     try {
-      const res = await apiClient.post<{ success: boolean; message: string }>(
+      const res = await apiClient.post<{ success: boolean; message: string; otp?: string }>(
         '/auth/login-validate-credentials',
-        { phone: cleanPhone, password }
+        { phone: cleanPhone, password },
+        { headers: { 'X-Client-Platform': isAndroidApp ? 'android' : 'web' } }
       )
+      await showAndroidOtpNotification(res.otp)
       return {
         success: true,
         message: res.message || 'Credentials verified! OTP sent to your phone.',
@@ -310,10 +352,12 @@ class AuthService {
     }
 
     try {
-      const res = await apiClient.post<{ success: boolean; message: string }>(
+      const res = await apiClient.post<{ success: boolean; message: string; otp?: string }>(
         '/auth/request-login-otp',
-        { phone: cleanPhone }
+        { phone: cleanPhone },
+        { headers: { 'X-Client-Platform': isAndroidApp ? 'android' : 'web' } }
       )
+      await showAndroidOtpNotification(res.otp)
       return {
         success: true,
         message: res.message || `OTP sent to ${cleanPhone}.`,
@@ -424,10 +468,12 @@ class AuthService {
     }
 
     try {
-      const res = await apiClient.post<{ success: boolean; message: string }>(
+      const res = await apiClient.post<{ success: boolean; message: string; otp?: string }>(
         '/auth/request-register-otp',
-        { phone: cleanPhone }
+        { phone: cleanPhone },
+        { headers: { 'X-Client-Platform': isAndroidApp ? 'android' : 'web' } }
       )
+      await showAndroidOtpNotification(res.otp)
       return {
         success: true,
         message: res.message || `Verification OTP sent to ${cleanPhone}.`,
@@ -560,7 +606,12 @@ class AuthService {
   async forgotPassword(phone: string): Promise<{ success: boolean; message: string; error?: string }> {
     const cleanPhone = phone.replace(/\D/g, '').slice(0, 10)
     try {
-      const res = await apiClient.post<{ message: string }>('/auth/forgot-password', { phone: cleanPhone })
+      const res = await apiClient.post<{ message: string; otp?: string }>(
+        '/auth/forgot-password',
+        { phone: cleanPhone },
+        { headers: { 'X-Client-Platform': isAndroidApp ? 'android' : 'web' } }
+      )
+      await showAndroidOtpNotification(res.otp)
       return { success: true, message: res.message || 'OTP sent successfully!' }
     } catch {
       return { success: true, message: `OTP sent to registered phone ${cleanPhone}.` }
@@ -593,8 +644,6 @@ class AuthService {
         STORAGE_KEY,
         JSON.stringify({ token, user, timestamp: Date.now() })
       )
-      localStorage.setItem('token', token)
-      localStorage.setItem('access_token', token)
       localStorage.setItem('farm-direct-logged-in', 'true')
     } catch {
       // ignore
@@ -604,8 +653,6 @@ class AuthService {
   clearSession() {
     try {
       localStorage.removeItem(STORAGE_KEY)
-      localStorage.removeItem('token')
-      localStorage.removeItem('access_token')
       localStorage.removeItem('farm-direct-logged-in')
     } catch {
       // ignore

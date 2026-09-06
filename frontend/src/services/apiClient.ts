@@ -3,7 +3,14 @@
  * Handles authentication header injection, standard REST methods, and network error resilience.
  */
 
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '')
+import { Capacitor } from "@capacitor/core"
+
+const defaultApiBaseUrl =
+  Capacitor.getPlatform() === 'android'
+    ? 'https://farm-direct-qw93.onrender.com/api/v1'
+    : 'http://localhost:8000/api/v1'
+
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || defaultApiBaseUrl).replace(/\/$/, '')
 
 export interface ApiError {
   status: number
@@ -15,13 +22,9 @@ class ApiClient {
   private getAuthToken(): string | null {
     try {
       const raw = localStorage.getItem('farm_direct_auth_session')
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        if (parsed.token) return parsed.token
-      }
-      const directToken = localStorage.getItem('token') || localStorage.getItem('access_token')
-      if (directToken) return directToken
-      return null
+      if (!raw) return null
+      const parsed = JSON.parse(raw)
+      return parsed.token || null
     } catch {
       return null
     }
