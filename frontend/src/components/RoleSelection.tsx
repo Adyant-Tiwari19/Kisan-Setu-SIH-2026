@@ -39,9 +39,14 @@ export function RoleSelection() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isResetOpen, setIsResetOpen] = useState(false)
   const [resetMobile, setResetMobile] = useState('')
+  const [resetOtp, setResetOtp] = useState('')
+  const [resetNewPassword, setResetNewPassword] = useState('')
+  const [isResetOtpStep, setIsResetOtpStep] = useState(false)
   const [resetMessage, setResetMessage] = useState('')
   const formSectionRef = useRef<HTMLDivElement>(null)
   const roleSelectionRef = useRef<HTMLDivElement>(null)
+  const otpFormRef = useRef<HTMLFormElement>(null)
+  const otpInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
@@ -56,6 +61,16 @@ export function RoleSelection() {
 
     return () => window.cancelAnimationFrame(frame)
   }, [mode, selectedRole])
+
+  useEffect(() => {
+    if (!otpStep) return
+
+    const frame = window.requestAnimationFrame(() => {
+      otpInputRef.current?.focus()
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [otpStep])
 
   const handleRoleSelect = (role: UserRole) => {
     setSelectedRole(role)
@@ -209,8 +224,31 @@ export function RoleSelection() {
     const res = await authService.forgotPassword(resetMobile)
     if (res.success) {
       setResetMessage(res.message)
+      setIsResetOtpStep(true)
     } else {
       setResetMessage(res.error || 'Failed to send OTP')
+    }
+  }
+
+  const handleResetPassword = async () => {
+    if (resetOtp.length !== 6) {
+      setResetMessage('Please enter the 6-digit OTP.')
+      return
+    }
+    if (resetNewPassword.length < 4) {
+      setResetMessage('Please enter a new password of at least 4 characters.')
+      return
+    }
+
+    setResetMessage('Updating password...')
+    const res = await authService.resetPassword(resetMobile, resetOtp, resetNewPassword)
+    if (res.success) {
+      setResetMessage(res.message)
+      setIsResetOtpStep(false)
+      setResetOtp('')
+      setResetNewPassword('')
+    } else {
+      setResetMessage(res.error || 'Failed to reset password.')
     }
   }
 
@@ -220,12 +258,12 @@ export function RoleSelection() {
     retailer: { title: 'Source with clarity.', description: 'Find fresh supply nearby and keep shelves moving.' },
     'bulk-buyer': { title: 'Buy at scale, without the scramble.', description: 'Manage procurement, requests, and supplier matching in one flow.' },
   }
-  const updateOtp = (index: number, value: string) => {
-    const digits = value.replace(/\D/g, '').slice(-1)
-    const nextOtp = enteredOtp.split('')
-    nextOtp[index] = digits
-    setEnteredOtp(nextOtp.join('').slice(0, 6))
-    if (digits) document.getElementById(`otp-cell-${index + 1}`)?.focus()
+  const handleOtpChange = (value: string) => {
+    const nextOtp = value.replace(/\D/g, '').slice(0, 6)
+    setEnteredOtp(nextOtp)
+    if (nextOtp.length === 6) {
+      window.requestAnimationFrame(() => otpFormRef.current?.requestSubmit())
+    }
   }
 
   return (
@@ -280,15 +318,49 @@ export function RoleSelection() {
                   <label htmlFor="phone-field">Phone number<div className="phone-field"><span>+91</span><input id="phone-field" type="tel" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit mobile number" autoComplete="tel" inputMode="numeric" maxLength={10} /></div></label>
                   {mode === 'signup' && <><label htmlFor="address-field">Address<input id="address-field" type="text" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Street / locality" required /></label><label htmlFor="pincode-field">Pincode<input id="pincode-field" type="text" value={pincode} onChange={(event) => setPincode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="e.g. 560038" required /></label></>}
                   <label htmlFor="password-field">Password<input id="password-field" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === 'login' ? 'Enter your password' : 'Create a password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></label>
-                  {mode === 'login' && <div className="reset-area"><button type="button" onClick={() => setIsResetOpen((open) => !open)}>Forgot password?</button>{isResetOpen && <div className="reset-panel"><label htmlFor="reset-mobile-field">Phone number<input id="reset-mobile-field" type="tel" value={resetMobile} onChange={(event) => setResetMobile(event.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="Enter your phone number" /></label><button type="button" onClick={handleSendResetOtp}>Send reset instructions</button>{resetMessage && <p role="status">{resetMessage}</p>}</div>}</div>}
+                  {mode === 'login' && <div className="reset-area"><button type="button" onClick={() => setIsResetOpen((open) => !open)}>Forgot password?</button>{isResetOpen && <div className="reset-panel">
+                    {!isResetOtpStep ? (
+                      <>
+                        <label htmlFor="reset-mobile-field">Phone number<input id="reset-mobile-field" type="tel" value={resetMobile} onChange={(event) => setResetMobile(event.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="Enter your phone number" /></label>
+                        <button type="button" onClick={handleSendResetOtp}>Send reset instructions</button>
+                      </>
+                    ) : (
+                      <>
+                        <label htmlFor="reset-otp-field">Enter OTP<input id="reset-otp-field" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={resetOtp} onChange={(event) => setResetOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-digit OTP" /></label>
+                        <label htmlFor="reset-password-field">New password<input id="reset-password-field" type="password" value={resetNewPassword} onChange={(event) => setResetNewPassword(event.target.value)} placeholder="Enter a new password" /></label>
+                        <button type="button" onClick={handleResetPassword}>Update password</button>
+                      </>
+                    )}
+                    {resetMessage && <p role="status">{resetMessage}</p>}
+                  </div>}</div>}
                   {error && <p className="form-error" role="alert">{error}</p>}
                   <button type="submit" disabled={isSubmitting} className="auth-submit">{isSubmitting ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}</button>
                   <p className="auth-switch">{mode === 'login' ? 'New to Kisan Setu?' : 'Already part of Kisan Setu?'} <button type="button" onClick={() => navigate(mode === 'login' ? '/join-now' : '/sign-in')}>{mode === 'login' ? 'Create your account' : 'Sign in'}</button></p>
                 </form>
               ) : (
-                <form onSubmit={handleVerifyOtpAndProceed} className="auth-form otp-form">
+                <form ref={otpFormRef} onSubmit={handleVerifyOtpAndProceed} className="auth-form otp-form">
                   <div className="form-heading"><h2>Verify your number</h2><p>{infoMessage || 'We sent a 6-digit one-time code to your phone.'}</p></div>
-                  <label>Enter OTP<div className="otp-cells">{Array.from({ length: 6 }, (_, index) => <input key={index} id={`otp-cell-${index}`} type="text" inputMode="numeric" maxLength={1} value={enteredOtp[index] || ''} onChange={(event) => updateOtp(index, event.target.value)} aria-label={`OTP digit ${index + 1}`} />)}</div></label>
+                  <label htmlFor="otp-input">Enter OTP
+                    <div className="otp-cells">
+                      {Array.from({ length: 6 }, (_, index) => (
+                        <span key={index} className={`otp-cell${enteredOtp.length === index ? ' is-active' : ''}`} aria-hidden="true">
+                          {enteredOtp[index] || ''}
+                        </span>
+                      ))}
+                      <input
+                        id="otp-input"
+                        ref={otpInputRef}
+                        className="otp-input"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        value={enteredOtp}
+                        onChange={(event) => handleOtpChange(event.target.value)}
+                        aria-label="6-digit OTP"
+                      />
+                    </div>
+                  </label>
                   {error && <p className="form-error" role="alert">{error}</p>}
                   <div className="otp-actions"><button type="submit" disabled={isSubmitting} className="auth-submit">{isSubmitting ? 'Verifying...' : 'Verify & continue'}</button><button type="button" className="resend-button" onClick={handleResendOtp}>Resend</button></div>
                 </form>
@@ -316,7 +388,7 @@ export function RoleSelection() {
         .auth-progress { display: flex; align-items: center; gap: .8rem; color: #a3aaa3; font-size: .68rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }.auth-progress i { display: block; width: 3rem; height: 1px; background: #d8ded5; }.auth-progress span.is-current { color: var(--ff-deep); }.auth-progress span.is-complete { color: var(--ff-fresh); }
         .auth-form-wrap { max-width: 30rem; margin: 4rem auto 0; }.form-heading h2 { margin: 0 0 .65rem; color: var(--ff-navy); font-size: clamp(1.7rem, 3vw, 2.35rem); font-weight: 900; letter-spacing: -.05em; line-height: 1.05; }.form-heading p { margin: 0 0 2rem; color: var(--ff-muted); font-size: .94rem; line-height: 1.65; }
         .auth-form { display: grid; gap: 1.15rem; }.auth-form label, .reset-panel label { display: grid; gap: .45rem; color: var(--ff-slate); font-size: .76rem; font-weight: 800; letter-spacing: .05em; }.auth-form input, .reset-panel input { width: 100%; border: 0; border-bottom: 1px solid #cfd8ce; border-radius: 0; background: transparent; padding: .7rem 0; color: var(--ff-navy); font: inherit; font-size: 1rem; outline: none; transition: border-color .2s, box-shadow .2s; }.auth-form input:focus, .reset-panel input:focus { border-color: var(--ff-fresh); box-shadow: 0 2px 0 var(--ff-fresh); }.auth-form input::placeholder { color: #a7afa8; }.phone-field { display: flex; align-items: center; gap: .75rem; border-bottom: 1px solid #cfd8ce; }.phone-field:focus-within { border-color: var(--ff-fresh); box-shadow: 0 2px 0 var(--ff-fresh); }.phone-field span { color: var(--ff-deep); font-weight: 800; }.phone-field input { border: 0; box-shadow: none !important; }
-        .reset-area > button, .auth-switch button, .selected-role-line button { border: 0; background: none; padding: 0; color: var(--ff-fresh); font: inherit; font-size: .78rem; font-weight: 800; cursor: pointer; }.reset-panel { display: grid; gap: .8rem; margin-top: 1rem; padding: 1rem; background: #eef6e9; }.reset-panel > button, .resend-button { width: fit-content; border: 1px solid var(--ff-fresh); border-radius: 999px; background: transparent; padding: .55rem .9rem; color: var(--ff-fresh); font: inherit; font-size: .75rem; font-weight: 800; cursor: pointer; }.reset-panel p { margin: 0; color: var(--ff-fresh); font-size: .78rem; }.form-error { margin: 0; color: #b42318; font-size: .8rem; }.auth-submit { width: 100%; border: 0; border-radius: 999px; background: var(--ff-deep); padding: .9rem 1.5rem; color: #fff; font: inherit; font-weight: 800; box-shadow: 0 8px 20px rgba(27,67,50,.2); transition: transform .2s, background .2s, box-shadow .2s; cursor: pointer; }.auth-submit:hover { background: #153728; transform: translateY(-2px); box-shadow: 0 12px 26px rgba(27,67,50,.28); }.auth-submit:disabled { opacity: .6; cursor: wait; transform: none; }.auth-switch { margin: .5rem 0 0; color: var(--ff-muted); font-size: .82rem; text-align: center; }.auth-switch button { text-decoration: underline; text-underline-offset: .2rem; }.otp-form { margin-top: 0; }.otp-cells { display: grid; grid-template-columns: repeat(6, 1fr); gap: .6rem; margin-top: .4rem; }.otp-cells input { border: 1px solid #cfd8ce; border-radius: .7rem; background: #fff; padding: .75rem 0; text-align: center; font-size: 1.3rem; font-weight: 800; }.otp-cells input:focus { border-color: var(--ff-fresh); box-shadow: 0 0 0 3px rgba(82,183,136,.18); }.otp-actions { display: flex; align-items: center; gap: .75rem; }.otp-actions .auth-submit { flex: 1; }.resend-button { padding: .9rem 1rem; }
+        .reset-area > button, .auth-switch button, .selected-role-line button { border: 0; background: none; padding: 0; color: var(--ff-fresh); font: inherit; font-size: .78rem; font-weight: 800; cursor: pointer; }.reset-panel { display: grid; gap: .8rem; margin-top: 1rem; padding: 1rem; background: #eef6e9; }.reset-panel > button, .resend-button { width: fit-content; border: 1px solid var(--ff-fresh); border-radius: 999px; background: transparent; padding: .55rem .9rem; color: var(--ff-fresh); font: inherit; font-size: .75rem; font-weight: 800; cursor: pointer; }.reset-panel p { margin: 0; color: var(--ff-fresh); font-size: .78rem; }.form-error { margin: 0; color: #b42318; font-size: .8rem; }.auth-submit { width: 100%; border: 0; border-radius: 999px; background: var(--ff-deep); padding: .9rem 1.5rem; color: #fff; font: inherit; font-weight: 800; box-shadow: 0 8px 20px rgba(27,67,50,.2); transition: transform .2s, background .2s, box-shadow .2s; cursor: pointer; }.auth-submit:hover { background: #153728; transform: translateY(-2px); box-shadow: 0 12px 26px rgba(27,67,50,.28); }.auth-submit:disabled { opacity: .6; cursor: wait; transform: none; }.auth-switch { margin: .5rem 0 0; color: var(--ff-muted); font-size: .82rem; text-align: center; }.auth-switch button { text-decoration: underline; text-underline-offset: .2rem; }.otp-form { margin-top: 0; }.otp-cells { position: relative; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .6rem; min-width: 0; margin-top: .4rem; }.otp-cell { display: flex; align-items: center; justify-content: center; width: 100%; min-width: 0; min-height: 3.2rem; box-sizing: border-box; border: 1px solid #cfd8ce; border-radius: .7rem; background: #fff; padding: .75rem 0; text-align: center; font-size: 1.3rem; font-weight: 800; }.otp-cell.is-active { border-color: var(--ff-fresh); box-shadow: 0 0 0 3px rgba(82,183,136,.18); }.otp-input { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; opacity: 0; cursor: text; }.otp-input:focus { outline: none; }.otp-actions { display: flex; align-items: center; gap: .75rem; }.otp-actions .auth-submit { flex: 1; }.resend-button { padding: .9rem 1rem; }
         .join-intro { grid-column: 1 / -1; max-width: 48rem; padding: 4rem 5rem 1rem; }.join-intro h1 { color: var(--ff-navy); margin-bottom: 1rem; }.join-intro p { max-width: 35rem; margin: 0; color: var(--ff-muted); font-size: 1rem; line-height: 1.7; }.auth-page-signup .auth-shell { display: block; min-height: auto; padding-bottom: 4rem; }.auth-page-signup .auth-form-area { padding: 1.5rem 5rem 0; }.role-lanes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); min-height: 18rem; margin: 2rem 0 1.5rem; overflow: hidden; border: 1px solid #ccd8c9; border-radius: 1.4rem; background: #d8e3d2; gap: 1px; }.role-lane { position: relative; display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 0; background: #f5f5e9; padding: 1.6rem 1.4rem; color: var(--ff-deep); text-align: left; cursor: pointer; transition: background .25s ease, color .25s ease, box-shadow .25s ease; }.role-lane:hover, .role-lane:focus-visible { z-index: 1; background: #e7f0df; outline: none; box-shadow: inset 0 0 0 2px var(--ff-mint); }.role-lane-farmer { background: #edf2e1; }.role-lane-retailer { background: #f6efe0; }.role-lane-bulk-buyer { background: #e9edf0; }.lane-texture { position: absolute; inset: 0; opacity: .25; background: repeating-linear-gradient(158deg, transparent 0 28px, rgba(92,133,78,.7) 29px, transparent 30px 60px); }.role-lane-retailer .lane-texture { background: linear-gradient(90deg, transparent 0 25%, rgba(179,133,69,.5) 26% 27%, transparent 28% 50%, rgba(179,133,69,.4) 51% 52%, transparent 53%), repeating-linear-gradient(0deg, transparent 0 32px, rgba(150,117,63,.3) 33px, transparent 34px 66px); }.role-lane-bulk-buyer .lane-texture { background: repeating-linear-gradient(90deg, transparent 0 32px, rgba(62,83,98,.35) 33px, transparent 34px 68px), repeating-linear-gradient(0deg, transparent 0 32px, rgba(62,83,98,.25) 33px, transparent 34px 68px); }.lane-number, .lane-content { position: relative; z-index: 1; }.lane-number { color: var(--ff-fresh); font-size: .7rem; font-weight: 800; letter-spacing: .15em; }.lane-content { align-self: stretch; display: grid; align-content: end; gap: .45rem; margin-top: 2rem; }.lane-content strong { font-size: clamp(1.35rem, 2.5vw, 2rem); font-weight: 900; letter-spacing: -.05em; }.lane-content em { font-style: normal; font-weight: 800; line-height: 1.35; }.lane-content small { max-width: 18rem; color: #5c6c62; font-size: .78rem; line-height: 1.5; }.lane-select { margin-top: .45rem; color: var(--ff-fresh); font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }.lane-hint { margin: 0 0 1rem; color: var(--ff-muted); font-size: .82rem; text-align: center; }.selected-role-line { display: flex; align-items: center; gap: .75rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #dce4da; }.selected-role-line span { color: #849187; font-size: .65rem; font-weight: 800; letter-spacing: .15em; }.selected-role-line strong { color: var(--ff-deep); }.selected-role-line button { margin-left: auto; text-decoration: underline; text-underline-offset: .2rem; }
         .role-lanes { position: relative; isolation: isolate; border-color: #d4ddd0; background: #f1f0e8; box-shadow: 0 16px 35px rgba(27,67,50,.08); }
         .role-lanes::before { position: absolute; content: ''; z-index: -1; inset: 0; opacity: .45; background: repeating-linear-gradient(164deg, transparent 0 32px, rgba(82,132,79,.14) 33px, transparent 34px 68px); }
@@ -340,7 +412,7 @@ export function RoleSelection() {
         .join-role-visual img { width: 100%; height: 100%; max-height: 11rem; object-fit: cover; object-position: center; filter: saturate(.94) sepia(.04) hue-rotate(-4deg); transition: transform .3s ease, filter .3s ease, box-shadow .3s ease; }.join-role-card:hover .join-role-visual img, .join-role-card:focus-visible .join-role-visual img { filter: brightness(1.04) saturate(1) sepia(.04) hue-rotate(-4deg); transform: scale(1.02); }
         .join-role-body { flex: 1; padding: 1.4rem 1.45rem .8rem; }.join-role-body h2 { margin: 0 0 .5rem; color: var(--ff-navy); font-size: 1.7rem; font-weight: 900; letter-spacing: -.05em; }.join-role-summary { min-height: 2.7rem; margin: 0 0 1.35rem; color: #627066; font-size: .84rem; line-height: 1.55; }.join-benefits-label { display: block; margin-bottom: .55rem; color: #819084; font-size: .63rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }.join-role-body ul { display: grid; gap: .48rem; margin: 0; padding: 0; list-style: none; }.join-role-body li { position: relative; padding-left: 1rem; color: #47594d; font-size: .78rem; line-height: 1.35; }.join-role-body li::before { position: absolute; content: ''; top: .48rem; left: 0; width: .32rem; height: .32rem; border-radius: 50%; background: var(--ff-mint); }.join-role-cta { margin: .8rem 1.45rem 1.45rem; border: 1px solid var(--ff-deep); border-radius: 999px; background: transparent; padding: .75rem 1rem; color: var(--ff-deep); font: inherit; font-size: .78rem; font-weight: 800; cursor: pointer; transition: background .2s ease, color .2s ease, transform .2s ease; }.join-role-card:hover .join-role-cta, .join-role-card:focus-visible .join-role-cta { background: var(--ff-deep); color: #fff; }.join-account-link { margin: 1.5rem 0 0; color: var(--ff-muted); font-size: .82rem; text-align: center; }.join-account-link button { border: 0; background: none; padding: 0; color: var(--ff-fresh); font: inherit; font-weight: 800; text-decoration: underline; text-underline-offset: .2rem; cursor: pointer; }
         @keyframes auth-enter { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } } @keyframes auth-route { 0%, 100% { left: 0; } 50% { left: 95%; } }
-        @media (max-width: 800px) { .auth-page { padding: 2rem 16px 4rem; }.auth-shell { display: block; border-radius: 1.4rem; }.auth-welcome { min-height: 31rem; padding: 2.5rem 1.7rem 1.8rem; }.auth-form-area, .auth-page-signup .auth-form-area { padding: 2.2rem 1.35rem 3rem; }.auth-form-wrap { margin-top: 2.8rem; }.join-intro { padding: 2.8rem 1.35rem .5rem; }.join-intro h1 { font-size: clamp(3rem, 13vw, 4.5rem); }.join-role-grid { grid-template-columns: 1fr; gap: 1rem; margin-top: 2rem; }.join-role-card { min-height: 0; }.join-role-visual { min-height: 10rem; }.join-role-body h2 { font-size: 1.55rem; }.join-role-summary { min-height: 0; }.join-role-cta { margin-top: 1rem; }.auth-welcome h1 { font-size: clamp(3.5rem, 15vw, 5rem); }.otp-cells { gap: .35rem; }.otp-cells input { font-size: 1.1rem; }.auth-progress { font-size: .58rem; gap: .5rem; }.auth-progress i { width: 1.5rem; } }
+        @media (max-width: 800px) { .auth-page { padding: 2rem 16px 4rem; }.auth-shell { display: block; border-radius: 1.4rem; }.auth-welcome { min-height: 31rem; padding: 2.5rem 1.7rem 1.8rem; }.auth-form-area, .auth-page-signup .auth-form-area { padding: 2.2rem 1.35rem 3rem; }.auth-form-wrap { margin-top: 2.8rem; }.join-intro { padding: 2.8rem 1.35rem .5rem; }.join-intro h1 { font-size: clamp(3rem, 13vw, 4.5rem); }.join-role-grid { grid-template-columns: 1fr; gap: 1rem; margin-top: 2rem; }.join-role-card { min-height: 0; }.join-role-visual { min-height: 10rem; }.join-role-body h2 { font-size: 1.55rem; }.join-role-summary { min-height: 0; }.join-role-cta { margin-top: 1rem; }.auth-welcome h1 { font-size: clamp(3.5rem, 15vw, 5rem); }.otp-cells { gap: .35rem; }.otp-cell { font-size: 1.1rem; }.auth-progress { font-size: .58rem; gap: .5rem; }.auth-progress i { width: 1.5rem; } }
         @media (prefers-reduced-motion: reduce) { .auth-shell, .auth-route-line span, .auth-submit, .join-role-card, .join-role-visual img, .join-role-cta { animation: none; transition: none; } }
       `}</style>
     </main>
