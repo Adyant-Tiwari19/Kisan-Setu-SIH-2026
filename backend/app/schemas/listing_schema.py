@@ -47,6 +47,8 @@ class ListingResponse(BaseModel):
 
     latitude: float
     longitude: float
+    distance_km: Optional[float] = None
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

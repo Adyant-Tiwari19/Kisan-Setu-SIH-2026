@@ -2,7 +2,7 @@ from app.database import get_db
 from app.models.listing import Listing, Crop
 from app.models.order import Order, OrderStatus
 from app.models.user import User
-from app.schemas.order_schema import OrderCreate, OrderResponse, OrderStatusUpdate
+from app.schemas.order_schema import OrderCreate, OrderEstimateRequest, OrderResponse, OrderStatusUpdate
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
@@ -11,9 +11,14 @@ from pydantic import BaseModel,Field
 from datetime import datetime, timezone
 from typing import List, Optional
 from app.api.v1.endpoints.auth import get_current_user
+from app.api.v1.endpoints.listings import get_geometry_coordinates, haversine_distance_km, resolve_buyer_coordinates
 
 
 router = APIRouter()
+
+
+def calculate_logistics_price(quantity: float, distance_km: float) -> float:
+    return round(quantity * (1.5 + (max(distance_km, 0.0) * 0.1)), 2)
 
 class OrderRatingRequest(BaseModel):
   rating: float = Field(..., ge=1.0,le=5.0)
@@ -80,7 +85,14 @@ def place_order(
     actual_quantity = order_in.quantity
 
     produce_price = listing.price_per_unit * actual_quantity
-    logistics_price = round(actual_quantity * 1.5, 2)  
+    buyer_lat, buyer_lon = resolve_buyer_coordinates(buyer, db)
+    seller_coordinates = get_geometry_coordinates(db, listing.location)
+    distance_km = (
+        haversine_distance_km(buyer_lat, buyer_lon, seller_coordinates[0], seller_coordinates[1])
+        if seller_coordinates
+        else 0.0
+    )
+    logistics_price = calculate_logistics_price(actual_quantity, distance_km)
     landed_price = produce_price + logistics_price
 
     listing.quantity_available -= actual_quantity
@@ -100,6 +112,34 @@ def place_order(
     db.commit()
     db.refresh(order)
     return format_order_response(order, db)
+
+
+@router.post("/estimate")
+def estimate_order_logistics(
+    estimate_in: OrderEstimateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    buyer_lat, buyer_lon = resolve_buyer_coordinates(current_user, db)
+    total_logistics = 0.0
+
+    for item in estimate_in.items:
+        if item.quantity <= 0:
+            raise HTTPException(status_code=400, detail="Estimated quantity must be greater than zero.")
+
+        listing = db.query(Listing).filter(Listing.lid == item.lid).first()
+        if not listing:
+            raise HTTPException(status_code=404, detail=f"Listing {item.lid} not found.")
+
+        seller_coordinates = get_geometry_coordinates(db, listing.location)
+        distance_km = (
+            haversine_distance_km(buyer_lat, buyer_lon, seller_coordinates[0], seller_coordinates[1])
+            if seller_coordinates
+            else 0.0
+        )
+        total_logistics += calculate_logistics_price(item.quantity, distance_km)
+
+    return {"logistics_price": round(total_logistics, 2)}
 
 
 @router.get("/{oid}/track", response_model=OrderResponse)

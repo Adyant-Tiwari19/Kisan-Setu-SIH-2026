@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listingService, type MarketplaceListing } from '../services/listingService'
 import { orderService, type Order } from '../services/orderService'
@@ -26,9 +26,10 @@ const formatDistance = (value: number | null | undefined) => {
   return `${value} km`
 }
 
-const formatHarvestDate = (value: string | null) => {
-  if (!value) return 'Not available'
-  const date = new Date(value)
+const formatHarvestDate = (value: string | null | undefined, fallback?: string | null) => {
+  const dateValue = value || fallback
+  if (!dateValue) return 'Not available'
+  const date = new Date(dateValue)
   return Number.isNaN(date.getTime()) ? 'Not available' : date.toLocaleDateString('en-IN')
 }
 
@@ -72,10 +73,15 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
   const [sortMode, setSortMode] = useState<SortMode>('relevance')
   const [cart, setCart] = useState<Record<string | number, number>>({})
   const [dashboardMessage, setDashboardMessage] = useState('')
+  const [allListings, setAllListings] = useState<MarketplaceListing[]>([])
   const [listings, setListings] = useState<MarketplaceListing[]>([])
-  const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'success' | 'empty' | 'apiError'>('idle')
+  const [logisticsCost, setLogisticsCost] = useState(0)
+  const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'success' | 'empty' | 'apiError'>('loading')
   const [validationMessage, setValidationMessage] = useState('')
   const [orders, setOrders] = useState<Order[]>([])
+  const currentUserId = profileUser?.uid ?? user?.uid
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchRequestRef = useRef(0)
 
   useEffect(() => {
     let isMounted = true
@@ -99,7 +105,33 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
     }
   }, [user?.uid])
 
-  const currentUserId = profileUser?.uid ?? user?.uid
+  const loadCatalog = useCallback(async () => {
+    setSearchStatus('loading')
+    try {
+      const catalog = await listingService.getAllMarketplaceListings()
+      const visibleCatalog = catalog.filter((listing) => (
+        currentUserId === undefined ||
+        listing.farmer_id === null ||
+        listing.farmer_id === undefined ||
+        String(listing.farmer_id) !== String(currentUserId)
+      ))
+      setAllListings(visibleCatalog)
+      setListings(visibleCatalog)
+      setSearchStatus(visibleCatalog.length ? 'success' : 'empty')
+    } catch {
+      setAllListings([])
+      setListings([])
+      setSearchStatus('apiError')
+    }
+  }, [currentUserId])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadCatalog()
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [loadCatalog])
+
   const buyerOrders = useMemo(
     () => orders.filter((order) => currentUserId !== undefined && String(order.bid) === String(currentUserId)),
     [currentUserId, orders]
@@ -138,13 +170,52 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
     })
   }, [listings, sortMode])
 
+  const bestMatchId = useMemo(() => {
+    if (sortMode !== 'relevance') return null
+
+    return visibleProducts.reduce<string | number | null>((bestId, listing) => {
+      if (listing.relevance_score === null || listing.relevance_score === undefined) return bestId
+      if (bestId === null) return listing.id
+
+      const bestListing = visibleProducts.find((candidate) => String(candidate.id) === String(bestId))
+      return !bestListing || (bestListing.relevance_score ?? -1) < listing.relevance_score
+        ? listing.id
+        : bestId
+    }, null)
+  }, [sortMode, visibleProducts])
+
   const cartCount = Object.values(cart).reduce((total, quantity) => total + quantity, 0)
-  const cartItems = visibleProducts.filter((product) => (cart[product.id] ?? 0) > 0)
+  const cartItems = useMemo(
+    () => allListings.filter((product) => (cart[product.id] ?? 0) > 0),
+    [allListings, cart]
+  )
   const produceSubtotal = cartItems.every((product) => getUnitPrice(product) !== null)
     ? cartItems.reduce((total, product) => total + (getUnitPrice(product) ?? 0) * (cart[product.id] ?? 0), 0)
     : null
-  const logisticsCost = cartCount > 0 ? 35 : 0
-  const orderTotal = produceSubtotal === null ? null : produceSubtotal + logisticsCost
+  const displayedLogisticsCost = cartItems.length ? logisticsCost : 0
+  const orderTotal = produceSubtotal === null ? null : produceSubtotal + displayedLogisticsCost
+
+  useEffect(() => {
+    let isMounted = true
+    if (!cartItems.length) {
+      return () => {
+        isMounted = false
+      }
+    }
+
+    void orderService.estimateLogistics(cartItems.map((listing) => ({
+      lid: Number(listing.id),
+      quantity: cart[listing.id] ?? 0,
+    }))).then((cost) => {
+      if (isMounted) setLogisticsCost(cost)
+    }).catch(() => {
+      if (isMounted) setLogisticsCost(0)
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [cart, cartItems])
 
   const scrollToSection = (id: string) => {
     requestAnimationFrame(() => {
@@ -172,12 +243,14 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
     updateQuantity(listing, nextQuantity)
   }
 
-  const handleSearch = async (selectedSortMode = sortMode) => {
-    const trimmedCrop = cropQuery.trim()
+  const handleSearch = async (query = cropQuery, selectedSortMode = sortMode) => {
+    const requestId = ++searchRequestRef.current
+    const trimmedCrop = query.trim()
 
     if (!trimmedCrop) {
-      setValidationMessage('Enter a crop name to search.')
-      setSearchStatus('idle')
+      setValidationMessage('')
+      setListings(allListings)
+      setSearchStatus(allListings.length ? 'success' : 'empty')
       return
     }
 
@@ -186,23 +259,30 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
     setDashboardMessage('')
 
     try {
-      const rankedResults = await listingService.rankListings(trimmedCrop)
-      let sortedResults = rankedResults
+      let sortedResults: MarketplaceListing[]
+      const searchResults = await listingService.searchListings(trimmedCrop, searchLatitude, searchLongitude, null)
+      if (requestId !== searchRequestRef.current) return
 
-      try {
-        const searchResults = await listingService.searchListings(trimmedCrop, searchLatitude, searchLongitude, null)
-        const searchById = new Map(searchResults.map((listing) => [String(listing.id), listing]))
-        sortedResults = rankedResults.map((rankedListing) => ({
-          ...searchById.get(String(rankedListing.id)),
-          ...rankedListing,
-          sample_img_url: searchById.get(String(rankedListing.id))?.sample_img_url ?? rankedListing.sample_img_url,
-          farmer_address: searchById.get(String(rankedListing.id))?.farmer_address ?? rankedListing.farmer_address,
-          farmer_phone: searchById.get(String(rankedListing.id))?.farmer_phone ?? rankedListing.farmer_phone,
-        }))
-      } catch {
-        // Ranked results remain usable when supplementary listing details are unavailable.
+      if (selectedSortMode === 'relevance') {
+        try {
+          const rankedResults = await listingService.rankListings(trimmedCrop)
+          if (requestId !== searchRequestRef.current) return
+          const searchById = new Map(searchResults.map((listing) => [String(listing.id), listing]))
+          sortedResults = rankedResults.map((rankedListing) => ({
+            ...searchById.get(String(rankedListing.id)),
+            ...rankedListing,
+            sample_img_url: searchById.get(String(rankedListing.id))?.sample_img_url ?? rankedListing.sample_img_url,
+            farmer_address: searchById.get(String(rankedListing.id))?.farmer_address ?? rankedListing.farmer_address,
+            farmer_phone: searchById.get(String(rankedListing.id))?.farmer_phone ?? rankedListing.farmer_phone,
+          }))
+        } catch {
+          sortedResults = searchResults
+        }
+      } else {
+        sortedResults = searchResults
       }
 
+      if (requestId !== searchRequestRef.current) return
       sortedResults = sortedResults.filter((listing) => (
         currentUserId === undefined ||
         listing.farmer_id === null ||
@@ -227,6 +307,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
         setDashboardMessage('Fresh produce results loaded for your selected location.')
       }
     } catch {
+      if (requestId !== searchRequestRef.current) return
       setListings([])
       setSearchStatus('apiError')
     }
@@ -234,6 +315,16 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
 
   const retrySearch = () => {
     void handleSearch()
+  }
+
+  const resetMarketplace = () => {
+    searchRequestRef.current += 1
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    setCropQuery('')
+    setSortMode('relevance')
+    setValidationMessage('')
+    setDashboardMessage('')
+    void loadCatalog()
   }
 
   const placeOrder = async () => {
@@ -268,7 +359,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
               <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{wholesale ? 'Wholesale User' : 'Retail Consumer'}</div>
               <h2 className="mt-2 text-2xl font-black tracking-tighter text-slate-900 md:text-3xl">{wholesale ? 'Fresh picks at best prices' : 'Fresh picks near you'}</h2>
             </div>
-            <button type="button" onClick={() => scrollToSection('retail-cart')} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+            <button type="button" onClick={() => setActiveNav('Cart')} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
               Cart ({cartCount})
             </button>
           </div>
@@ -282,6 +373,12 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                   if (item === 'Profile') {
                     toggleProfile()
                     setActiveNav(isProfileVisible ? 'Marketplace' : 'Profile')
+                    return
+                  }
+                  if (item === 'Home') {
+                    resetMarketplace()
+                    setActiveNav('Home')
+                    scrollToSection('retail-products')
                     return
                   }
                   setActiveNav(item)
@@ -337,6 +434,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
 
           {dashboardMessage && <div className="mt-3 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{dashboardMessage}</div>}
 
+          {(activeNav === 'Home' || activeNav === 'Marketplace') && (
           <div className="mt-5 rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-100 md:p-4">
             <div className="flex w-full min-w-0 items-center gap-3">
               <div className="relative min-w-0 flex-1">
@@ -345,7 +443,16 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                   onChange={(event) => {
                     const value = event.target.value
                     setCropQuery(value)
-                    if (!value.trim()) setSearchStatus('idle')
+                    setValidationMessage('')
+                    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+                    if (!value.trim()) {
+                      setListings(allListings)
+                      setSearchStatus(allListings.length ? 'success' : 'empty')
+                      return
+                    }
+                    searchTimerRef.current = setTimeout(() => {
+                      void handleSearch(value)
+                    }, 350)
                   }}
                   placeholder="Search crop"
                   className="w-full rounded-full border border-slate-200 bg-slate-50 px-5 py-3 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-100"
@@ -361,7 +468,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                       onChange={(event) => {
                         const nextSortMode = event.target.value as SortMode
                         setSortMode(nextSortMode)
-                        if (cropQuery.trim()) void handleSearch(nextSortMode)
+                        if (cropQuery.trim()) void handleSearch(cropQuery, nextSortMode)
                       }}
                       className="min-w-[14rem] rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                     >
@@ -399,9 +506,11 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
               </div>
             )}
           </div>
+          )}
 
+          {(activeNav === 'Home' || activeNav === 'Marketplace') && (
           <div id="retail-products" className="scroll-mt-24 mt-6" aria-live="polite">
-            {searchStatus === 'idle' && (
+            {searchStatus === 'empty' && !cropQuery.trim() && (
               <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">
                 <div className="text-3xl">🧺</div>
                 <h3 className="mt-4 text-xl font-black text-slate-900">Search fresh produce near you</h3>
@@ -429,7 +538,15 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
             {searchStatus === 'success' && visibleProducts.length > 0 && (
               <div className="grid gap-5 lg:grid-cols-3">
                 {visibleProducts.map((listing) => (
-                  <article key={String(listing.id)} className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                  <article
+                    key={String(listing.id)}
+                    className={`transform-gpu rounded-3xl bg-white p-4 transition-all duration-300 ease-out [perspective:1000px] hover:-translate-y-2 hover:scale-[1.02] hover:shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)] ${String(listing.id) === String(bestMatchId) ? 'border-2 border-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]' : 'ring-1 ring-slate-100'}`}
+                  >
+                    {String(listing.id) === String(bestMatchId) && (
+                      <div className="mb-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
+                        AI Top Pick
+                      </div>
+                    )}
                     <div className="mt-4 h-28 overflow-hidden rounded-2xl bg-linear-to-br from-emerald-200 via-lime-100 to-amber-100">
                       {getCropImageUrl(listing.sample_img_url) && (
                         <img
@@ -479,7 +596,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                       <div className="flex items-center justify-between">
                         <span>Harvested</span>
                         <span className="font-semibold text-slate-800">
-                          {formatHarvestDate(listing.harvested_at)}
+                          {formatHarvestDate(listing.harvested_at, listing.created_at)}
                         </span>
                       </div>
                     </div>
@@ -501,21 +618,30 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                           Contact now
                         </a>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => addToCart(listing)}
-                        className="rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white"
-                      >
-                        Add {cart[listing.id] ? `(${cart[listing.id]})` : ''} to cart
-                      </button>
+                      {cart[listing.id] ? (
+                        <div className="flex items-center gap-2 rounded-full bg-emerald-50 p-1 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-200">
+                          <button type="button" onClick={() => updateQuantity(listing, (cart[listing.id] ?? 1) - 1)} className="h-8 w-8 rounded-full bg-white text-lg transition-all duration-200 active:scale-95">−</button>
+                          <span className="min-w-16 text-center">{cart[listing.id]} in cart</span>
+                          <button type="button" onClick={() => addToCart(listing)} className="h-8 w-8 rounded-full bg-white text-lg transition-all duration-200 active:scale-95">+</button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => addToCart(listing)}
+                          className="rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 transform active:scale-95"
+                        >
+                          Add to cart
+                        </button>
+                      )}
                     </div>
                   </article>
                 ))}
               </div>
             )}
           </div>
+          )}
 
-          {showCheckout ? (
+          {activeNav === 'Cart' && (showCheckout ? (
             <div className="mt-8 rounded-3xl bg-slate-900 p-5 text-white">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -568,7 +694,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Logistics</span>
-                      <span>{formatCurrency(logisticsCost)}</span>
+                      <span>{formatCurrency(displayedLogisticsCost)}</span>
                     </div>
                     <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-base font-bold text-slate-900">
                       <span>Total</span>
@@ -627,7 +753,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
 
                 <div className="mt-5 space-y-2 text-sm text-slate-600">
                   <div className="flex items-center justify-between"><span>Produce subtotal</span><span>{formatCurrency(produceSubtotal)}</span></div>
-                  <div className="flex items-center justify-between"><span>Logistics cost</span><span>{formatCurrency(logisticsCost)}</span></div>
+                  <div className="flex items-center justify-between"><span>Logistics cost</span><span>{formatCurrency(displayedLogisticsCost)}</span></div>
                   <div className="flex items-center justify-between border-t border-slate-200 pt-2 font-bold text-slate-900"><span>Total</span><span>{formatCurrency(orderTotal)}</span></div>
                 </div>
 
@@ -642,8 +768,9 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
               </div>
 
             </div>
-          )}
+          ))}
 
+          {activeNav === 'Orders' && (
           <div id="retail-orders" className="mt-6 scroll-mt-24 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
             <h3 className="text-xl font-black text-slate-900">Orders</h3>
             <div className="mt-4 space-y-4">
@@ -661,6 +788,22 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
               ))}
             </div>
           </div>
+          )}
+
+          {cartItems.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setActiveNav('Cart')}
+              className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-full bg-slate-900/95 px-4 py-3 text-left text-white shadow-2xl ring-1 ring-emerald-300/40 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-emerald-800"
+            >
+              <span className="text-xl" aria-hidden="true">🛍</span>
+              <span>
+                <span className="block text-sm font-bold">{cartCount} {cartCount === 1 ? 'Item' : 'Items'} in Cart</span>
+                {orderTotal !== null && <span className="block text-xs text-slate-300">{formatCurrency(orderTotal)}</span>}
+              </span>
+              <span className="text-sm font-bold text-emerald-300">View Cart →</span>
+            </button>
+          )}
         </div>
       </div>
     </section>

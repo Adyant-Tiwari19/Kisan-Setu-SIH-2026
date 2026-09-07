@@ -8,6 +8,13 @@ class OrderCreate(BaseModel):
     lid: int
     quantity: float
 
+class OrderEstimateItem(BaseModel):
+    lid: int
+    quantity: float
+
+class OrderEstimateRequest(BaseModel):
+    items: list[OrderEstimateItem]
+
 class OrderStatusUpdate(BaseModel):
     status: OrderStatus
     dispute_reason: Optional[str] = Field(

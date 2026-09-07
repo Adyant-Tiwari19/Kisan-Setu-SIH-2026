@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import math
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
@@ -16,6 +17,7 @@ from app.api.v1.endpoints.auth import get_current_user
 from app.api.v1.endpoints.location import geocode_address
 
 router = APIRouter()
+DEFAULT_BUYER_COORDINATES = (28.6139, 77.2090)
 
 
 class InventoryUpdateSchema(BaseModel):
@@ -30,7 +32,51 @@ class ListingDeleteResponse(BaseModel):
 
 
 # Helper to attach crop_name to listing response
-def format_listing_response(listing: Listing, db: Session) -> ListingResponse:
+def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    earth_radius_km = 6371.0
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    a = (
+        math.sin(delta_lat / 2) ** 2
+        + math.cos(math.radians(lat1))
+        * math.cos(math.radians(lat2))
+        * math.sin(delta_lon / 2) ** 2
+    )
+    return earth_radius_km * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def get_geometry_coordinates(db: Session, location: object) -> Optional[tuple[float, float]]:
+    if location is None:
+        return None
+
+    latitude = db.scalar(func.ST_Y(cast(location, Geometry)))
+    longitude = db.scalar(func.ST_X(cast(location, Geometry)))
+    if latitude is None or longitude is None:
+        return None
+
+    return float(latitude), float(longitude)
+
+
+def resolve_buyer_coordinates(current_user: User, db: Session) -> tuple[float, float]:
+    if current_user.address and current_user.address.strip():
+        try:
+            geo_res = geocode_address(address=current_user.address)
+            return float(geo_res.latitude), float(geo_res.longitude)
+        except (HTTPException, TypeError, ValueError):
+            pass
+
+    stored_coordinates = get_geometry_coordinates(db, current_user.location)
+    if stored_coordinates:
+        return stored_coordinates
+
+    return DEFAULT_BUYER_COORDINATES
+
+
+def format_listing_response(
+    listing: Listing,
+    db: Session,
+    distance_km: Optional[float] = None,
+) -> ListingResponse:
     crop = db.query(Crop).filter(Crop.cid == listing.cid).first()
 
     lat = db.scalar(func.ST_Y(cast(listing.location , Geometry))) or 0.0
@@ -49,7 +95,9 @@ def format_listing_response(listing: Listing, db: Session) -> ListingResponse:
         crop_name=crop.name if crop else f"Crop #{listing.cid}",
         sample_img_url=crop.sample_img_url if crop else None,
         latitude= round(float(lat), 6),
-        longitude= round(float(lon), 6)
+        longitude= round(float(lon), 6),
+        distance_km=round(distance_km, 2) if distance_km is not None else None,
+        created_at=listing.created_at,
     )
 
 
@@ -64,7 +112,8 @@ def get_all_crops(db: Session = Depends(get_db)):
 def get_all_listings(
     crop_name: Optional[str] = None,
     limit: int = 50,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     query = db.query(Listing).filter(Listing.is_active == True)
     if crop_name:
@@ -78,8 +127,33 @@ def get_all_listings(
         if crop:
             query = query.filter(Listing.cid == crop.cid)
 
-    listings = query.order_by(Listing.lid.desc()).limit(limit).all()
-    return [format_listing_response(l, db) for l in listings]
+    buyer_lat, buyer_lon = resolve_buyer_coordinates(current_user, db)
+    listings = (
+        query
+        .order_by(Listing.lid.desc())
+        .limit(limit)
+        .all()
+    )
+
+    responses = []
+    for listing in listings:
+        seller_coordinates = get_geometry_coordinates(db, listing.location)
+        if seller_coordinates is None:
+            seller = db.query(User).filter(User.uid == listing.fid).first()
+            seller_coordinates = get_geometry_coordinates(db, seller.location) if seller else None
+
+        distance_km = 0.0
+        if seller_coordinates:
+            distance_km = haversine_distance_km(
+                buyer_lat,
+                buyer_lon,
+                seller_coordinates[0],
+                seller_coordinates[1],
+            )
+
+        responses.append(format_listing_response(listing, db, distance_km))
+
+    return responses
 
 
 # 2b. Get Current Farmer's Own Listings
@@ -211,6 +285,7 @@ def search_listings(
             "longitude": round(float(l_lat),6) if l_lat else 0.0,
             "latitude": round(float(l_lon), 6) if l_lon else 0.0,
             "harvested_at": listing.harvested_at,
+            "created_at": listing.created_at,
             "expiry_date": listing.expiry_date
         })
 

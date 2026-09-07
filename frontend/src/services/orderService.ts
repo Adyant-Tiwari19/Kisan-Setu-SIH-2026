@@ -36,6 +36,11 @@ export interface PlaceOrderPayload {
   bid?: number | string
 }
 
+export interface OrderEstimateItem {
+  lid: number
+  quantity: number
+}
+
 export interface OrderStatusUpdatePayload {
   status: OrderStatus
   dispute_reason?: string
@@ -94,6 +99,11 @@ class OrderService {
       saveStoredLocalOrders([mockOrder, ...existing])
       return mockOrder
     }
+  }
+
+  async estimateLogistics(items: OrderEstimateItem[]): Promise<number> {
+    const response = await apiClient.post<{ logistics_price: number }>('/orders/estimate', { items })
+    return response.logistics_price
   }
 
   /**

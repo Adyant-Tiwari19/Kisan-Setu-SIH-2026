@@ -116,6 +116,8 @@ def rank_sellers_for_buyer(
             "price_per_unit": listing.price_per_unit,
             "estimated_landed_price": round(landed_price_est, 2),
             "distance_km": round(dist_val, 2),
+            "harvested_at": listing.harvested_at,
+            "created_at": listing.created_at,
             "harvest_age_hours": round(age_hours, 1),
             "ai_score": score_data["composite_score"],
             "transparency_reasons": score_data["transparency_reasons"]

@@ -51,6 +51,7 @@ export interface MarketplaceListing {
   relevance_score: number | null
   listing_type: string
   harvested_at: string | null
+  created_at?: string | null
   is_active: boolean
   badge?: string
 }
@@ -149,6 +150,7 @@ export function mapSearchResponseItem(raw: Record<string, unknown>): Marketplace
     relevance_score: toNumber(raw.ai_score ?? raw.relevance_score ?? raw.relevance),
     listing_type: toText(raw.listing_type ?? raw.category ?? raw.grade ?? raw.variant),
     harvested_at: toDateText(raw.harvested_at ?? raw.harvest_date ?? raw.harvestedAt),
+    created_at: toDateText(raw.created_at ?? raw.createdAt),
     is_active: Boolean(raw.is_active ?? raw.active ?? true),
     badge: toText(raw.badge ?? raw.tag ?? raw.label),
   }
@@ -178,6 +180,22 @@ class ListingService {
       // No fallback data is used for marketplace results.
     }
     return []
+  }
+
+  /**
+   * Get all active marketplace listings in the same shape used by search cards.
+   */
+  async getAllMarketplaceListings(): Promise<MarketplaceListing[]> {
+    const response = await apiClient.get<unknown>('/listings/')
+    const payload = Array.isArray(response)
+      ? response
+      : response && typeof response === 'object' && Array.isArray((response as Record<string, unknown>).items)
+        ? (response as Record<string, unknown>).items
+        : []
+
+    return (payload as Record<string, unknown>[])
+      .map((entry) => mapSearchResponseItem(entry))
+      .filter((listing) => listing.is_active && (listing.quantity_available ?? 0) > 0)
   }
 
   /**
