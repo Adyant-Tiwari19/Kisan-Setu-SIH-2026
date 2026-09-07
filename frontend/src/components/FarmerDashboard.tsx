@@ -312,7 +312,7 @@ export function FarmerDashboard() {
             </div>
           </div>
 
-          <div id="farmer-overview" className="scroll-mt-24 mt-5 flex gap-2 overflow-x-auto pb-2 md:gap-3">
+          <div id="farmer-overview" className="no-scrollbar scroll-mt-24 mt-5 flex gap-2 overflow-x-auto whitespace-nowrap px-1 py-2 md:gap-3">
             {navItems.map((item) => (
               <button
                 key={item}
@@ -556,7 +556,7 @@ export function FarmerDashboard() {
           )}
 
           {showListingForm && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-md">
-          <form id="listing-form" onSubmit={submitListing} className="w-full max-w-2xl rounded-[1.75rem] border border-emerald-200/70 bg-white/95 p-6 shadow-2xl shadow-emerald-950/20 backdrop-blur-md">
+          <form id="listing-form" onSubmit={submitListing} className="mx-4 w-full max-w-lg rounded-[1.75rem] border border-emerald-200/70 bg-white/95 p-5 shadow-2xl shadow-emerald-950/20 backdrop-blur-md sm:mx-0 sm:rounded-2xl sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Farmer inventory</div>
@@ -602,7 +602,7 @@ export function FarmerDashboard() {
               {currentListings.length === 0 ? (
                 <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">No crops listed yet.</div>
               ) : (
-                <div className="grid gap-5 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {currentListings.map((listing) => (
                     <article key={listing.lid} className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
                       <div className="h-28 overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-200 via-lime-100 to-amber-100">

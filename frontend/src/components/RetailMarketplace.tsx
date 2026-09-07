@@ -402,7 +402,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
             </div>
           </div>
 
-          <div className="mt-5 flex gap-2 overflow-x-auto pb-2 md:gap-3">
+          <div className="no-scrollbar mt-5 flex gap-2 overflow-x-auto whitespace-nowrap px-1 py-2 md:gap-3">
             {navItems.filter((item) => !hideProfile || item !== 'Profile').map((item) => (
               <button
                 key={item}
@@ -576,7 +576,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
             )}
 
             {searchStatus === 'success' && visibleProducts.length > 0 && (
-              <div className="grid gap-5 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {visibleProducts.map((listing) => (
                   <article
                     key={String(listing.id)}
@@ -853,7 +853,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
               type="button"
               onClick={() => setActiveNav('Cart')}
               aria-label={`Open cart with ${cartCount} ${cartCount === 1 ? 'item' : 'items'}`}
-              className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-slate-900/95 text-white shadow-2xl ring-1 ring-emerald-300/40 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-emerald-800"
+              className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-slate-900/95 text-white shadow-2xl ring-1 ring-emerald-300/40 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-emerald-800"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth="1.8">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 8h12l-1 12H7L6 8Z" />

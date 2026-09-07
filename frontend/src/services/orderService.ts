@@ -86,7 +86,7 @@ class OrderService {
       const logisticsPrice = round(payload.quantity * 1.5, 2)
       const mockOrder: Order = {
         oid: Math.floor(Math.random() * 9000) + 1000,
-        bid: payload.bid || 1,
+        bid: payload.bid && Number.isFinite(Number(payload.bid)) ? Number(payload.bid) : 1,
         lid: payload.lid,
         quantity: payload.quantity,
         produce_price: producePrice,

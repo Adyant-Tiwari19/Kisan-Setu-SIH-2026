@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.farmdirect.app',
-  appName: 'FarmDirect',
+  appId: 'com.kisansetu.app',
+  appName: 'Kisan Setu',
   webDir: 'dist'
 };
 
