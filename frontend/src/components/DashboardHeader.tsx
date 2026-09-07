@@ -28,6 +28,7 @@ export function DashboardHeader() {
   }, [openMenu])
 
   const handleLogout = async () => {
+    setOpenMenu(null)
     await authService.logout()
     navigate('/')
   }

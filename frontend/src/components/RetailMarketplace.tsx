@@ -132,6 +132,18 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
     return () => clearTimeout(timer)
   }, [loadCatalog])
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isProfileVisible && activeNav !== 'Profile') {
+        setActiveNav('Profile')
+      } else if (!isProfileVisible && activeNav === 'Profile') {
+        setActiveNav('Marketplace')
+      }
+    }, 0)
+
+    return () => clearTimeout(timer)
+  }, [activeNav, isProfileVisible])
+
   const buyerOrders = useMemo(
     () => orders.filter((order) => currentUserId !== undefined && String(order.bid) === String(currentUserId)),
     [currentUserId, orders]
@@ -352,7 +364,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
 
   return (
     <section className={embedded ? 'w-full' : 'section-shell py-16'}>
-      <div className="mx-auto max-w-6xl rounded-4xl border border-slate-200 bg-white p-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-6">
+      <div className="mx-auto max-w-6xl rounded-4xl border border-emerald-100/60 bg-white p-4 shadow-xl shadow-emerald-950/5 md:p-6">
         <div className="rounded-3xl bg-linear-to-br from-emerald-50 via-white to-amber-50 p-4 md:p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -371,16 +383,18 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                 type="button"
                 onClick={() => {
                   if (item === 'Profile') {
-                    toggleProfile()
-                    setActiveNav(isProfileVisible ? 'Marketplace' : 'Profile')
+                    if (!isProfileVisible) toggleProfile()
+                    setActiveNav('Profile')
                     return
                   }
                   if (item === 'Home') {
+                    if (isProfileVisible) toggleProfile()
                     resetMarketplace()
                     setActiveNav('Home')
                     scrollToSection('retail-products')
                     return
                   }
+                  if (isProfileVisible) toggleProfile()
                   setActiveNav(item)
                   setDashboardMessage('')
                   const target = item === 'Marketplace' ? 'retail-products' : item === 'Cart' ? 'retail-cart' : item === 'Orders' ? 'retail-orders' : null
@@ -393,7 +407,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
             ))}
           </div>
 
-          {isProfileVisible && (
+          {activeNav === 'Profile' && (
             <div id="retail-profile" className="mt-5 scroll-mt-24 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -446,8 +460,8 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                     setValidationMessage('')
                     if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
                     if (!value.trim()) {
-                      setListings(allListings)
-                      setSearchStatus(allListings.length ? 'success' : 'empty')
+                      searchRequestRef.current += 1
+                      void loadCatalog()
                       return
                     }
                     searchTimerRef.current = setTimeout(() => {

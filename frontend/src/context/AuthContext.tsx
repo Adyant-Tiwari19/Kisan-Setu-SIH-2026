@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
 import {
   authService,
   type User,
@@ -27,6 +27,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(() => authService.getAuthToken())
   const [isLoading, setIsLoading] = useState(false)
   const [isProfileVisible, setIsProfileVisible] = useState(false)
+
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key !== 'farm_direct_auth_session') return
+      setUser(authService.getCurrentUser())
+      setToken(authService.getAuthToken())
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
 
   const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     setIsLoading(true)

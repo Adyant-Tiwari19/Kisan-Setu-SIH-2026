@@ -13,7 +13,7 @@ export function AppShell() {
     <div className="min-h-screen bg-[#f7f5ef] text-slate-900">
       {isDashboard ? <DashboardHeader /> : <Header />}
 
-      <main>
+      <main className="min-h-[calc(100vh-5rem)] bg-gradient-to-br from-emerald-50/50 via-green-50/30 to-amber-50/40 px-4 py-6 sm:px-6 lg:px-10">
         <Outlet />
       </main>
 

@@ -8,6 +8,7 @@ import { Hero } from './components/Hero'
 import { HowItWorks } from './components/HowItWorks'
 import { Benefits } from './components/Benefits'
 import { EditProfile } from './components/EditProfile'
+import { ProtectedRoute } from './components/ProtectedRoute'
 
 export function AppRoutes() {
   return (
@@ -23,11 +24,13 @@ export function AppRoutes() {
         <Route path="sign-in" element={<RoleSelection key="sign-in" />} />
         <Route path="join-now" element={<RoleSelection key="join-now" />} />
         <Route path="role-selection" element={<Navigate to="/sign-in" replace />} />
-        <Route path="farmer" element={<FarmerDashboard />} />
-        <Route path="retailer" element={<RetailMarketplace />} />
-        <Route path="marketplace" element={<RetailMarketplace />} />
-        <Route path="buyer" element={<BulkBuyerDashboard />} />
-        <Route path="profile/edit" element={<EditProfile />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="farmer" element={<FarmerDashboard />} />
+          <Route path="retailer" element={<RetailMarketplace />} />
+          <Route path="marketplace" element={<RetailMarketplace />} />
+          <Route path="buyer" element={<BulkBuyerDashboard />} />
+          <Route path="profile/edit" element={<EditProfile />} />
+        </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
