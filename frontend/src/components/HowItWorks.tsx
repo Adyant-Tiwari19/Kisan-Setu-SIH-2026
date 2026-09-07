@@ -1,7 +1,9 @@
+import { useTranslation } from 'react-i18next'
+
 const stages = [
   {
-    label: 'Farmer Onboards',
-    desc: 'Simple registration with crop profile and location.',
+    label: 'landing.farmerOnboards',
+    desc: 'landing.farmerOnboardsDesc',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
@@ -9,8 +11,8 @@ const stages = [
     ),
   },
   {
-    label: 'Lists Harvest',
-    desc: 'Crop type, quantity, quality grade, and available date.',
+    label: 'landing.listsHarvest',
+    desc: 'landing.listsHarvestDesc',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
@@ -18,8 +20,8 @@ const stages = [
     ),
   },
   {
-    label: 'AI Smart Match',
-    desc: 'Algorithm aligns supply with nearby demand in real time.',
+    label: 'landing.aiSmartMatch',
+    desc: 'landing.aiSmartMatchDesc',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="3" /><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
@@ -28,8 +30,8 @@ const stages = [
     highlight: true,
   },
   {
-    label: 'Fair Price Set',
-    desc: 'Farmgate, logistics, and market rates shown transparently.',
+    label: 'landing.fairPriceSet',
+    desc: 'landing.fairPriceSetDesc',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
@@ -37,8 +39,8 @@ const stages = [
     ),
   },
   {
-    label: 'Pickup & Delivery',
-    desc: 'Consolidated routes reduce cost and preserve freshness.',
+    label: 'landing.pickupDelivery',
+    desc: 'landing.pickupDeliveryDesc',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="1" y="3" width="15" height="13" rx="1" /><path d="M16 8h4l3 5v3h-7V8z" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
@@ -46,8 +48,8 @@ const stages = [
     ),
   },
   {
-    label: 'Secure Settlement',
-    desc: 'Fair payouts with full traceability and buyer confirmation.',
+    label: 'landing.secureSettlement',
+    desc: 'landing.secureSettlementDesc',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" />
@@ -57,6 +59,7 @@ const stages = [
 ]
 
 export function HowItWorks() {
+  const { t } = useTranslation()
   return (
     <section
       id="how-it-works"
@@ -65,9 +68,9 @@ export function HowItWorks() {
       <div className="container">
         {/* Header */}
         <div className="scroll-reveal" style={{ textAlign: 'center', marginBottom: '4rem' }}>
-          <span className="eyebrow text-fresh" style={{ display: 'block', marginBottom: '0.875rem' }}>How it works</span>
+          <span className="eyebrow text-fresh" style={{ display: 'block', marginBottom: '0.875rem' }}>{t('common.howItWorks')}</span>
           <h2 className="display-lg" style={{ color: 'var(--ff-navy)', maxWidth: '36rem', margin: '0 auto' }}>
-            The journey from harvest to happy customers.
+            {t('landing.howItWorksTitle')}
           </h2>
         </div>
 
@@ -138,14 +141,14 @@ export function HowItWorks() {
                   color: 'var(--ff-fresh)',
                   marginBottom: '0.35rem',
                 }}>
-                  Step {String(i + 1).padStart(2, '0')}
+                  {t('landing.step', { number: String(i + 1).padStart(2, '0') })}
                 </div>
 
                 <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--ff-navy)', lineHeight: 1.3, marginBottom: '0.5rem' }}>
-                  {stage.label}
+                  {t(stage.label)}
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--ff-muted)', lineHeight: 1.65 }}>
-                  {stage.desc}
+                  {t(stage.desc)}
                 </div>
               </div>
             ))}

@@ -7,6 +7,7 @@ import { listingService, type Listing } from '../services/listingService'
 import { orderService, type Order } from '../services/orderService'
 import { aiService, type DemandForecast } from '../services/aiService'
 import { RetailMarketplace } from './RetailMarketplace'
+import { useTranslation } from 'react-i18next'
 
 const navItems = ['Home', 'My Crops', 'My Profile', 'Edit Listing', 'Orders', 'Demand Forecast', 'Earnings']
 
@@ -48,6 +49,7 @@ const getFarmerCropImage = (listing: Listing) => {
 export function FarmerDashboard() {
   const navigate = useNavigate()
   const { user, isProfileVisible, toggleProfile } = useAuth()
+  const { t } = useTranslation()
   const [profileUser, setProfileUser] = useState<User | null>(user)
   const [activeNav, setActiveNav] = useState('Home')
   const [isRetailMode, setIsRetailMode] = useState(false)
@@ -166,17 +168,17 @@ export function FarmerDashboard() {
     if (target) scrollToSection(target)
     if (label === 'Earnings') {
       if (monthlyEarnings <= 0) {
-        setDashboardMessage('Please wait for your first order this month.')
+        setDashboardMessage(t('farmer.waitForFirstOrder'))
       } else {
         const nextMonth = new Date()
         nextMonth.setMonth(nextMonth.getMonth() + 1, 1)
         const monthName = nextMonth.toLocaleString('en-IN', { month: 'long' })
         setDashboardMessage(
-          `Earnings this month: ${formatCurrency(monthlyEarnings)}. Next payout is scheduled on 1st ${monthName}.`
+          t('farmer.earningsMessage', { amount: formatCurrency(monthlyEarnings), month: monthName })
         )
       }
     }
-    if (label === 'Profile') setDashboardMessage('Profile settings are ready for your farm details and pickup preferences.')
+    if (label === 'Profile') setDashboardMessage(t('farmer.profileReady'))
   }
 
   const acceptOrder = async (order: Order) => {
@@ -185,9 +187,9 @@ export function FarmerDashboard() {
     try {
       const updatedOrder = await orderService.updateOrderStatus(order.oid, { status: 'clustered' })
       setOrders((current) => current.map((item) => item.oid === updatedOrder.oid ? updatedOrder : item))
-      setDashboardMessage(`Order #${order.oid} was accepted and moved to clustered.`)
+      setDashboardMessage(t('farmer.orderAccepted', { id: order.oid }))
     } catch {
-      setDashboardMessage(`We could not accept order #${order.oid}. Please try again.`)
+      setDashboardMessage(t('farmer.acceptOrderError', { id: order.oid }))
     } finally {
       setUpdatingOrderId(null)
     }
@@ -199,9 +201,9 @@ export function FarmerDashboard() {
     try {
       const updatedOrder = await orderService.updateOrderStatus(order.oid, { status: 'out_for_delivery' })
       setOrders((current) => current.map((item) => item.oid === updatedOrder.oid ? updatedOrder : item))
-      setDashboardMessage(`Pickup confirmed for order #${order.oid}.`)
+      setDashboardMessage(t('farmer.pickupConfirmed', { id: order.oid }))
     } catch {
-      setDashboardMessage(`We could not confirm pickup for order #${order.oid}. Please try again.`)
+      setDashboardMessage(t('farmer.pickupError', { id: order.oid }))
     } finally {
       setUpdatingOrderId(null)
     }
@@ -218,7 +220,7 @@ export function FarmerDashboard() {
     const quantity = Number(values.quantity)
     const price = Number(values.price)
     if (!Number.isFinite(quantity) || quantity < 0 || !Number.isFinite(price) || price <= 0) {
-      setDashboardMessage('Enter a valid quantity and price.')
+      setDashboardMessage(t('farmer.validQuantityPrice'))
       return
     }
 
@@ -231,9 +233,9 @@ export function FarmerDashboard() {
       })
       setListings((current) => current.map((item) => item.lid === updatedListing.lid ? updatedListing : item))
       setListingEditValues((current) => ({ ...current, [listing.lid]: { quantity: String(updatedListing.quantity_available), price: String(updatedListing.price_per_unit) } }))
-      setDashboardMessage(`${updatedListing.crop_name || 'Listing'} was updated successfully.`)
+      setDashboardMessage(t('farmer.updatedSuccessfully', { crop: updatedListing.crop_name || t('farmer.listings') }))
     } catch {
-      setDashboardMessage('Unexpected error occurred.')
+      setDashboardMessage(t('farmer.unexpectedError'))
     } finally {
       setUpdatingListingId(null)
     }
@@ -245,9 +247,9 @@ export function FarmerDashboard() {
     try {
       await listingService.deleteListing(listing.lid)
       setListings((current) => current.filter((item) => item.lid !== listing.lid))
-      setDashboardMessage(`${listing.crop_name || 'Listing'} was removed successfully.`)
+      setDashboardMessage(t('farmer.removedSuccessfully', { crop: listing.crop_name || t('farmer.listings') }))
     } catch {
-      setDashboardMessage('Unexpected error occurred.')
+      setDashboardMessage(t('farmer.unexpectedError'))
     } finally {
       setUpdatingListingId(null)
     }
@@ -263,7 +265,7 @@ export function FarmerDashboard() {
         `${updatedListing.crop_name || 'Listing'} is now ${updatedListing.is_active ? 'active' : 'inactive'}.`
       )
     } catch {
-      setDashboardMessage('Unexpected error occurred.')
+      setDashboardMessage(t('farmer.unexpectedError'))
     } finally {
       setUpdatingListingId(null)
     }
@@ -292,11 +294,11 @@ export function FarmerDashboard() {
       setListingQuantity('')
       setListingPrice('')
       setListingSubmitted(true)
-      setDashboardMessage(`${createdListing.crop_name || listingName} listing was added successfully.`)
+      setDashboardMessage(t('farmer.listingAdded', { crop: createdListing.crop_name || listingName }))
       setShowListingForm(false)
       setActiveNav('My Crops')
     } catch {
-      setListingError('Unexpected error occurred.')
+      setListingError(t('farmer.unexpectedError'))
     } finally {
       setIsPublishingListing(false)
     }
@@ -318,18 +320,18 @@ export function FarmerDashboard() {
         <div className="rounded-[1.6rem] bg-gradient-to-br from-emerald-50 via-white to-amber-50 p-4 md:p-6">
           <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
-              <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Farmer Dashboard</div>
+              <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{t('farmer.dashboard')}</div>
               <h2 className="mt-2 text-2xl font-black tracking-[-0.05em] text-slate-900 md:text-3xl">
-                Good morning, {user?.name || 'there'}
+                {t('farmer.greeting', { name: user?.name || 'there' })}
               </h2>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={() => setIsRetailMode(true)} className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800">
-                <span>Switch to Retail 🛒</span>
+                <span>{t('farmer.switchRetail')}</span>
               </button>
               <button type="button" onClick={() => handleNavClick('Add Listing')} className="flex shrink-0 items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-medium text-white shadow-sm hover:bg-emerald-700">
                 <span aria-hidden="true">+</span>
-                <span>Add Crop</span>
+                <span>{t('common.addCrop')}</span>
               </button>
             </div>
           </div>
@@ -345,7 +347,7 @@ export function FarmerDashboard() {
                   : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:text-emerald-700'
                   }`}
               >
-                {item}
+                {item === 'Home' ? t('common.home') : item === 'My Crops' ? t('common.myCrops') : item === 'My Profile' ? t('common.myProfile') : item === 'Orders' ? t('common.orders') : item}
               </button>
             ))}
           </div>
@@ -353,29 +355,29 @@ export function FarmerDashboard() {
             <div id="farmer-profile" className="mt-5 scroll-mt-24 rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">My Profile</div>
+                  <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{t('farmer.myProfile')}</div>
                   <h3 className="mt-1 text-xl font-black text-slate-900">{profileUser?.name || 'Farmer profile'}</h3>
                 </div>
                 <button type="button" onClick={toggleProfile} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-emerald-700">
-                  Hide profile
+                  {t('common.close', 'बंद करें')}
                 </button>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 {[
-                  { label: 'Mobile number', value: profileUser?.phone },
-                  { label: 'Address', value: profileUser?.address },
-                  { label: 'Account number', value: profileUser?.account_num },
-                  { label: 'IFSC code', value: profileUser?.ifsc },
+                  { label: t('farmer.mobileNumber'), value: profileUser?.phone },
+                  { label: t('farmer.address'), value: profileUser?.address },
+                  { label: t('farmer.accountNumber'), value: profileUser?.account_num },
+                  { label: t('farmer.ifscCode'), value: profileUser?.ifsc },
                 ].map((detail) => (
                   <div key={detail.label} className="rounded-xl bg-slate-50 p-3">
                     <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{detail.label}</div>
-                    <div className="mt-1 break-words text-sm font-bold text-slate-900">{detail.value || 'Not available'}</div>
+                    <div className="mt-1 break-words text-sm font-bold text-slate-900">{detail.value || t('farmer.notAvailable')}</div>
                   </div>
                 ))}
               </div>
               <div className="mt-4 flex justify-end">
                 <button type="button" onClick={() => navigate('/profile/edit')} className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
-                  Edit profile
+                  {t('farmer.editProfile')}
                 </button>
               </div>
             </div>
@@ -385,12 +387,12 @@ export function FarmerDashboard() {
           {activeNav === 'Home' && (
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {[
-              { label: 'Income', value: isLoading || !isCurrentUserData ? '—' : formatCurrency(totalEarnings), note: 'Delivered earnings' },
-              { label: 'Listings', value: isLoading || !isCurrentUserData ? '—' : String(currentListings.filter((item) => item.is_active).length), note: 'Active crops' },
+              { label: t('farmer.income'), value: isLoading || !isCurrentUserData ? '—' : formatCurrency(totalEarnings), note: t('farmer.deliveredEarnings') },
+              { label: t('farmer.listings'), value: isLoading || !isCurrentUserData ? '—' : String(currentListings.filter((item) => item.is_active).length), note: t('farmer.activeCrops') },
               {
                 label: 'Orders',
                 value: isLoading || !isCurrentUserData ? '—' : String(currentOrders.length),
-                note: 'Total orders',
+                note: t('farmer.orders'),
               },
             ].map((item) => (
               <div key={item.label} className="rounded-[1.35rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
@@ -408,29 +410,29 @@ export function FarmerDashboard() {
             <div className="space-y-5">
               <div id="active-listings" className="scroll-mt-24 rounded-[1.5rem] bg-slate-900 p-4 text-white">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold">Active listings</h3>
+                  <h3 className="text-lg font-bold">{t('farmer.activeListings')}</h3>
                   <span className="rounded-full bg-emerald-500/20 px-2 py-1 text-xs font-semibold text-emerald-300">
                     {isLoading || !isCurrentUserData ? '—' : `${currentListings.filter((item) => item.is_active).length} live`}
                   </span>
                 </div>
                 <div className="mt-4 space-y-3">
                   {!isLoading && isCurrentUserData && currentListings.length === 0 && (
-                    <div className="rounded-2xl bg-white/5 p-3 text-sm text-slate-300">No listings available yet.</div>
+                    <div className="rounded-2xl bg-white/5 p-3 text-sm text-slate-300">{t('farmer.noListings')}</div>
                   )}
                   {currentListings.map((item) => (
                     <div key={item.lid} className="rounded-2xl bg-white/5 p-3">
                       <div className="flex items-center justify-between gap-2">
                         <div>
                           <div className="text-base font-bold">{item.crop_name || 'Unnamed crop'}</div>
-                          <div className="text-xs text-slate-300">{formatQuantity(item.quantity_available)} available</div>
+                          <div className="text-xs text-slate-300">{formatQuantity(item.quantity_available)} {t('farmer.available').toLowerCase()}</div>
                         </div>
                         <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${item.is_active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
                           }`}>
-                          {item.is_active ? 'Live' : 'Inactive'}
+                          {item.is_active ? t('farmer.activeListings') : t('farmer.notAvailable')}
                         </span>
                       </div>
                       <div className="mt-3 flex items-center justify-between gap-3 text-sm text-slate-300">
-                        <span>Listing #{item.lid}</span>
+                        <span>{t('farmer.listings')} #{item.lid}</span>
                         <div className="flex items-center gap-3">
                           <span>{formatCurrency(item.price_per_unit)}/kg</span>
                           {isEditingListings && (
@@ -439,7 +441,7 @@ export function FarmerDashboard() {
                               onClick={() => setEditingListingId(editingListingId === item.lid ? null : item.lid)}
                               className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-emerald-200 transition hover:bg-white/20"
                             >
-                              {editingListingId === item.lid ? 'Close' : 'Edit'}
+                              {editingListingId === item.lid ? t('common.close') : t('farmer.editListing')}
                             </button>
                           )}
                         </div>
@@ -450,7 +452,7 @@ export function FarmerDashboard() {
                         return (
                           <div className="mt-3 grid gap-2 border-t border-white/10 pt-3 md:grid-cols-[1fr_1fr_auto_auto_auto] md:items-end">
                             <label className="text-xs font-semibold text-slate-300">
-                              Quantity (kg)
+                              {t('farmer.quantityPlaceholder')}
                               <input
                                 type="number"
                                 min="0"
@@ -460,7 +462,7 @@ export function FarmerDashboard() {
                               />
                             </label>
                             <label className="text-xs font-semibold text-slate-300">
-                              Price / kg
+                              {t('farmer.pricePlaceholder')}
                               <input
                                 type="number"
                                 min="0.01"
@@ -471,7 +473,7 @@ export function FarmerDashboard() {
                               />
                             </label>
                             <button type="button" disabled={isUpdating} onClick={() => void updateListing(item)} className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
-                              {isUpdating ? 'Saving...' : 'Save'}
+                              {isUpdating ? t('common.searching') : t('farmer.editListing')}
                             </button>
                             <button
                               type="button"
@@ -479,10 +481,10 @@ export function FarmerDashboard() {
                               onClick={() => void toggleListingStatus(item)}
                               className="rounded-full bg-amber-400/20 px-4 py-2 text-sm font-semibold text-amber-200 disabled:opacity-50"
                             >
-                              {item.is_active ? 'Set inactive' : 'Set active'}
+                              {item.is_active ? t('farmer.notAvailable') : t('farmer.activeListings')}
                             </button>
                             <button type="button" disabled={isUpdating} onClick={() => void deleteListing(item)} className="rounded-full bg-red-400/20 px-4 py-2 text-sm font-semibold text-red-200 disabled:opacity-50">
-                              Delete
+                              {t('farmer.cancel')}
                             </button>
                           </div>
                         )
@@ -499,7 +501,7 @@ export function FarmerDashboard() {
               {activeNav === 'Home' && (
               <div className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-slate-900">Upcoming pickups</h3>
+                  <h3 className="text-lg font-bold text-slate-900">{t('farmer.upcomingPickups')}</h3>
                   <span className="text-sm text-emerald-700">
                     {currentOrders.filter((order) => order.status === 'clustered').length} clustered
                   </span>
@@ -507,7 +509,7 @@ export function FarmerDashboard() {
                 <div className="mt-4 space-y-3">
                   {currentOrders.filter((order) => order.status === 'clustered').length === 0 && (
                     <div className="rounded-2xl bg-emerald-50 p-3 text-sm text-slate-600">
-                      No clustered orders are waiting for pickup.
+                      {t('farmer.noOrders')}
                     </div>
                   )}
                   {currentOrders.filter((order) => order.status === 'clustered').map((order) => (
@@ -524,7 +526,7 @@ export function FarmerDashboard() {
                         onClick={() => void confirmPickup(order)}
                         className="shrink-0 rounded-full bg-emerald-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {updatingOrderId === order.oid ? 'Confirming...' : 'Confirm pickup'}
+                        {updatingOrderId === order.oid ? t('common.searching') : t('farmer.upcomingPickups')}
                       </button>
                     </div>
                   ))}
@@ -535,16 +537,16 @@ export function FarmerDashboard() {
               {activeNav === 'Orders' && (
               <div id="farmer-orders" className="scroll-mt-24 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-slate-900">Orders</h3>
+                  <h3 className="text-lg font-bold text-slate-900">{t('common.orders')}</h3>
                 </div>
 
                 <div className="mt-4 space-y-3">
                   {!isLoading && isCurrentUserData && currentOrders.length === 0 && (
                     <div className="rounded-2xl border border-emerald-100 bg-white p-6 text-center shadow-sm">
                       <div className="text-3xl" aria-hidden="true">🛍️</div>
-                      <p className="mt-2 font-bold text-slate-900">No orders placed yet</p>
+                      <p className="mt-2 font-bold text-slate-900">{t('farmer.noOrders')}</p>
                       <button type="button" onClick={() => { setIsRetailMode(true) }} className="mt-4 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
-                        Browse Marketplace
+                        {t('common.browseMarketplace')}
                       </button>
                     </div>
                   )}
@@ -558,12 +560,12 @@ export function FarmerDashboard() {
                         })()}
                       </div>
                       <div>
-                        <div className="text-base font-bold text-slate-900">{order.crop_name || 'Crop not available'}</div>
+                        <div className="text-base font-bold text-slate-900">{order.crop_name || t('farmer.notAvailable')}</div>
                         <div className="text-sm text-slate-600">{order.buyer_name || 'Buyer not available'} · {formatQuantity(order.quantity)} · {formatCurrency(order.quantity ? Number(order.produce_price || 0) / order.quantity : 0)} / kg</div>
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 text-sm">
-                        <span className="text-slate-500">{formatOrderDate(order.ordered_at) || 'Order date unavailable'}</span>
-                        <span className="font-bold text-slate-900">Total: {formatCurrency(order.landed_price)}</span>
+                        <span className="text-slate-500">{formatOrderDate(order.ordered_at) || t('farmer.notAvailable')}</span>
+                        <span className="font-bold text-slate-900">{t('marketplace.total')}: {formatCurrency(order.landed_price)}</span>
                       </div>
                       <div className="flex justify-end">
                         {order.status === 'placed' && (
@@ -573,7 +575,7 @@ export function FarmerDashboard() {
                             onClick={() => void acceptOrder(order)}
                             className="rounded-full bg-emerald-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            {updatingOrderId === order.oid ? 'Accepting...' : 'Accept'}
+                            {updatingOrderId === order.oid ? t('common.searching') : t('farmer.orderAccepted')}
                           </button>
                         )}
                       </div>
@@ -590,20 +592,20 @@ export function FarmerDashboard() {
           <form id="listing-form" onSubmit={submitListing} onClick={(event) => event.stopPropagation()} className="mx-4 w-full max-w-lg rounded-[1.75rem] border border-emerald-200/70 bg-white/95 p-5 shadow-2xl shadow-emerald-950/20 backdrop-blur-md sm:mx-0 sm:rounded-2xl sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Farmer inventory</div>
-                <h3 className="mt-1 text-2xl font-black text-slate-900">Add crop listing</h3>
+                <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{t('farmer.farmerView')}</div>
+                <h3 className="mt-1 text-2xl font-black text-slate-900">{t('farmer.addCropListing')}</h3>
               </div>
-              <button type="button" onClick={handleCancelListing} className="text-sm font-semibold text-slate-500">Cancel</button>
+              <button type="button" onClick={handleCancelListing} className="text-sm font-semibold text-slate-500">{t('farmer.cancel')}</button>
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <label className="text-sm font-semibold text-slate-700">Crop Name
-                <input required value={listingName} onChange={(event) => setListingName(event.target.value)} placeholder="e.g. Tomato" className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
+                <input required value={listingName} onChange={(event) => setListingName(event.target.value)} placeholder={t('farmer.cropNamePlaceholder')} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
               </label>
               <label className="text-sm font-semibold text-slate-700">Available Quantity (kg)
-                <input required type="number" min="1" value={listingQuantity} onChange={(event) => setListingQuantity(event.target.value)} placeholder="Quantity in kg" className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
+                <input required type="number" min="1" value={listingQuantity} onChange={(event) => setListingQuantity(event.target.value)} placeholder={t('farmer.quantityPlaceholder')} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
               </label>
               <label className="text-sm font-semibold text-slate-700">Price per kg (₹)
-                <input required type="number" min="1" value={listingPrice} onChange={(event) => setListingPrice(event.target.value)} placeholder="Price per kg" className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
+                <input required type="number" min="1" value={listingPrice} onChange={(event) => setListingPrice(event.target.value)} placeholder={t('farmer.pricePlaceholder')} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
               </label>
             </div>
             <button
@@ -613,7 +615,7 @@ export function FarmerDashboard() {
             >
               {isPublishingListing ? 'Publishing...' : 'Publish Listing'}
             </button>
-            {listingSubmitted && <div className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">Listing published successfully.</div>}
+            {listingSubmitted && <div className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{t('farmer.listingPublished')}</div>}
             {listingError && <div role="alert" className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{listingError}</div>}
           </form>
           </div>}
@@ -622,13 +624,13 @@ export function FarmerDashboard() {
             <div id="my-crops" className="mt-6 scroll-mt-24">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">My Crops</div>
-                  <h3 className="mt-1 text-2xl font-black text-slate-900">Your produce listings</h3>
+                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">{t('farmer.myCrops')}</div>
+                  <h3 className="mt-1 text-2xl font-black text-slate-900">{t('farmer.yourProduceListings')}</h3>
                 </div>
-                <button type="button" onClick={() => handleNavClick('Edit Listing')} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Edit listings</button>
+                <button type="button" onClick={() => handleNavClick('Edit Listing')} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">{t('farmer.editListings')}</button>
               </div>
               {currentListings.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">No crops listed yet.</div>
+                <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">{t('farmer.noCrops')}</div>
               ) : (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {currentListings.map((listing) => (
@@ -647,10 +649,10 @@ export function FarmerDashboard() {
                       <h3 className="mt-4 text-2xl font-black text-slate-900">{listing.crop_name || 'Unnamed crop'}</h3>
                       <div className="mt-3 space-y-2 text-sm text-slate-600">
                         <div className="flex justify-between"><span>Available</span><span className="font-semibold text-slate-800">{formatQuantity(listing.quantity_available)}</span></div>
-                        <div className="flex justify-between"><span>Price / kg</span><span className="font-semibold text-slate-800">{formatCurrency(listing.price_per_unit)}</span></div>
-                        <div className="flex justify-between"><span>Harvested</span><span className="font-semibold text-slate-800">{formatDate(listing.harvested_at)}</span></div>
+                        <div className="flex justify-between"><span>{t('farmer.pricePlaceholder')}</span><span className="font-semibold text-slate-800">{formatCurrency(listing.price_per_unit)}</span></div>
+                        <div className="flex justify-between"><span>{t('farmer.harvested')}</span><span className="font-semibold text-slate-800">{formatDate(listing.harvested_at)}</span></div>
                       </div>
-                      <button type="button" onClick={() => { setActiveNav('Edit Listing'); setIsEditingListings(true); setEditingListingId(listing.lid) }} className="mt-5 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white">Edit Listing</button>
+                      <button type="button" onClick={() => { setActiveNav('Edit Listing'); setIsEditingListings(true); setEditingListingId(listing.lid) }} className="mt-5 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white">{t('farmer.editListing')}</button>
                     </article>
                   ))}
                 </div>
@@ -661,7 +663,7 @@ export function FarmerDashboard() {
           {activeNav === 'Demand Forecast' && (
           <div id="demand-forecast" className="scroll-mt-24 mt-6 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900">Demand forecast</h3>
+              <h3 className="text-lg font-bold text-slate-900">{t('farmer.demandForecast')}</h3>
               <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold uppercase tracking-[0.12em] text-emerald-700">
                 AI forecast
               </span>
@@ -700,21 +702,21 @@ export function FarmerDashboard() {
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                         <div>
-                          <p className="text-slate-500">Predicted demand</p>
+                          <p className="text-slate-500">{t('farmer.predictedDemand')}</p>
                           <p className="mt-1 text-lg font-bold text-slate-900">{formatQuantity(forecast.predicted_demand_kg)}</p>
                         </div>
                         <div>
-                          <p className="text-slate-500">Active supply</p>
+                          <p className="text-slate-500">{t('farmer.activeSupply')}</p>
                           <p className="mt-1 text-lg font-bold text-slate-900">{formatQuantity(forecast.current_active_supply_kg)}</p>
                         </div>
                         <div>
-                          <p className="text-slate-500">Supply gap</p>
+                          <p className="text-slate-500">{t('farmer.supplyGap')}</p>
                           <p className={`mt-1 font-bold ${hasSurplus ? 'text-sky-700' : 'text-orange-700'}`}>
                             {forecast.supply_gap_kg > 0 ? '+' : ''}{formatQuantity(forecast.supply_gap_kg)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-slate-500">Avg. market price</p>
+                          <p className="text-slate-500">{t('farmer.averageMarketPrice')}</p>
                           <p className="mt-1 font-bold text-slate-900">{formatCurrency(forecast.avg_market_price)} / kg</p>
                         </div>
                       </div>
@@ -728,19 +730,19 @@ export function FarmerDashboard() {
 
           {activeNav === 'Earnings' && (
             <div id="farmer-earnings" className="mt-6 rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
-              <div className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Earnings breakdown</div>
-              <h3 className="mt-2 text-2xl font-black text-slate-900">Your farm income</h3>
+              <div className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">{t('farmer.earningsBreakdown')}</div>
+              <h3 className="mt-2 text-2xl font-black text-slate-900">{t('farmer.farmIncome')}</h3>
               <div className="mt-5 grid gap-4 sm:grid-cols-3">
                 <div className="rounded-2xl bg-emerald-50 p-4">
-                  <div className="text-sm text-slate-600">Total earnings</div>
+                  <div className="text-sm text-slate-600">{t('farmer.totalEarnings')}</div>
                   <div className="mt-1 text-2xl font-black text-slate-900">{formatCurrency(totalEarnings)}</div>
                 </div>
                 <div className="rounded-2xl bg-slate-50 p-4">
-                  <div className="text-sm text-slate-600">This month</div>
+                  <div className="text-sm text-slate-600">{t('farmer.thisMonth')}</div>
                   <div className="mt-1 text-2xl font-black text-slate-900">{formatCurrency(monthlyEarnings)}</div>
                 </div>
                 <div className="rounded-2xl bg-amber-50 p-4">
-                  <div className="text-sm text-slate-600">Delivered orders</div>
+                  <div className="text-sm text-slate-600">{t('farmer.deliveredOrders')}</div>
                   <div className="mt-1 text-2xl font-black text-slate-900">{deliveredOrders.length}</div>
                 </div>
               </div>

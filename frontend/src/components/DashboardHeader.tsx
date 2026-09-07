@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useTranslation } from 'react-i18next'
 import logo from '../assets/logomain.png'
 
 export function DashboardHeader() {
   const navigate = useNavigate()
   const { user, toggleProfile, logout } = useAuth()
+  const { t } = useTranslation()
   const [openMenu, setOpenMenu] = useState<'profile' | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -109,7 +111,7 @@ export function DashboardHeader() {
                   }}
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 py-2.5 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100"
                 >
-                  View my profile
+                  {t('viewProfile')}
                 </button>
 
                 <button
@@ -120,7 +122,7 @@ export function DashboardHeader() {
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
-                  <span>Sign out</span>
+                  <span>{t('signOut')}</span>
                 </button>
               </div>
             )}

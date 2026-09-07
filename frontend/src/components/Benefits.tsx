@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 type Hotspot = {
   title: string
@@ -82,6 +83,7 @@ function HarvestMap({ lively = false }: { lively?: boolean }) {
 }
 
 export function Benefits() {
+  const { t } = useTranslation()
   const canvasRef = useRef<HTMLDivElement>(null)
   const [lensPosition, setLensPosition] = useState(50)
   const [activeHotspot, setActiveHotspot] = useState<string | null>(null)
@@ -119,10 +121,10 @@ export function Benefits() {
     <section id="benefits" className="benefits-story">
       <div className="container">
         <header className="benefits-story-header scroll-reveal">
-          <span className="benefits-eyebrow">THE TURNING POINT</span>
+          <span className="benefits-eyebrow">{t('landing.turningPoint')}</span>
           <h2 className="display-xl">
-            Same harvest.<br />
-            A completely <span>different outcome</span><i aria-hidden="true" />.
+            {t('landing.sameHarvest')}<br />
+            {t('landing.differentOutcome')}<i aria-hidden="true" />.
           </h2>
         </header>
 
@@ -142,15 +144,15 @@ export function Benefits() {
               {hotspots.map((hotspot) => <span key={hotspot.title} className={activeHotspot === hotspot.title ? 'is-active' : ''} style={{ left: hotspot.point.split(' ')[0], top: hotspot.point.split(' ')[1] }} />)}
             </div>
 
-            <div className="benefits-canvas-caption benefits-caption-before">BEFORE KISAN SETU</div>
-            <div className="benefits-canvas-caption benefits-caption-after">WITH KISAN SETU</div>
+            <div className="benefits-canvas-caption benefits-caption-before">{t('landing.beforeKisanSetu')}</div>
+            <div className="benefits-canvas-caption benefits-caption-after">{t('landing.withKisanSetu')}</div>
             {hotspots.map((hotspot) => <HotspotLabel key={hotspot.title} hotspot={hotspot} active={activeHotspot === hotspot.title} onActive={setActiveHotspot} />)}
 
             <button
               type="button"
               className={`benefits-lens${isDragging ? ' is-dragging' : ''}`}
               style={{ left: `${lensPosition}%` }}
-              aria-label="Drag to reveal the difference Kisan Setu makes"
+              aria-label={t('landing.dragToReveal')}
               onPointerDown={handlePointerDown}
               onKeyDown={(event) => {
                 if (event.key === 'ArrowLeft') setLensPosition((position) => Math.max(6, position - 4))
@@ -158,12 +160,12 @@ export function Benefits() {
               }}
             >
               <span>KISAN SETU</span>
-              <b>DRAG TO SEE THE SHIFT</b>
+              <b>{t('landing.dragToSeeShift')}</b>
             </button>
           </div>
         </div>
 
-        <p className="benefits-outcome scroll-reveal">Less chasing. More certainty. Fresher trade.</p>
+        <p className="benefits-outcome scroll-reveal">{t('landing.outcome')}</p>
       </div>
 
       <style>{`

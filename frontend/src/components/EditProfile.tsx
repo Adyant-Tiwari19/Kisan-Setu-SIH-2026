@@ -2,10 +2,12 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { authService } from '../services/authService'
+import { useTranslation } from 'react-i18next'
 
 export function EditProfile() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { t } = useTranslation()
   const [name, setName] = useState(user?.name || '')
   const [email, setEmail] = useState(user?.email || '')
   const [organization, setOrganization] = useState(user?.organization || '')
@@ -81,11 +83,11 @@ export function EditProfile() {
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <div className="grid gap-5 md:grid-cols-2">
             <label className="text-sm font-semibold text-slate-700">
-              Full name
+              {t('name')}
               <input value={name} onChange={(event) => setName(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" required />
             </label>
             <label className="text-sm font-semibold text-slate-700">
-              Mobile number
+              {t('mobileNumber')}
               <input value={user.phone} readOnly className="mt-2 w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500" />
             </label>
           </div>
@@ -104,12 +106,12 @@ export function EditProfile() {
           )}
 
           <label className="block text-sm font-semibold text-slate-700">
-            Address
+            {t('address')}
             <textarea value={address} onChange={(event) => setAddress(event.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" required />
           </label>
 
           <label className="block text-sm font-semibold text-slate-700">
-            Pincode
+            {t('pincode')}
             <input value={pincode} onChange={(event) => setPincode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" maxLength={6} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" required />
           </label>
 

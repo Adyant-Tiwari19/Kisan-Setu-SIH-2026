@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useTranslation } from 'react-i18next'
+import i18n from '../i18n'
 import logo from '../assets/logomain.png'
 
 export function Header() {
   const navigate = useNavigate()
   const { user, isAuthenticated } = useAuth()
+  const { t } = useTranslation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const navItems = [
-    { label: 'Home', href: '/#hero' },
-    { label: 'How it works', href: '/#how-it-works' },
-    { label: 'Benefits', href: '/#benefits' },
+    { label: 'common.home', href: '/#hero' },
+    { label: 'common.howItWorks', href: '/#how-it-works' },
+    { label: 'common.benefits', href: '/#benefits' },
   ]
   const dashboardPath = user?.backendRole === 'FARMER_FPO' || user?.role === 'farmer'
     ? '/farmer'
@@ -41,10 +44,10 @@ export function Header() {
         </Link>
 
         {/* Desktop navigation */}
-        <nav className="header-nav-desktop" aria-label="Primary navigation">
+        <nav className="header-nav-desktop" aria-label={t('common.primaryNavigation')}>
           {navItems.map(item => (
             <a key={item.label} href={item.href} className="header-nav-link">
-              {item.label}
+              {t(item.label)}
             </a>
           ))}
         </nav>
@@ -53,18 +56,21 @@ export function Header() {
         <div className="header-actions">
           {isAuthenticated ? (
             <button type="button" onClick={() => navigate(dashboardPath)} className="btn-primary header-dashboard">
-              Return to Dashboard ➔
+              {t('common.returnToDashboard')}
             </button>
           ) : (
             <>
-              <Link to="/sign-in" className="header-sign-in">Sign in</Link>
-              <Link to="/join-now" className="btn-primary header-join">Join now</Link>
+              <Link to="/sign-in" className="header-sign-in">{t('common.signIn')}</Link>
+              <Link to="/join-now" className="btn-primary header-join">{t('common.joinNow')}</Link>
             </>
           )}
+          <button type="button" className="header-language" onClick={() => void i18n.changeLanguage(i18n.language === 'hi' ? 'en' : 'hi')} aria-label={t('common.changeLanguage')}>
+            🌐 {i18n.language === 'hi' ? 'हिंदी' : 'EN'}
+          </button>
           <button
             type="button"
             className="header-menu-button"
-            aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-label={isMenuOpen ? t('common.closeNavigationMenu') : t('common.openNavigationMenu')}
             aria-expanded={isMenuOpen}
             onClick={() => setIsMenuOpen(open => !open)}
           >
@@ -76,13 +82,13 @@ export function Header() {
       </div>
 
       {isMenuOpen && (
-        <nav className="header-nav-mobile" aria-label="Mobile navigation">
+        <nav className="header-nav-mobile" aria-label={t('common.mobileNavigation')}>
           <Link to={isAuthenticated ? dashboardPath : '/sign-in'} onClick={() => setIsMenuOpen(false)}>
-            {isAuthenticated ? 'Return to Dashboard ➔' : 'Sign In / Log In'}
+            {isAuthenticated ? t('common.returnToDashboard') : t('common.signIn')}
           </Link>
           {navItems.map(item => (
             <a key={item.label} href={item.href} onClick={() => setIsMenuOpen(false)}>
-              {item.label}
+              {t(item.label)}
             </a>
           ))}
         </nav>
@@ -99,6 +105,7 @@ export function Header() {
         .header-sign-in:hover { color: var(--ff-deep); border-color: var(--ff-mint); background: #fff; }
         .header-join { padding: 0.55rem 1.15rem; font-size: 0.84rem; }
         .header-dashboard { flex-shrink: 0; padding: 0.55rem 1rem; font-size: 0.82rem; }
+        .header-language { flex-shrink: 0; border: 1px solid rgba(27,67,50,0.15); border-radius: 0.75rem; background: #fff; padding: 0.45rem 0.6rem; color: var(--ff-deep); font: inherit; font-size: 0.75rem; font-weight: 700; }
         .header-menu-button, .header-nav-mobile { display: none; }
         @media (max-width: 900px) {
           .header-nav-link { padding-inline: 0.5rem; }

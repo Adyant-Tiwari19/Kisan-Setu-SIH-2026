@@ -6,18 +6,18 @@ import { useAuth } from '../context/AuthContext'
 import { authService, type User } from '../services/authService'
 import { API_BASE_URL } from '../services/apiClient'
 import { CropCardSkeleton } from './CropCardSkeleton'
+import { useTranslation } from 'react-i18next'
 
 const navItems = ['Home', 'Marketplace', 'Cart', 'Orders', 'Profile']
 const searchLatitude = '28.6139'
 const searchLongitude = '77.2090'
 type SortMode = 'relevance' | 'distance' | 'price-low-high' | 'price-high-low'
-const sortOptions: Array<{ value: SortMode; label: string }> = [
-  { value: 'relevance', label: 'Relevance' },
-  { value: 'distance', label: 'Distance: Nearest first' },
-  { value: 'price-low-high', label: 'Price: Low to high' },
-  { value: 'price-high-low', label: 'Price: High to low' },
+const sortOptions: Array<{ value: SortMode }> = [
+  { value: 'relevance' },
+  { value: 'distance' },
+  { value: 'price-low-high' },
+  { value: 'price-high-low' },
 ]
-
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
   currency: 'INR',
@@ -97,6 +97,7 @@ interface RetailMarketplaceProps {
 export function RetailMarketplace({ embedded = false, wholesale = false, hideProfile = false, onBackToFarmer }: RetailMarketplaceProps) {
   const navigate = useNavigate()
   const { user, isProfileVisible, toggleProfile } = useAuth()
+  const { t } = useTranslation()
   const [profileUser, setProfileUser] = useState<User | null>(user)
   const [showCheckout, setShowCheckout] = useState(false)
   const [activeNav, setActiveNav] = useState('Marketplace')
@@ -274,7 +275,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
   const updateQuantity = (listing: MarketplaceListing, quantity: number) => {
     const availableQuantity = listing.quantity_available ?? 0
     if (quantity > availableQuantity) {
-      setDashboardMessage(`Only ${availableQuantity} kg of ${listing.crop_name} is available.`)
+      setDashboardMessage(t('marketplace.onlyAvailable', { quantity: availableQuantity, crop: listing.crop_name }))
       return
     }
     setCart((current) => {
@@ -340,7 +341,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
 
       if (selectedSortMode === 'relevance' && !sortedResults.some((listing) => listing.relevance_score !== null)) {
         sortedResults = [...sortedResults].sort((first, second) => getDisplayedPrice(first) - getDisplayedPrice(second))
-        setDashboardMessage('Seller relevance is unavailable, so results are sorted by price.')
+        setDashboardMessage(t('marketplace.sellerRelevanceUnavailable'))
       }
 
       setListings(sortedResults)
@@ -352,7 +353,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
 
       setSearchStatus('success')
       if (selectedSortMode !== 'relevance' || sortedResults.some((listing) => listing.relevance_score !== null)) {
-        setDashboardMessage('Fresh produce results loaded for your selected location.')
+        setDashboardMessage(t('marketplace.freshResultsLoaded'))
       }
     } catch {
       if (requestId !== searchRequestRef.current) return
@@ -398,7 +399,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
       setActiveNav('Orders')
     } catch (error) {
       setIsPlacingOrder(false)
-      setDashboardMessage(error instanceof Error ? error.message : 'Unable to place order with the requested quantity.')
+      setDashboardMessage(error instanceof Error ? error.message : t('marketplace.unableToPlaceOrder'))
     }
   }
 
@@ -408,13 +409,13 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
         <div className="rounded-3xl bg-linear-to-br from-emerald-50 via-white to-amber-50 p-4 md:p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{wholesale ? 'Wholesale User' : 'Retail Consumer'}</div>
-              <h2 className="mt-2 text-2xl font-black tracking-tighter text-slate-900 md:text-3xl">{wholesale ? 'Fresh picks at best prices' : 'Fresh picks near you'}</h2>
+              <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{wholesale ? t('marketplace.wholesaleUser') : t('marketplace.retailConsumer')}</div>
+              <h2 className="mt-2 text-2xl font-black tracking-tighter text-slate-900 md:text-3xl">{wholesale ? t('marketplace.freshPicksWholesale') : t('marketplace.freshPicks')}</h2>
             </div>
             <div className="flex items-center gap-2">
               {onBackToFarmer && (
                 <button type="button" onClick={onBackToFarmer} className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800">
-                  <span>Farmer View 🌾</span>
+                  <span>{t('common.farmerView')}</span>
                 </button>
               )}
             </div>
@@ -445,7 +446,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                 }}
                 className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition ${item === (isProfileVisible ? 'Profile' : activeNav) ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'}`}
               >
-                {item}
+                {item === 'Home' ? t('common.home') : item === 'Marketplace' ? t('common.marketplace') : item === 'Cart' ? t('common.cart') : item === 'Orders' ? t('common.orders') : t('common.profile')}
               </button>
             ))}
           </div>
@@ -455,19 +456,19 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
-                    {wholesale ? 'Bulk buyer profile' : 'Customer profile'}
+                    {wholesale ? t('roles.bulkBuyer') : t('marketplace.retailConsumer')}
                   </div>
-                  <h3 className="mt-1 text-xl font-black text-slate-900">{profileUser?.name || 'My profile'}</h3>
+                  <h3 className="mt-1 text-xl font-black text-slate-900">{profileUser?.name || t('marketplace.myProfile')}</h3>
                 </div>
                 <button type="button" onClick={toggleProfile} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-emerald-700">
-                  Hide profile
+                  {t('common.close', 'बंद करें')}
                 </button>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {[
-                  { label: 'Mobile number', value: profileUser?.phone },
-                  { label: 'Address', value: profileUser?.address },
-                  { label: 'Pincode', value: profileUser?.pincode },
+                  { label: t('mobileNumber'), value: profileUser?.phone },
+                  { label: t('address'), value: profileUser?.address },
+                  { label: t('pincode'), value: profileUser?.pincode },
                   ...(wholesale
                     ? [
                         { label: 'Email address', value: profileUser?.email },
@@ -477,13 +478,13 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                 ].map((detail) => (
                   <div key={detail.label} className="rounded-xl bg-slate-50 p-3">
                     <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{detail.label}</div>
-                    <div className="mt-1 break-words text-sm font-bold text-slate-900">{detail.value || 'Not available'}</div>
+                    <div className="mt-1 break-words text-sm font-bold text-slate-900">{detail.value || t('marketplace.notAvailable')}</div>
                   </div>
                 ))}
               </div>
               <div className="mt-4 flex justify-end">
                 <button type="button" onClick={() => navigate('/profile/edit')} className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
-                  Edit profile
+                  {t('editProfile')}
                 </button>
               </div>
             </div>
@@ -511,7 +512,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                       void handleSearch(value)
                     }, 350)
                   }}
-                  placeholder="Search crop"
+                  placeholder={t('marketplace.searchCrop')}
                   className="w-full rounded-full border border-slate-200 bg-slate-50 px-5 py-3 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-100"
                 />
               </div>
@@ -519,7 +520,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
               {!wholesale && (
                 <div className="relative flex min-w-[160px] flex-1 items-center gap-2 whitespace-nowrap text-sm font-semibold text-slate-700">
                   <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <span>Sort by</span>
+                    <span>{t('common.sortBy')}</span>
                     <button
                       type="button"
                       aria-haspopup="listbox"
@@ -527,7 +528,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                       onClick={() => setIsSortOpen((open) => !open)}
                       className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 shadow-sm"
                     >
-                      <span className="truncate">Sort: {sortOptions.find((option) => option.value === sortMode)?.label}</span>
+                      <span className="truncate">{t('common.sortBy')}: {t(`marketplace.${sortMode === 'relevance' ? 'relevance' : sortMode === 'distance' ? 'distance' : sortMode === 'price-low-high' ? 'priceLow' : 'priceHigh'}`)}</span>
                       <span aria-hidden="true" className="text-sm">⌄</span>
                     </button>
                   </div>
@@ -535,11 +536,11 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                     <>
                       <button
                         type="button"
-                        aria-label="Close sort options"
+                        aria-label={t('marketplace.closeSortOptions')}
                         onClick={() => setIsSortOpen(false)}
                         className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]"
                       />
-                      <div role="listbox" aria-label="Sort listings" className="fixed bottom-4 left-4 right-4 z-50 space-y-1 rounded-2xl border border-slate-100 bg-white p-4 shadow-xl animate-in fade-in slide-in-from-bottom-2 sm:absolute sm:bottom-auto sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-72">
+                      <div role="listbox" aria-label={t('marketplace.sortListings')} className="fixed bottom-4 left-4 right-4 z-50 space-y-1 rounded-2xl border border-slate-100 bg-white p-4 shadow-xl animate-in fade-in slide-in-from-bottom-2 sm:absolute sm:bottom-auto sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-72">
                         {sortOptions.map((option) => {
                           const isActive = option.value === sortMode
                           return (
@@ -555,7 +556,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                               }}
                               className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${isActive ? 'bg-emerald-50 font-semibold text-emerald-800' : 'font-normal text-slate-600 hover:bg-slate-50'}`}
                             >
-                              <span>{option.label}</span>
+                              <span>{t(`marketplace.${option.value === 'relevance' ? 'relevance' : option.value === 'distance' ? 'distance' : option.value === 'price-low-high' ? 'priceLow' : 'priceHigh'}`)}</span>
                               {isActive && <span aria-hidden="true">✓</span>}
                             </button>
                           )
@@ -572,7 +573,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                 disabled={searchStatus === 'loading'}
                 className="shrink-0 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {searchStatus === 'loading' ? 'Searching...' : 'Search'}
+                {searchStatus === 'loading' ? t('common.searching') : t('common.search')}
               </button>
             </div>
 
@@ -584,9 +585,9 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
 
             {searchStatus === 'apiError' && (
               <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                <div>We could not load listings right now. Please try again.</div>
+                <div>{t('marketplace.loadError')}</div>
                   <button type="button" onClick={retrySearch} className="mt-2 font-semibold underline">
-                    Retry
+                    {t('marketplace.retry')}
                   </button>
               </div>
             )}
@@ -598,8 +599,8 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
             {searchStatus === 'empty' && !cropQuery.trim() && (
               <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">
                 <div className="text-3xl">🧺</div>
-                <h3 className="mt-4 text-xl font-black text-slate-900">Search fresh produce near you</h3>
-                <p className="mt-2 text-sm text-slate-500">Search fresh produce near you. Enter a crop and choose your location.</p>
+                <h3 className="mt-4 text-xl font-black text-slate-900">{t('marketplace.searchHeading')}</h3>
+                <p className="mt-2 text-sm text-slate-500">{t('marketplace.searchDescription')}</p>
               </div>
             )}
 
@@ -616,9 +617,9 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
               <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">
                 <div className="text-3xl">📍</div>
                 <h3 className="mt-4 text-xl font-black text-slate-900">
-                  No fresh produce was found for {cropQuery.trim()}.
+                  {t('marketplace.noResults')}: {cropQuery.trim()}.
                 </h3>
-                <p className="mt-2 text-sm text-slate-500">Try another crop.</p>
+                <p className="mt-2 text-sm text-slate-500">{t('marketplace.tryAnotherCrop')}</p>
               </div>
             )}
 
@@ -631,7 +632,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                   >
                     {String(listing.id) === String(bestMatchId) && (
                       <div className="mb-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
-                        AI Top Pick
+                        {t('aiTopPick')}
                       </div>
                     )}
                     <div className="mt-4 h-28 overflow-hidden rounded-2xl bg-linear-to-br from-emerald-200 via-lime-100 to-amber-100">
@@ -671,10 +672,10 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                         {wholesale && (
                           <div className="mt-2 space-y-1 text-sm text-slate-600">
                             {listing.farmer_name !== 'Not available' && (
-                              <div><span className="font-semibold text-slate-800">Farmer:</span> {listing.farmer_name}</div>
+                              <div><span className="font-semibold text-slate-800">{t('marketplace.farmer')}:</span> {listing.farmer_name}</div>
                             )}
                             {listing.farmer_phone && (
-                              <div><span className="font-semibold text-slate-800">Phone:</span> {listing.farmer_phone}</div>
+                              <div><span className="font-semibold text-slate-800">{t('marketplace.phone')}:</span> {listing.farmer_phone}</div>
                             )}
                           </div>
                         )}
@@ -683,11 +684,11 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
 
                     <div className="mt-4 space-y-2 text-sm text-slate-600">
                       <div className="flex items-center justify-between">
-                        <span>Distance</span>
+                        <span>{t('marketplace.distance')}</span>
                         <span className="font-semibold text-slate-800">{formatDistance(listing.distance_km)}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span>Harvested</span>
+                        <span>{t('marketplace.harvested')}</span>
                         <span className="font-semibold text-slate-800">
                           {formatHarvestDate(listing.harvested_at, listing.created_at)}
                         </span>
@@ -696,7 +697,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
 
                     <div className="mt-5 rounded-2xl bg-slate-50 p-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-500">Price / kg</span>
+                        <span className="text-sm text-slate-500">{t('marketplace.pricePerKg')}</span>
                         <span className="text-xl font-black text-slate-900">{formatCurrency(listing.price_per_unit)}</span>
                       </div>
                     </div>
@@ -708,7 +709,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                           aria-disabled={!listing.farmer_phone}
                           className={`rounded-full px-4 py-2.5 text-sm font-semibold ${listing.farmer_phone ? 'bg-slate-900 text-white' : 'cursor-not-allowed bg-slate-200 text-slate-400'}`}
                         >
-                          Contact now
+                          {t('common.joinNow')}
                         </a>
                       )}
                       {cart[listing.id] ? (
@@ -723,7 +724,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                           onClick={() => addToCart(listing)}
                           className="rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 transform active:scale-95"
                         >
-                          Add to cart
+                          {t('marketplace.cart')}
                         </button>
                       )}
                     </div>
@@ -738,8 +739,8 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
             <div className="mt-8 rounded-3xl bg-slate-900 p-5 text-white">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.2em] text-slate-300">Checkout</div>
-                  <h3 className="mt-2 text-3xl font-black tracking-tighter">Confirm your order</h3>
+                  <div className="text-xs font-bold uppercase tracking-[0.2em] text-slate-300">{t('marketplace.checkout')}</div>
+                  <h3 className="mt-2 text-3xl font-black tracking-tighter">{t('marketplace.confirmOrder')}</h3>
                 </div>
                 <button
                   type="button"
@@ -747,33 +748,33 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                   onClick={() => setShowCheckout(false)}
                   className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Back to cart
+                  {t('marketplace.cart')}
                 </button>
               </div>
 
               <div className="mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
                 <div className="space-y-4 rounded-3xl bg-white/5 p-4">
                   <div>
-                    <div className="mb-2 text-sm text-slate-300">Delivery address</div>
+                    <div className="mb-2 text-sm text-slate-300">{t('marketplace.deliveryAddress')}</div>
                     <div className="rounded-2xl bg-white/10 p-3 text-sm leading-7 text-slate-100">
-                      {user?.address || 'Delivery address is not available'}
+                      {user?.address || t('marketplace.notAvailable')}
                       {user?.pincode && <><br />{user.pincode}</>}
                     </div>
                   </div>
 
                   <div>
-                    <div className="mb-2 text-sm text-slate-300">Delivery estimate</div>
-                    <div className="rounded-2xl bg-white/10 p-3 text-sm text-slate-100">Today, 6:30 PM - 8:00 PM</div>
+                    <div className="mb-2 text-sm text-slate-300">{t('marketplace.deliveryEstimate')}</div>
+                    <div className="rounded-2xl bg-white/10 p-3 text-sm text-slate-100">{t('marketplace.todayDelivery')}</div>
                   </div>
 
                   <div>
-                    <div className="mb-2 text-sm text-slate-300">Payment method</div>
-                    <div className="rounded-2xl bg-white/10 p-3 text-sm text-slate-100">Cash on delivery (COD)</div>
+                    <div className="mb-2 text-sm text-slate-300">{t('marketplace.paymentMethod')}</div>
+                    <div className="rounded-2xl bg-white/10 p-3 text-sm text-slate-100">{t('marketplace.cashOnDelivery')}</div>
                   </div>
                 </div>
 
                 <div className="rounded-3xl bg-white p-4 text-slate-900">
-                  <h4 className="text-xl font-black text-slate-900">Order summary</h4>
+                  <h4 className="text-xl font-black text-slate-900">{t('marketplace.orderSummary')}</h4>
 
                   <div className="mt-4 space-y-3 text-sm text-slate-600">
                     {cartItems.map((listing) => (
@@ -783,15 +784,15 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                       </div>
                     ))}
                     <div className="flex items-center justify-between">
-                      <span>Produce subtotal</span>
+                      <span>{t('marketplace.produceSubtotal')}</span>
                       <span>{formatCurrency(produceSubtotal)}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Logistics</span>
+                      <span>{t('marketplace.logistics')}</span>
                       <span>{formatCurrency(displayedLogisticsCost)}</span>
                     </div>
                     <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-base font-bold text-slate-900">
-                      <span>Total</span>
+                      <span>{t('marketplace.total')}</span>
                       <span>{formatCurrency(orderTotal)}</span>
                     </div>
                   </div>
@@ -802,7 +803,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                     onClick={() => void placeOrder()}
                     className="mt-5 w-full rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {isPlacingOrder ? 'Placing your order...' : 'Place order'}
+                    {isPlacingOrder ? t('marketplace.placingOrder') : t('marketplace.placeOrder')}
                   </button>
                   {isPlacingOrder && (
                     <div className="mt-4" aria-live="polite">
@@ -812,23 +813,23 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                           🌱
                         </span>
                       </div>
-                      <p className="mt-2 text-center text-sm font-semibold text-emerald-700">Placing your order...</p>
+                      <p className="mt-2 text-center text-sm font-semibold text-emerald-700">{t('marketplace.placingOrder')}</p>
                     </div>
                   )}
-                  {orderPlaced && <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-center text-sm font-semibold text-emerald-700">Order placed successfully. Your farmer is preparing it.</p>}
+                  {orderPlaced && <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-center text-sm font-semibold text-emerald-700">{t('marketplace.orderSuccess')}</p>}
                 </div>
               </div>
             </div>
           ) : (
             <div className="mt-8 grid gap-5 md:grid-cols-2">
               <div id="retail-cart" className="scroll-mt-24 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
-                <h3 className="text-xl font-black text-slate-900">Cart</h3>
+                <h3 className="text-xl font-black text-slate-900">{t('marketplace.cart')}</h3>
                 <div className="mt-4 space-y-3">
                   {cartItems.map((listing) => (
                     <div key={String(listing.id)} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3">
                       <div>
                         <div className="font-bold text-slate-900">{listing.crop_name}</div>
-                        <div className="text-sm text-slate-500">Price: {formatCurrency(listing.price_per_unit)} / kg</div>
+                        <div className="text-sm text-slate-500">{t('marketplace.pricePerKg')}: {formatCurrency(listing.price_per_unit)} / kg</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <button type="button" onClick={() => updateQuantity(listing, (cart[listing.id] ?? 1) - 1)} className="h-8 w-8 rounded-full bg-white text-lg ring-1 ring-slate-200">−</button>
@@ -846,7 +847,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                               updateQuantity(listing, value)
                             }
                           }}
-                          aria-label={`Quantity of ${listing.crop_name} in kilograms`}
+                          aria-label={t('marketplace.openCart', { count: cart[listing.id], itemLabel: listing.crop_name })}
                           className="h-8 w-20 rounded-lg border border-slate-200 bg-white px-2 text-center text-sm font-bold text-slate-900"
                         />
                         <span className="text-xs font-semibold text-slate-500">kg</span>
@@ -857,9 +858,9 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                 </div>
 
                 <div className="mt-5 space-y-2 text-sm text-slate-600">
-                  <div className="flex items-center justify-between"><span>Produce subtotal</span><span>{formatCurrency(produceSubtotal)}</span></div>
-                  <div className="flex items-center justify-between"><span>Logistics cost</span><span>{formatCurrency(displayedLogisticsCost)}</span></div>
-                  <div className="flex items-center justify-between border-t border-slate-200 pt-2 font-bold text-slate-900"><span>Total</span><span>{formatCurrency(orderTotal)}</span></div>
+                  <div className="flex items-center justify-between"><span>{t('marketplace.produceSubtotal')}</span><span>{formatCurrency(produceSubtotal)}</span></div>
+                  <div className="flex items-center justify-between"><span>{t('marketplace.logisticsCost')}</span><span>{formatCurrency(displayedLogisticsCost)}</span></div>
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-2 font-bold text-slate-900"><span>{t('marketplace.total')}</span><span>{formatCurrency(orderTotal)}</span></div>
                 </div>
 
                 <button
@@ -868,7 +869,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                   onClick={() => setShowCheckout(true)}
                   className="mt-5 w-full rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Checkout ({cartCount} kg)
+                  {t('marketplace.checkout')} ({cartCount} kg)
                 </button>
               </div>
 
@@ -877,14 +878,14 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
 
           {activeNav === 'Orders' && (
           <div id="retail-orders" className="mt-6 scroll-mt-24 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
-            <h3 className="text-xl font-black text-slate-900">Orders</h3>
+            <h3 className="text-xl font-black text-slate-900">{t('common.orders')}</h3>
             <div className="mt-4 space-y-3">
               {!buyerOrders.length && (
                 <div className="rounded-2xl border border-emerald-100 bg-white p-6 text-center shadow-sm">
                   <div className="text-3xl" aria-hidden="true">🛍️</div>
-                  <p className="mt-2 font-bold text-slate-900">No orders placed yet</p>
+                  <p className="mt-2 font-bold text-slate-900">{t('marketplace.noOrders')}</p>
                   <button type="button" onClick={() => { setActiveNav('Marketplace'); scrollToSection('retail-products') }} className="mt-4 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
-                    Browse Marketplace
+                    {t('marketplace.browseMarketplace')}
                   </button>
                 </div>
               )}
@@ -915,7 +916,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
             <button
               type="button"
               onClick={() => setActiveNav('Cart')}
-              aria-label={`Open cart with ${cartCount} ${cartCount === 1 ? 'item' : 'items'}`}
+              aria-label={t('marketplace.openCart', { count: cartCount, itemLabel: cartCount === 1 ? t('marketplace.item') : t('marketplace.items') })}
               className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-slate-900/95 text-white shadow-2xl ring-1 ring-emerald-300/40 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-emerald-800"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth="1.8">

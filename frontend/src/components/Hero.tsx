@@ -1,13 +1,15 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 const floatingBadges = [
-  { label: 'Fair Price', sub: '₹12/kg above APMC', color: 'var(--ff-deep)', top: '12%', left: '-8%' },
-  { label: 'AI Match', sub: 'Best buyer found', color: '#7c3aed', top: '60%', left: '-10%' },
-  { label: 'Freshness Tracked', sub: '< 24h harvest', color: 'var(--ff-terra)', top: '10%', right: '-8%' },
-  { label: 'Same-day Delivery', sub: 'Pickup 6am–9am', color: '#d97706', top: '68%', right: '-6%' },
+  { label: 'landing.fairPrice', sub: 'landing.fairPriceSub', color: 'var(--ff-deep)', top: '12%', left: '-8%' },
+  { label: 'landing.aiMatch', sub: 'landing.aiMatchSub', color: '#7c3aed', top: '60%', left: '-10%' },
+  { label: 'landing.freshnessTracked', sub: 'landing.freshnessTrackedSub', color: 'var(--ff-terra)', top: '10%', right: '-8%' },
+  { label: 'landing.sameDayDelivery', sub: 'landing.sameDayDeliverySub', color: '#d97706', top: '68%', right: '-6%' },
 ]
 
 export function Hero() {
+  const { t } = useTranslation()
   return (
     <section
       id="hero"
@@ -46,7 +48,7 @@ export function Hero() {
                 <circle cx="10" cy="10" r="3" fill="white" />
               </svg>
             </span>
-            <span className="eyebrow text-fresh" style={{ fontSize: '0.68rem' }}>AI-powered farm-to-market network</span>
+            <span className="eyebrow text-fresh" style={{ fontSize: '0.68rem' }}>{t('landing.aiNetworkTag')}</span>
           </div>
 
           {/* Headline */}
@@ -58,19 +60,17 @@ export function Hero() {
               animationDelay: '80ms',
             }}
           >
-            From Farm<br />
-            to Market,{' '}
+            {t('landing.heroTitleLine1')}{' '}
             <span style={{
               color: 'var(--ff-deep)',
               position: 'relative',
               display: 'inline-block',
             }}>
-              Fairer
+              {t('landing.heroTitleLine2')}
               <svg style={{ position: 'absolute', bottom: '-4px', left: 0, width: '100%' }} viewBox="0 0 120 8" preserveAspectRatio="none" height="6">
                 <path d="M2 5 Q30 1 60 5 Q90 9 118 5" stroke="var(--ff-yellow)" strokeWidth="3" fill="none" strokeLinecap="round" />
               </svg>
-            </span>{' '}and{' '}
-            <span style={{ color: 'var(--ff-fresh)' }}>Smarter.</span>
+            </span>
           </h1>
 
           {/* Subtext */}
@@ -83,8 +83,7 @@ export function Hero() {
               animationDelay: '160ms',
             }}
           >
-            Kisan Setu connects farmers, FPOs, customers, and bulk buyers through transparent pricing,
-            AI-driven matching, and faster, fresher deliveries — directly from field to shelf.
+            {t('landing.heroDescription')}
           </p>
 
           {/* CTAs */}
@@ -93,11 +92,11 @@ export function Hero() {
             style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '2.5rem', animationDelay: '240ms' }}
           >
             <Link to="/role-selection" className="btn-primary">
-              Explore Marketplace
+              {t('common.exploreMarketplace')}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
             </Link>
             <Link to="/join-now" className="btn-secondary">
-              Join as a Farmer
+              {t('common.joinAsFarmer')}
             </Link>
           </div>
 
@@ -156,8 +155,8 @@ export function Hero() {
               }}
             >
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: b.color, display: 'inline-block', marginRight: '0.4rem', verticalAlign: 'middle' }} />
-              <strong style={{ color: 'var(--ff-navy)' }}>{b.label}</strong>
-              <div style={{ fontSize: '0.7rem', color: 'var(--ff-muted)', marginTop: '0.1rem' }}>{b.sub}</div>
+              <strong style={{ color: 'var(--ff-navy)' }}>{t(b.label)}</strong>
+              <div style={{ fontSize: '0.7rem', color: 'var(--ff-muted)', marginTop: '0.1rem' }}>{t(b.sub)}</div>
             </div>
           ))}
         </div>
