@@ -31,7 +31,9 @@ const formatHarvestDate = (value: string | null | undefined, fallback?: string |
   const dateValue = value || fallback
   if (!dateValue) return 'Not available'
   const date = new Date(dateValue)
-  return Number.isNaN(date.getTime()) ? 'Not available' : date.toLocaleDateString('en-IN')
+  return Number.isNaN(date.getTime())
+    ? 'Not available'
+    : `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`
 }
 
 const getUnitPrice = (listing: MarketplaceListing) => listing.estimated_landed_price ?? listing.price_per_unit

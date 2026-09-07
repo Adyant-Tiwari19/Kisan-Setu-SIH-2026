@@ -16,6 +16,13 @@ const formatCurrency = (value: number) =>
 const formatQuantity = (value: number) =>
   `${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })} kg`
 
+const formatDate = (value: string | null | undefined) => {
+  if (!value) return 'Not available'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Not available'
+  return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`
+}
+
 const formatOrderStatus = (status: Order['status']) =>
   status.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
 
@@ -35,7 +42,6 @@ export function FarmerDashboard() {
   const [listingName, setListingName] = useState('')
   const [listingQuantity, setListingQuantity] = useState('')
   const [listingPrice, setListingPrice] = useState('')
-  const [listingHarvestDate, setListingHarvestDate] = useState('')
   const [listingImageUrl, setListingImageUrl] = useState('')
   const [listingSubmitted, setListingSubmitted] = useState(false)
   const [isPublishingListing, setIsPublishingListing] = useState(false)
@@ -48,7 +54,7 @@ export function FarmerDashboard() {
   const [loadedUserPhone, setLoadedUserPhone] = useState<string | null>(null)
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null)
   const [updatingListingId, setUpdatingListingId] = useState<number | null>(null)
-  const [listingEditValues, setListingEditValues] = useState<Record<number, { quantity: string; price: string; harvestDate: string }>>({})
+  const [listingEditValues, setListingEditValues] = useState<Record<number, { quantity: string; price: string }>>({})
   const [isEditingListings, setIsEditingListings] = useState(false)
   const [editingListingId, setEditingListingId] = useState<number | null>(null)
   const [demandForecasts, setDemandForecasts] = useState<Record<number, DemandForecast>>({})
@@ -188,7 +194,6 @@ export function FarmerDashboard() {
     listingEditValues[listing.lid] || {
       quantity: String(listing.quantity_available),
       price: String(listing.price_per_unit),
-      harvestDate: listing.harvested_at ? listing.harvested_at.slice(0, 10) : '',
     }
 
   const updateListing = async (listing: Listing) => {
@@ -206,10 +211,9 @@ export function FarmerDashboard() {
       const updatedListing = await listingService.updateListing(listing.lid, {
         quantity_available: quantity,
         price_per_unit: price,
-        harvested_at: values.harvestDate || undefined,
       })
       setListings((current) => current.map((item) => item.lid === updatedListing.lid ? updatedListing : item))
-      setListingEditValues((current) => ({ ...current, [listing.lid]: { quantity: String(updatedListing.quantity_available), price: String(updatedListing.price_per_unit), harvestDate: updatedListing.harvested_at ? updatedListing.harvested_at.slice(0, 10) : '' } }))
+      setListingEditValues((current) => ({ ...current, [listing.lid]: { quantity: String(updatedListing.quantity_available), price: String(updatedListing.price_per_unit) } }))
       setDashboardMessage(`${updatedListing.crop_name || 'Listing'} was updated successfully.`)
     } catch {
       setDashboardMessage('Unexpected error occurred.')
@@ -260,13 +264,11 @@ export function FarmerDashboard() {
         crop_name: listingName.trim(),
         quantity_available: Number(listingQuantity),
         price_per_unit: Number(listingPrice),
-        harvested_at: listingHarvestDate || undefined,
       })
       setListings((current) => [createdListing, ...current])
       setListingName('')
       setListingQuantity('')
       setListingPrice('')
-      setListingHarvestDate('')
       setListingImageUrl('')
       setListingSubmitted(true)
       setDashboardMessage(`${createdListing.crop_name || listingName} listing was added successfully.`)
@@ -436,15 +438,6 @@ export function FarmerDashboard() {
                               />
                             </label>
                             <label className="text-xs font-semibold text-slate-300">
-                              Harvest date
-                              <input
-                                type="date"
-                                value={values.harvestDate}
-                                onChange={(event) => setListingEditValues((current) => ({ ...current, [item.lid]: { ...values, harvestDate: event.target.value } }))}
-                                className="mt-1 w-full rounded-xl border-0 bg-white px-3 py-2 text-sm text-slate-900"
-                              />
-                            </label>
-                            <label className="text-xs font-semibold text-slate-300">
                               Price / kg
                               <input
                                 type="number"
@@ -581,9 +574,6 @@ export function FarmerDashboard() {
               <label className="text-sm font-semibold text-slate-700">Price per kg (₹)
                 <input required type="number" min="1" value={listingPrice} onChange={(event) => setListingPrice(event.target.value)} placeholder="Price per kg" className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
               </label>
-              <label className="text-sm font-semibold text-slate-700">Harvest Date
-                <input type="date" value={listingHarvestDate} onChange={(event) => setListingHarvestDate(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
-              </label>
               <label className="text-sm font-semibold text-slate-700 md:col-span-2">Image URL/Upload
                 <input type="url" value={listingImageUrl} onChange={(event) => setListingImageUrl(event.target.value)} placeholder="Optional image URL" className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
               </label>
@@ -630,7 +620,7 @@ export function FarmerDashboard() {
                       <div className="mt-3 space-y-2 text-sm text-slate-600">
                         <div className="flex justify-between"><span>Available</span><span className="font-semibold text-slate-800">{formatQuantity(listing.quantity_available)}</span></div>
                         <div className="flex justify-between"><span>Price / kg</span><span className="font-semibold text-slate-800">{formatCurrency(listing.price_per_unit)}</span></div>
-                        <div className="flex justify-between"><span>Harvested</span><span className="font-semibold text-slate-800">{listing.harvested_at ? new Date(listing.harvested_at).toLocaleDateString('en-IN') : 'Not available'}</span></div>
+                        <div className="flex justify-between"><span>Harvested</span><span className="font-semibold text-slate-800">{formatDate(listing.harvested_at)}</span></div>
                       </div>
                       <button type="button" onClick={() => { setActiveNav('Edit Listing'); setIsEditingListings(true); setEditingListingId(listing.lid) }} className="mt-5 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white">Edit Listing</button>
                     </article>

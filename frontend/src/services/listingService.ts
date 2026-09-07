@@ -271,7 +271,7 @@ class ListingService {
     return apiClient.patch<Listing>(`/listings/${lid}/inventory`, payload)
   }
 
-  async updateListing(lid: number, payload: { quantity_available: number; price_per_unit: number; harvested_at?: string }): Promise<Listing> {
+  async updateListing(lid: number, payload: { quantity_available: number; price_per_unit: number }): Promise<Listing> {
     return apiClient.put<Listing>(`/listings/${lid}`, payload)
   }
 
