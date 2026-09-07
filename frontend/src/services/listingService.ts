@@ -127,7 +127,7 @@ export function mapSearchResponseItem(raw: Record<string, unknown>): Marketplace
     toText(raw.crop_name ?? raw.crop ?? raw.cropName ?? raw.name ?? raw.title)
 
   const farmerName =
-    toText(raw.farmer_name ?? raw.farmerName ?? raw.farm_name ?? raw.seller_name ?? raw.sellerName)
+    toText(raw.seller_name ?? raw.sellerName ?? raw.farmer_name ?? raw.farmerName ?? raw.farm_name)
 
   const originText =
     toText(raw.origin ?? raw.location ?? raw.area ?? raw.region ?? raw.city)
@@ -139,7 +139,9 @@ export function mapSearchResponseItem(raw: Record<string, unknown>): Marketplace
     crop_name: cropName,
     farmer_name: farmerName,
     farmer_address: typeof raw.farmer_address === 'string' ? raw.farmer_address : null,
-    farmer_phone: typeof raw.farmer_phone === 'string' ? raw.farmer_phone : null,
+    farmer_phone: typeof (raw.seller_phone ?? raw.sellerPhone ?? raw.farmer_phone ?? raw.farmerPhone) === 'string'
+      ? String(raw.seller_phone ?? raw.sellerPhone ?? raw.farmer_phone ?? raw.farmerPhone)
+      : null,
     origin: originText,
     quantity_available: toNumber(raw.quantity_available ?? raw.qty ?? raw.stock_kg ?? raw.available_quantity),
     price_per_unit: toNumber(raw.price_per_unit ?? raw.unit_price ?? raw.price_per_kg ?? raw.price),

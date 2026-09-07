@@ -78,6 +78,7 @@ def format_listing_response(
     distance_km: Optional[float] = None,
 ) -> ListingResponse:
     crop = db.query(Crop).filter(Crop.cid == listing.cid).first()
+    farmer = db.query(User).filter(User.uid == listing.fid).first()
 
     lat = db.scalar(func.ST_Y(cast(listing.location , Geometry))) or 0.0
     lon = db.scalar(func.ST_X(cast(listing.location , Geometry))) or 0.0
@@ -94,6 +95,9 @@ def format_listing_response(
         is_active=listing.is_active,
         crop_name=crop.name if crop else f"Crop #{listing.cid}",
         sample_img_url=crop.sample_img_url if crop else None,
+        farmer_name=farmer.name if farmer else None,
+        farmer_address=farmer.address if farmer else None,
+        farmer_phone=farmer.phone if farmer else None,
         latitude= round(float(lat), 6),
         longitude= round(float(lon), 6),
         distance_km=round(distance_km, 2) if distance_km is not None else None,

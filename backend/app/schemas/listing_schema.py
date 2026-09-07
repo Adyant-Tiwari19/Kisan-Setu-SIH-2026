@@ -44,6 +44,9 @@ class ListingResponse(BaseModel):
     is_active: bool
     crop_name: Optional[str] = None
     sample_img_url: Optional[str] = None
+    farmer_name: Optional[str] = None
+    farmer_address: Optional[str] = None
+    farmer_phone: Optional[str] = None
 
     latitude: float
     longitude: float

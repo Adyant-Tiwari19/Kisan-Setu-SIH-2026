@@ -623,9 +623,12 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                         <h3 className="text-2xl font-black text-slate-900">{listing.crop_name}</h3>
                         {wholesale && (
                           <div className="mt-2 space-y-1 text-sm text-slate-600">
-                            <div><span className="font-semibold text-slate-800">Farmer:</span> {listing.farmer_name || 'Not available'}</div>
-                            <div><span className="font-semibold text-slate-800">Address:</span> {listing.farmer_address || 'Not available'}</div>
-                            <div><span className="font-semibold text-slate-800">Phone:</span> {listing.farmer_phone || 'Not available'}</div>
+                            {listing.farmer_name !== 'Not available' && (
+                              <div><span className="font-semibold text-slate-800">Farmer:</span> {listing.farmer_name}</div>
+                            )}
+                            {listing.farmer_phone && (
+                              <div><span className="font-semibold text-slate-800">Phone:</span> {listing.farmer_phone}</div>
+                            )}
                           </div>
                         )}
                       </div>
