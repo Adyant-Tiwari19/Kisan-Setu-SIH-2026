@@ -5,6 +5,7 @@ import { orderService, type Order } from '../services/orderService'
 import { useAuth } from '../context/AuthContext'
 import { authService, type User } from '../services/authService'
 import { API_BASE_URL } from '../services/apiClient'
+import { CropCardSkeleton } from './CropCardSkeleton'
 
 const navItems = ['Home', 'Marketplace', 'Cart', 'Orders', 'Profile']
 const searchLatitude = '28.6139'
@@ -603,9 +604,11 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
             )}
 
             {searchStatus === 'loading' && (
-              <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-600">
-                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600" />
-                <p className="mt-4 text-base font-semibold text-slate-800">Searching nearby listings...</p>
+              <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
+                <CropCardSkeleton />
+                <CropCardSkeleton />
+                <CropCardSkeleton />
+                <CropCardSkeleton />
               </div>
             )}
 
