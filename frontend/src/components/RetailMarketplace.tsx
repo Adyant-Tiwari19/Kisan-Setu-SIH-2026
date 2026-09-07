@@ -234,6 +234,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
   }, [sortMode, visibleProducts])
 
   const cartCount = Object.values(cart).reduce((total, quantity) => total + quantity, 0)
+  const [isCartPulsing, setIsCartPulsing] = useState(false)
   const cartItems = useMemo(
     () => allListings.filter((product) => (cart[product.id] ?? 0) > 0),
     [allListings, cart]
@@ -243,6 +244,13 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
     : null
   const displayedLogisticsCost = cartItems.length ? logisticsCost : 0
   const orderTotal = produceSubtotal === null ? null : produceSubtotal + displayedLogisticsCost
+
+  useEffect(() => {
+    if (cartCount === 0) return
+    setIsCartPulsing(true)
+    const timer = setTimeout(() => setIsCartPulsing(false), 520)
+    return () => clearTimeout(timer)
+  }, [cartCount])
 
   useEffect(() => {
     let isMounted = true
@@ -414,14 +422,14 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
             </div>
             <div className="flex items-center gap-2">
               {onBackToFarmer && (
-                <button type="button" onClick={onBackToFarmer} className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800">
+                <button type="button" onClick={onBackToFarmer} className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-white transition-transform duration-150 ease-out active:scale-95 hover:bg-slate-800">
                   <span>{t('common.farmerView')}</span>
                 </button>
               )}
             </div>
           </div>
 
-          <div className="no-scrollbar mt-5 flex gap-2 overflow-x-auto whitespace-nowrap px-1 py-2 md:gap-3">
+          <div className="no-scrollbar mt-5 flex gap-2 overflow-x-auto whitespace-nowrap rounded-2xl border border-emerald-100/80 bg-white/80 p-3 shadow-xs backdrop-blur-md md:gap-3">
             {navItems.filter((item) => !hideProfile || item !== 'Profile').map((item) => (
               <button
                 key={item}
@@ -444,7 +452,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                   const target = item === 'Marketplace' ? 'retail-products' : item === 'Cart' ? 'retail-cart' : item === 'Orders' ? 'retail-orders' : null
                   if (target) scrollToSection(target)
                 }}
-                className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition ${item === (isProfileVisible ? 'Profile' : activeNav) ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'}`}
+                className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition-transform duration-150 ease-out active:scale-95 ${item === (isProfileVisible ? 'Profile' : activeNav) ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'}`}
               >
                 {item === 'Home' ? t('common.home') : item === 'Marketplace' ? t('common.marketplace') : item === 'Cart' ? t('common.cart') : item === 'Orders' ? t('common.orders') : t('common.profile')}
               </button>
@@ -460,7 +468,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                   </div>
                   <h3 className="mt-1 text-xl font-black text-slate-900">{profileUser?.name || t('marketplace.myProfile')}</h3>
                 </div>
-                <button type="button" onClick={toggleProfile} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-emerald-700">
+                <button type="button" onClick={toggleProfile} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 transition-transform duration-150 ease-out active:scale-95 hover:border-emerald-300 hover:text-emerald-700">
                   {t('common.close', 'बंद करें')}
                 </button>
               </div>
@@ -483,7 +491,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                 ))}
               </div>
               <div className="mt-4 flex justify-end">
-                <button type="button" onClick={() => navigate('/profile/edit')} className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
+                <button type="button" onClick={() => navigate('/profile/edit')} className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition-transform duration-150 ease-out active:scale-95 hover:bg-emerald-100">
                   {t('editProfile')}
                 </button>
               </div>
@@ -493,7 +501,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
           {dashboardMessage && <div className="mt-3 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{dashboardMessage}</div>}
 
           {(activeNav === 'Home' || activeNav === 'Marketplace') && (
-          <div className="mt-5 rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-100 md:p-4">
+          <div className="sticky top-20 z-30 mt-5 rounded-2xl border border-emerald-100/80 bg-white/80 p-3 shadow-xs backdrop-blur-md md:p-4">
             <div className="mt-3 flex w-full flex-wrap items-center justify-between gap-3">
               <div className="relative min-w-[140px] flex-1">
                 <input
@@ -513,7 +521,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                     }, 350)
                   }}
                   placeholder={t('marketplace.searchCrop')}
-                  className="w-full rounded-full border border-slate-200 bg-slate-50 px-5 py-3 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-100"
+                  className="w-full rounded-full border border-emerald-100/80 bg-white/70 px-5 py-3 text-sm text-slate-800 shadow-inner focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-100"
                 />
               </div>
 
@@ -526,7 +534,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                       aria-haspopup="listbox"
                       aria-expanded={isSortOpen}
                       onClick={() => setIsSortOpen((open) => !open)}
-                      className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 shadow-sm"
+                      className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl border border-emerald-100/80 bg-white/70 px-3 py-2 text-xs font-medium text-slate-800 shadow-sm transition-transform duration-150 ease-out active:scale-95"
                     >
                       <span className="truncate">{t('common.sortBy')}: {t(`marketplace.${sortMode === 'relevance' ? 'relevance' : sortMode === 'distance' ? 'distance' : sortMode === 'price-low-high' ? 'priceLow' : 'priceHigh'}`)}</span>
                       <span aria-hidden="true" className="text-sm">⌄</span>
@@ -538,7 +546,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                         type="button"
                         aria-label={t('marketplace.closeSortOptions')}
                         onClick={() => setIsSortOpen(false)}
-                        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]"
+                        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px] transition-transform duration-150 ease-out active:scale-95"
                       />
                       <div role="listbox" aria-label={t('marketplace.sortListings')} className="fixed bottom-4 left-4 right-4 z-50 space-y-1 rounded-2xl border border-slate-100 bg-white p-4 shadow-xl animate-in fade-in slide-in-from-bottom-2 sm:absolute sm:bottom-auto sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-72">
                         {sortOptions.map((option) => {
@@ -554,7 +562,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                                 setIsSortOpen(false)
                                 if (cropQuery.trim()) void handleSearch(cropQuery, option.value)
                               }}
-                              className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${isActive ? 'bg-emerald-50 font-semibold text-emerald-800' : 'font-normal text-slate-600 hover:bg-slate-50'}`}
+                              className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-transform duration-150 ease-out active:scale-95 ${isActive ? 'bg-emerald-50 font-semibold text-emerald-800' : 'font-normal text-slate-600 hover:bg-slate-50'}`}
                             >
                               <span>{t(`marketplace.${option.value === 'relevance' ? 'relevance' : option.value === 'distance' ? 'distance' : option.value === 'price-low-high' ? 'priceLow' : 'priceHigh'}`)}</span>
                               {isActive && <span aria-hidden="true">✓</span>}
@@ -571,7 +579,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                 type="button"
                 onClick={() => void handleSearch()}
                 disabled={searchStatus === 'loading'}
-                className="shrink-0 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="shrink-0 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {searchStatus === 'loading' ? t('common.searching') : t('common.search')}
               </button>
@@ -631,11 +639,11 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                     className={`transform-gpu rounded-3xl bg-white p-4 transition-all duration-300 ease-out [perspective:1000px] hover:-translate-y-2 hover:scale-[1.02] hover:shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)] ${String(listing.id) === String(bestMatchId) ? 'border-2 border-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]' : 'ring-1 ring-slate-100'}`}
                   >
                     {String(listing.id) === String(bestMatchId) && (
-                      <div className="mb-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
+                      <div className="mb-2 inline-flex rounded-tl-2xl rounded-br-2xl rounded-tr-sm rounded-bl-sm bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs animate-pulse">
                         {t('aiTopPick')}
                       </div>
                     )}
-                    <div className="mt-4 h-28 overflow-hidden rounded-2xl bg-linear-to-br from-emerald-200 via-lime-100 to-amber-100">
+                    <div className="mt-4 h-28 overflow-hidden rounded-tl-3xl rounded-br-3xl rounded-tr-lg rounded-bl-lg bg-linear-to-br from-emerald-200 via-lime-100 to-amber-100">
                       {getCropImageUrl(listing.sample_img_url) && (
                         <img
                           src={getCropImageUrl(listing.sample_img_url) || undefined}
@@ -707,22 +715,22 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                         <a
                           href={listing.farmer_phone ? `tel:${listing.farmer_phone}` : undefined}
                           aria-disabled={!listing.farmer_phone}
-                          className={`rounded-full px-4 py-2.5 text-sm font-semibold ${listing.farmer_phone ? 'bg-slate-900 text-white' : 'cursor-not-allowed bg-slate-200 text-slate-400'}`}
+                          className={`rounded-full px-4 py-2.5 text-sm font-semibold transition-transform duration-150 ease-out active:scale-95 ${listing.farmer_phone ? 'bg-slate-900 text-white' : 'cursor-not-allowed bg-slate-200 text-slate-400'}`}
                         >
                           {t('common.joinNow')}
                         </a>
                       )}
                       {cart[listing.id] ? (
                         <div className="flex items-center gap-2 rounded-full bg-emerald-50 p-1 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-200">
-                          <button type="button" onClick={() => updateQuantity(listing, (cart[listing.id] ?? 1) - 1)} className="h-8 w-8 rounded-full bg-white text-lg transition-all duration-200 active:scale-95">−</button>
+                          <button type="button" onClick={() => updateQuantity(listing, (cart[listing.id] ?? 1) - 1)} className="h-8 w-8 rounded-full bg-white text-lg transition-transform duration-150 ease-out active:scale-95">−</button>
                           <span className="min-w-8 text-center">{cart[listing.id]}</span>
-                          <button type="button" onClick={() => addToCart(listing)} className="h-8 w-8 rounded-full bg-white text-lg transition-all duration-200 active:scale-95">+</button>
+                          <button type="button" onClick={() => addToCart(listing)} className="h-8 w-8 rounded-full bg-white text-lg transition-transform duration-150 ease-out active:scale-95">+</button>
                         </div>
                       ) : (
                         <button
                           type="button"
                           onClick={() => addToCart(listing)}
-                          className="rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 transform active:scale-95"
+                          className="rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-95"
                         >
                           {t('marketplace.cart')}
                         </button>
@@ -917,7 +925,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
               type="button"
               onClick={() => setActiveNav('Cart')}
               aria-label={t('marketplace.openCart', { count: cartCount, itemLabel: cartCount === 1 ? t('marketplace.item') : t('marketplace.items') })}
-              className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-slate-900/95 text-white shadow-2xl ring-1 ring-emerald-300/40 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-emerald-800"
+              className={`fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-slate-900/95 text-white shadow-2xl ring-1 ring-emerald-300/40 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-emerald-800 active:scale-95 ${isCartPulsing ? 'animate-[cart-spring_520ms_cubic-bezier(.34,1.56,.64,1)]' : ''}`}
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth="1.8">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 8h12l-1 12H7L6 8Z" />
@@ -930,6 +938,14 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
           )}
         </div>
       </div>
+      <style>{`
+        @keyframes cart-spring {
+          0% { transform: scale(1); }
+          45% { transform: scale(1.16); }
+          72% { transform: scale(.96); }
+          100% { transform: scale(1); }
+        }
+      `}</style>
     </section>
   )
 }
