@@ -35,6 +35,7 @@ export interface Listing {
 
 export interface MarketplaceListing {
   id: number | string
+  farmer_id?: number | string | null
   sample_img_url?: string | null
   crop_name: string
   farmer_name: string
@@ -132,6 +133,7 @@ export function mapSearchResponseItem(raw: Record<string, unknown>): Marketplace
 
   return {
     id: idValue,
+    farmer_id: toNumber(raw.fid ?? raw.farmer_id ?? raw.farmerId ?? raw.seller_id ?? raw.sellerId) ?? null,
     sample_img_url: typeof raw.sample_img_url === 'string' ? raw.sample_img_url : null,
     crop_name: cropName,
     farmer_name: farmerName,

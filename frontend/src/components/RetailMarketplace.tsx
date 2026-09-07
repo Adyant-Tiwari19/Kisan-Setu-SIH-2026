@@ -90,8 +90,20 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
   }, [user])
 
   useEffect(() => {
-    void orderService.getMyOrders().then(setOrders)
-  }, [])
+    let isMounted = true
+    void orderService.getMyOrders().then((myOrders) => {
+      if (isMounted) setOrders(myOrders)
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [user?.uid])
+
+  const currentUserId = profileUser?.uid ?? user?.uid
+  const buyerOrders = useMemo(
+    () => orders.filter((order) => currentUserId !== undefined && String(order.bid) === String(currentUserId)),
+    [currentUserId, orders]
+  )
 
   const visibleProducts = useMemo(() => {
     if (!listings.length) return []
@@ -191,6 +203,13 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
         // Ranked results remain usable when supplementary listing details are unavailable.
       }
 
+      sortedResults = sortedResults.filter((listing) => (
+        currentUserId === undefined ||
+        listing.farmer_id === null ||
+        listing.farmer_id === undefined ||
+        String(listing.farmer_id) !== String(currentUserId)
+      ))
+
       if (selectedSortMode === 'relevance' && !sortedResults.some((listing) => listing.relevance_score !== null)) {
         sortedResults = [...sortedResults].sort((first, second) => getDisplayedPrice(first) - getDisplayedPrice(second))
         setDashboardMessage('Seller relevance is unavailable, so results are sorted by price.')
@@ -198,7 +217,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
 
       setListings(sortedResults)
 
-      if (!rankedResults.length) {
+      if (!sortedResults.length) {
         setSearchStatus('empty')
         return
       }
@@ -226,6 +245,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
             orderService.placeOrder({
               lid: listing.id as number,
               quantity: cart[listing.id] ?? 0,
+              bid: currentUserId,
             })
           )
       )
@@ -621,25 +641,26 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                 </button>
               </div>
 
-              <div id="retail-orders" className="scroll-mt-24 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
-                <h3 className="text-xl font-black text-slate-900">Orders</h3>
-                <div className="mt-4 space-y-4">
-                  {!orders.length && <div className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-500">No previous orders found.</div>}
-                  {orders.map((order) => (
-                    <div key={order.oid} className="rounded-2xl bg-emerald-50 p-3">
-                      <div className="mb-3 flex items-center justify-between text-sm text-slate-600">
-                        <span>Order #{order.oid}</span>
-                        <span className="font-bold text-emerald-700">{order.status.replace(/_/g, ' ')}</span>
-                      </div>
-                      <div className="text-sm text-slate-600">
-                        {order.crop_name || 'Crop not available'} · {order.quantity} kg · ₹{order.landed_price.toLocaleString('en-IN')}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
+
+          <div id="retail-orders" className="mt-6 scroll-mt-24 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+            <h3 className="text-xl font-black text-slate-900">Orders</h3>
+            <div className="mt-4 space-y-4">
+              {!buyerOrders.length && <div className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-500">No previous orders found.</div>}
+              {buyerOrders.map((order) => (
+                <div key={order.oid} className="rounded-2xl bg-emerald-50 p-3">
+                  <div className="mb-3 flex items-center justify-between text-sm text-slate-600">
+                    <span>Order #{order.oid}</span>
+                    <span className="font-bold text-emerald-700">{order.status.replace(/_/g, ' ')}</span>
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    {order.crop_name || 'Crop not available'} · {order.quantity} kg · ₹{Number(order.landed_price || 0).toLocaleString('en-IN')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>

@@ -33,7 +33,7 @@ export interface Order {
 export interface PlaceOrderPayload {
   lid: number
   quantity: number
-  bid?: number
+  bid?: number | string
 }
 
 export interface OrderStatusUpdatePayload {
