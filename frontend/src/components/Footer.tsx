@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import logo from '../assets/KISAN-SETU_logo.jpeg'
+import logo from '../assets/icon.png'
 
 export function Footer() {
   return (

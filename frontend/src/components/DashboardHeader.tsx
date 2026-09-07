@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authService } from '../services/authService'
 import { useAuth } from '../context/AuthContext'
-import logo from '../assets/KISAN-SETU_logo.jpeg'
+import logo from '../assets/logomain.png'
 
 export function DashboardHeader() {
   const navigate = useNavigate()
@@ -37,7 +37,7 @@ export function DashboardHeader() {
       <div className="section-shell flex min-h-16 items-center justify-between gap-4 px-4 py-3 sm:px-6 md:min-h-20 md:px-8 md:py-4">
         {/* Brand Logo */}
         <Link to="/" className="flex items-center" aria-label="Kisan Setu home">
-          <img src={logo} alt="Kisan Setu" className="h-14 w-14 object-contain" />
+          <img src={logo} alt="Kisan Setu" className="h-16 w-auto object-contain sm:h-20" />
         </Link>
 
         {/* Right Menu Area */}

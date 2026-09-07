@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import logo from '../assets/KISAN-SETU_logo.jpeg'
+import logo from '../assets/logomain.png'
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -25,7 +25,11 @@ export function Header() {
       <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.85rem', paddingBottom: '0.85rem' }}>
         {/* Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <img src={logo} alt="Kisan Setu" style={{ width: '4rem', height: '4rem', objectFit: 'contain' }} />
+          <img
+            src={logo}
+            alt="Kisan Setu"
+            style={{ width: 'clamp(6.5rem, 12vw, 9rem)', height: 'auto', objectFit: 'contain' }}
+          />
         </Link>
 
         {/* Desktop navigation */}
