@@ -281,7 +281,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
-                    {wholesale ? 'Bulk buyer profile' : 'Retailer profile'}
+                    {wholesale ? 'Bulk buyer profile' : 'Customer profile'}
                   </div>
                   <h3 className="mt-1 text-xl font-black text-slate-900">{profileUser?.name || 'My profile'}</h3>
                 </div>
@@ -318,8 +318,8 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
           {dashboardMessage && <div className="mt-3 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{dashboardMessage}</div>}
 
           <div className="mt-5 rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-100 md:p-4">
-            <div className="grid gap-3 md:grid-cols-[1.6fr_1fr_auto]">
-              <div className="relative">
+            <div className="flex w-full min-w-0 items-center gap-3">
+              <div className="relative min-w-0 flex-1">
                 <input
                   value={cropQuery}
                   onChange={(event) => {
@@ -333,8 +333,8 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
               </div>
 
               {!wholesale && (
-                <div className="md:col-span-3">
-                  <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                <div className="shrink-0">
+                  <label className="flex items-center gap-2 whitespace-nowrap text-sm font-semibold text-slate-700">
                     <span>Sort by</span>
                     <select
                       value={sortMode}
@@ -343,12 +343,12 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                         setSortMode(nextSortMode)
                         if (cropQuery.trim()) void handleSearch(nextSortMode)
                       }}
-                      className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                      className="min-w-[14rem] rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                     >
                       <option value="relevance">Relevance</option>
-                      <option value="distance">Distance: nearest first</option>
-                      <option value="price-low-high">Price: low to high</option>
-                      <option value="price-high-low">Price: high to low</option>
+                      <option value="distance">Distance: Nearest first</option>
+                      <option value="price-low-high">Price: Low to high</option>
+                      <option value="price-high-low">Price: High to low</option>
                     </select>
                   </label>
                 </div>
@@ -358,7 +358,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                 type="button"
                 onClick={() => void handleSearch()}
                 disabled={searchStatus === 'loading'}
-                className="rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="shrink-0 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {searchStatus === 'loading' ? 'Searching...' : 'Search'}
               </button>

@@ -13,7 +13,7 @@ const joinRoleContent: Record<UserRole, { summary: string; benefits: string[] }>
 function RoleIllustration({ role }: { role: UserRole }) {
   const illustrations: Record<UserRole, { src: string; alt: string }> = {
     farmer: { src: '/farmer-portrait.png', alt: 'Farmer harvesting fresh vegetables' },
-    retailer: { src: '/retailer-portrait.png', alt: 'Retailer arranging fresh produce' },
+    retailer: { src: '/retailer-portrait.png', alt: 'Customer arranging fresh produce' },
     'bulk-buyer': { src: '/role-bulk-buyer.jpg', alt: 'Bulk buyer coordinating produce delivery' },
   }
   const illustration = illustrations[role]
@@ -32,6 +32,8 @@ export function RoleSelection() {
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
   const [pincode, setPincode] = useState('')
+  const [accountNum, setAccountNum] = useState('')
+  const [ifsc, setIfsc] = useState('')
   const [otpStep, setOtpStep] = useState(false)
   const [enteredOtp, setEnteredOtp] = useState('')
   const [error, setError] = useState('')
@@ -124,6 +126,10 @@ export function RoleSelection() {
       setError('Please create a password (at least 4 characters).')
       return
     }
+    if (selectedRole === 'farmer' && (!accountNum.trim() || !ifsc.trim())) {
+      setError('Please enter your account number and IFSC code.')
+      return
+    }
 
     setError('')
     setIsSubmitting(true)
@@ -165,6 +171,8 @@ export function RoleSelection() {
             role: roleToUse,
             address: address.trim(),
             pincode: pincode.trim(),
+            account_num: accountNum.trim(),
+            ifsc: ifsc.trim().toUpperCase(),
           },
           enteredOtp
         )
@@ -255,7 +263,7 @@ export function RoleSelection() {
   const selectedRoleData = roleOptions.find((role) => role.id === selectedRole)
   const roleCopy: Record<string, { title: string; description: string }> = {
     farmer: { title: 'List what you grow.', description: 'See demand, plan pickup, and move harvest with more confidence.' },
-    retailer: { title: 'Source with clarity.', description: 'Find fresh supply nearby and keep shelves moving.' },
+    retailer: { title: 'Source with clarity.', description: 'Find fresh supply nearby and keep your kitchen or shelves moving.' },
     'bulk-buyer': { title: 'Buy at scale, without the scramble.', description: 'Manage procurement, requests, and supplier matching in one flow.' },
   }
   const handleOtpChange = (value: string) => {
@@ -316,7 +324,7 @@ export function RoleSelection() {
                   <div className="form-heading"><h2>{mode === 'login' ? 'Sign in to Kisan Setu' : `Continue as ${selectedRoleData?.title}`}</h2><p>{mode === 'login' ? 'Use your registered mobile number to continue.' : roleCopy[selectedRole || 'retailer']?.description}</p></div>
                   {mode === 'signup' && <label htmlFor="name-field">Full name<input id="name-field" type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder="Enter your full name" /></label>}
                   <label htmlFor="phone-field">Phone number<div className="phone-field"><span>+91</span><input id="phone-field" type="tel" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit mobile number" autoComplete="tel" inputMode="numeric" maxLength={10} /></div></label>
-                  {mode === 'signup' && <><label htmlFor="address-field">Address<input id="address-field" type="text" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Street / locality" required /></label><label htmlFor="pincode-field">Pincode<input id="pincode-field" type="text" value={pincode} onChange={(event) => setPincode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="e.g. 560038" required /></label></>}
+                  {mode === 'signup' && <><label htmlFor="address-field">Address<input id="address-field" type="text" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Street / locality" required /></label><label htmlFor="pincode-field">Pincode<input id="pincode-field" type="text" value={pincode} onChange={(event) => setPincode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="e.g. 560038" required /></label>{selectedRole === 'farmer' && <><label htmlFor="account-number-field">Account number<input id="account-number-field" type="text" value={accountNum} onChange={(event) => setAccountNum(event.target.value.replace(/\D/g, ''))} placeholder="Enter your bank account number" required /></label><label htmlFor="ifsc-field">IFSC code<input id="ifsc-field" type="text" value={ifsc} onChange={(event) => setIfsc(event.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())} placeholder="e.g. SBIN0001234" required /></label></>}</>}
                   <label htmlFor="password-field">Password<input id="password-field" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === 'login' ? 'Enter your password' : 'Create a password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></label>
                   {mode === 'login' && <div className="reset-area"><button type="button" onClick={() => setIsResetOpen((open) => !open)}>Forgot password?</button>{isResetOpen && <div className="reset-panel">
                     {!isResetOtpStep ? (

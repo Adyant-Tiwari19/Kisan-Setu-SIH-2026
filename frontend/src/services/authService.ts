@@ -42,6 +42,8 @@ export interface RegisterData {
   role: UserRole
   address?: string
   pincode?: string
+  account_num?: string
+  ifsc?: string
 }
 
 export interface AuthResponse {
@@ -618,6 +620,8 @@ class AuthService {
         role: frontendToBackendRole(data.role),
         address: data.address?.trim() || undefined,
         pincode: data.pincode?.trim() || undefined,
+        account_num: data.account_num?.trim() || undefined,
+        ifsc: data.ifsc?.trim().toUpperCase() || undefined,
         otp: cleanOtp,
       }
 
@@ -657,6 +661,8 @@ class AuthService {
       backendRole: frontendToBackendRole(data.role),
       address: data.address?.trim() || 'India',
       pincode: data.pincode?.trim() || '110001',
+      account_num: data.account_num?.trim(),
+      ifsc: data.ifsc?.trim().toUpperCase(),
       location: data.address?.trim() || 'India',
       createdAt: new Date().toISOString(),
     }

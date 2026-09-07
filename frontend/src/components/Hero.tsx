@@ -83,7 +83,7 @@ export function Hero() {
               animationDelay: '160ms',
             }}
           >
-            Kisan Setu connects farmers, FPOs, retailers, and bulk buyers through transparent pricing,
+            Kisan Setu connects farmers, FPOs, customers, and bulk buyers through transparent pricing,
             AI-driven matching, and faster, fresher deliveries — directly from field to shelf.
           </p>
 

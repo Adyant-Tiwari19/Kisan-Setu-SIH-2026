@@ -7,7 +7,7 @@ export const roleOptions = [
   },
   {
     id: 'retailer',
-    title: 'Retailer',
+    title: 'Customer',
     description: 'Buy fresh produce from nearby farmers and FPOs.',
     route: '/retailer',
   },
