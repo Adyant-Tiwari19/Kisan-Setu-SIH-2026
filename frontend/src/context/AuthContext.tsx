@@ -25,12 +25,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => authService.getCurrentUser())
   const [token, setToken] = useState<string | null>(() => authService.getAuthToken())
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [isProfileVisible, setIsProfileVisible] = useState(false)
 
   useEffect(() => {
+    const savedUser = authService.getCurrentUser()
+    const savedToken = authService.getAuthToken()
+    setUser(savedUser)
+    setToken(savedToken)
+    setIsLoading(false)
+
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key !== 'farm_direct_auth_session') return
+      if (!['farm_direct_auth_session', 'kisan_token', 'kisan_user'].includes(event.key || '')) return
       setUser(authService.getCurrentUser())
       setToken(authService.getAuthToken())
     }

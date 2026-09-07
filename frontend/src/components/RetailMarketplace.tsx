@@ -433,8 +433,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                   if (item === 'Home') {
                     if (isProfileVisible) toggleProfile()
                     resetMarketplace()
-                    setActiveNav('Home')
-                    scrollToSection('retail-products')
+                    navigate('/')
                     return
                   }
                   if (isProfileVisible) toggleProfile()

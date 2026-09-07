@@ -1,16 +1,28 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { authService } from '../services/authService'
 import { useAuth } from '../context/AuthContext'
 import logo from '../assets/logomain.png'
 
 export function DashboardHeader() {
   const navigate = useNavigate()
-  const { user, toggleProfile } = useAuth()
+  const { user, toggleProfile, logout } = useAuth()
   const [openMenu, setOpenMenu] = useState<'profile' | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const displayName = user?.name || 'Kisan Setu Member'
+
+  const getDashboardPath = () => {
+    switch (user?.backendRole || user?.role) {
+      case 'FARMER_FPO':
+      case 'farmer':
+        return '/farmer'
+      case 'BULK_BUYER':
+      case 'bulk-buyer':
+        return '/buyer'
+      default:
+        return '/retailer'
+    }
+  }
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -29,15 +41,21 @@ export function DashboardHeader() {
 
   const handleLogout = async () => {
     setOpenMenu(null)
-    await authService.logout()
+    await logout()
     navigate('/')
+  }
+
+  const handleLogoClick = (event: ReactMouseEvent<HTMLAnchorElement>) => {
+    if (!user) return
+    event.preventDefault()
+    navigate(getDashboardPath())
   }
 
   return (
     <header className="sticky top-0 z-50 border-b border-emerald-100/90 bg-white/95 shadow-sm backdrop-blur-xl">
       <div className="section-shell flex min-h-16 items-center justify-between gap-4 px-4 py-3 sm:px-6 md:min-h-20 md:px-8 md:py-4">
         {/* Brand Logo */}
-        <Link to="/" className="flex items-center" aria-label="Kisan Setu home">
+        <Link to="/" onClick={handleLogoClick} className="flex items-center" aria-label="Kisan Setu home">
           <img src={logo} alt="Kisan Setu" className="h-16 w-auto object-contain sm:h-20" />
         </Link>
 

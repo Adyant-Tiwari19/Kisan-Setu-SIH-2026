@@ -721,10 +721,9 @@ class AuthService {
    */
   saveSession(token: string, user: User) {
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ token, user, timestamp: Date.now() })
-      )
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, user, timestamp: Date.now() }))
+      localStorage.setItem('kisan_token', token)
+      localStorage.setItem('kisan_user', JSON.stringify(user))
       localStorage.setItem('farm-direct-logged-in', 'true')
     } catch {
       // ignore
@@ -734,6 +733,8 @@ class AuthService {
   clearSession() {
     try {
       localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem('kisan_token')
+      localStorage.removeItem('kisan_user')
       localStorage.removeItem('farm-direct-logged-in')
     } catch {
       // ignore
@@ -743,9 +744,12 @@ class AuthService {
   getCurrentUser(): User | null {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
-      if (!raw) return null
-      const parsed = JSON.parse(raw)
-      return parsed.user || null
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed.user) return parsed.user
+      }
+      const savedUser = localStorage.getItem('kisan_user')
+      return savedUser ? JSON.parse(savedUser) as User : null
     } catch {
       return null
     }
@@ -754,9 +758,11 @@ class AuthService {
   getAuthToken(): string | null {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
-      if (!raw) return null
-      const parsed = JSON.parse(raw)
-      return parsed.token || null
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed.token) return parsed.token
+      }
+      return localStorage.getItem('kisan_token')
     } catch {
       return null
     }
@@ -765,6 +771,8 @@ class AuthService {
   async logout(): Promise<void> {
     try {
       localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem('kisan_token')
+      localStorage.removeItem('kisan_user')
       localStorage.removeItem('farm-direct-logged-in')
     } catch {
       // ignore

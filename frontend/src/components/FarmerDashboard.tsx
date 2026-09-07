@@ -137,9 +137,14 @@ export function FarmerDashboard() {
   }
 
   const handleNavClick = (label: string) => {
-    if (label === activeNav) return
+    if (label === activeNav && label !== 'Home') return
     setActiveNav(label)
     setDashboardMessage('')
+    if (label === 'Home') {
+      if (isProfileVisible) toggleProfile()
+      navigate('/')
+      return
+    }
     if (label === 'Add Listing') {
       setShowListingForm(true)
       return
@@ -157,7 +162,7 @@ export function FarmerDashboard() {
       scrollToSection('active-listings')
       return
     }
-    const target = label === 'Home' ? 'farmer-overview' : label === 'My Crops' ? 'my-crops' : label === 'Orders' ? 'farmer-orders' : label === 'Demand Forecast' ? 'demand-forecast' : null
+    const target = label === 'My Crops' ? 'my-crops' : label === 'Orders' ? 'farmer-orders' : label === 'Demand Forecast' ? 'demand-forecast' : null
     if (target) scrollToSection(target)
     if (label === 'Earnings') {
       if (monthlyEarnings <= 0) {

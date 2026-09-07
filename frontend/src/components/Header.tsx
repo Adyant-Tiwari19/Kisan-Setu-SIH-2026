@@ -1,14 +1,22 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import logo from '../assets/logomain.png'
 
 export function Header() {
+  const navigate = useNavigate()
+  const { user, isAuthenticated } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const navItems = [
     { label: 'Home', href: '/#hero' },
     { label: 'How it works', href: '/#how-it-works' },
     { label: 'Benefits', href: '/#benefits' },
   ]
+  const dashboardPath = user?.backendRole === 'FARMER_FPO' || user?.role === 'farmer'
+    ? '/farmer'
+    : user?.backendRole === 'BULK_BUYER' || user?.role === 'bulk-buyer'
+      ? '/buyer'
+      : '/retailer'
 
   return (
     <header
@@ -43,12 +51,16 @@ export function Header() {
 
         {/* CTAs */}
         <div className="header-actions">
-          <Link to="/sign-in" className="header-sign-in">
-            Sign in
-          </Link>
-          <Link to="/join-now" className="btn-primary header-join">
-            Join now
-          </Link>
+          {isAuthenticated ? (
+            <button type="button" onClick={() => navigate(dashboardPath)} className="btn-primary header-dashboard">
+              Return to Dashboard ➔
+            </button>
+          ) : (
+            <>
+              <Link to="/sign-in" className="header-sign-in">Sign in</Link>
+              <Link to="/join-now" className="btn-primary header-join">Join now</Link>
+            </>
+          )}
           <button
             type="button"
             className="header-menu-button"
@@ -65,8 +77,8 @@ export function Header() {
 
       {isMenuOpen && (
         <nav className="header-nav-mobile" aria-label="Mobile navigation">
-          <Link to="/sign-in" onClick={() => setIsMenuOpen(false)}>
-            Sign In / Log In
+          <Link to={isAuthenticated ? dashboardPath : '/sign-in'} onClick={() => setIsMenuOpen(false)}>
+            {isAuthenticated ? 'Return to Dashboard ➔' : 'Sign In / Log In'}
           </Link>
           {navItems.map(item => (
             <a key={item.label} href={item.href} onClick={() => setIsMenuOpen(false)}>
@@ -86,6 +98,7 @@ export function Header() {
         .header-sign-in { padding: 0.5rem 1.05rem; color: var(--ff-slate); font-size: 0.84rem; font-weight: 700; text-decoration: none; border: 1px solid rgba(27,67,50,0.18); border-radius: 999px; background: rgba(255,255,255,0.7); transition: border-color 0.2s, color 0.2s, background 0.2s; }
         .header-sign-in:hover { color: var(--ff-deep); border-color: var(--ff-mint); background: #fff; }
         .header-join { padding: 0.55rem 1.15rem; font-size: 0.84rem; }
+        .header-dashboard { flex-shrink: 0; padding: 0.55rem 1rem; font-size: 0.82rem; }
         .header-menu-button, .header-nav-mobile { display: none; }
         @media (max-width: 900px) {
           .header-nav-link { padding-inline: 0.5rem; }
@@ -93,6 +106,7 @@ export function Header() {
         @media (max-width: 720px) {
           .header-nav-desktop { display: none; }
           .header-sign-in { display: inline-flex; flex-shrink: 0; align-items: center; padding: 0.35rem 0.5rem; border: 0; background: transparent; color: var(--ff-deep); font-size: 0.82rem; font-weight: 650; }
+          .header-dashboard { max-width: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-inline: 0.7rem; }
           .header-join { padding-inline: 0.95rem; }
           .header-menu-button { display: inline-flex; width: 2.5rem; height: 2.5rem; flex-direction: column; align-items: center; justify-content: center; gap: 0.28rem; border: 1px solid rgba(27,67,50,0.15); border-radius: 0.75rem; background: #fff; }
           .header-menu-button span { display: block; width: 1.05rem; height: 2px; border-radius: 999px; background: var(--ff-deep); }
