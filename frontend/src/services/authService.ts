@@ -291,8 +291,6 @@ class AuthService {
           backendRole: backendUser.role,
           address: backendUser.address,
           pincode: backendUser.pincode,
-          ...(updates.email !== undefined ? { email: updates.email.trim() } : {}),
-          ...(updates.organization !== undefined ? { organization: updates.organization.trim() } : {}),
           account_num: backendUser.account_num,
           ifsc: backendUser.ifsc,
           location: backendUser.address || 'India',

@@ -47,6 +47,7 @@ export interface MarketplaceListing {
   distance_km: number | null
   freshness_score: number | null
   trust_score: number | null
+  relevance_score: number | null
   listing_type: string
   harvested_at: string | null
   is_active: boolean
@@ -143,6 +144,7 @@ export function mapSearchResponseItem(raw: Record<string, unknown>): Marketplace
     distance_km: toNumber(raw.distance_km ?? raw.distance ?? raw.radius_km),
     freshness_score: toNumber(raw.freshness_score ?? raw.freshness ?? raw.freshness_pct),
     trust_score: toNumber(raw.trust_score ?? raw.trust ?? raw.rating),
+    relevance_score: toNumber(raw.ai_score ?? raw.relevance_score ?? raw.relevance),
     listing_type: toText(raw.listing_type ?? raw.category ?? raw.grade ?? raw.variant),
     harvested_at: toDateText(raw.harvested_at ?? raw.harvest_date ?? raw.harvestedAt),
     is_active: Boolean(raw.is_active ?? raw.active ?? true),
@@ -219,6 +221,17 @@ class ListingService {
           : Array.isArray((response as Record<string, unknown>).data)
             ? (response as Record<string, unknown>).data
             : []
+        : []
+
+    return (payload as Record<string, unknown>[]).map((entry) => mapSearchResponseItem(entry))
+  }
+
+  async rankListings(cropName: string): Promise<MarketplaceListing[]> {
+    const response = await apiClient.post<unknown>(`/ai/rank-sellers?crop_name=${encodeURIComponent(cropName.trim())}`)
+    const payload = Array.isArray(response)
+      ? response
+      : response && typeof response === 'object' && Array.isArray((response as Record<string, unknown>).items)
+        ? (response as Record<string, unknown>).items
         : []
 
     return (payload as Record<string, unknown>[]).map((entry) => mapSearchResponseItem(entry))
