@@ -75,7 +75,7 @@ export function HowItWorks() {
         <div className="scroll-reveal" style={{ position: 'relative' }}>
 
           {/* Dotted path line */}
-          <div style={{
+          <div className="journey-path" style={{
             position: 'absolute',
             top: '2.5rem',
             left: '5%',
@@ -86,7 +86,7 @@ export function HowItWorks() {
           }} />
 
           {/* Stages */}
-          <div style={{
+          <div className="journey-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(6, 1fr)',
             gap: '0.5rem',
@@ -162,10 +162,14 @@ export function HowItWorks() {
 
       <style>{`
         @media (max-width: 900px) {
-          .journey-grid { grid-template-columns: repeat(3,1fr) !important; }
+          .journey-grid { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
         }
         @media (max-width: 600px) {
-          .journey-grid { grid-template-columns: repeat(2,1fr) !important; }
+          .journey-grid { display: flex !important; flex-direction: column; align-items: stretch; gap: 1rem !important; overflow: hidden; }
+          .journey-path { display: none; }
+          .journey-grid > div { display: grid !important; grid-template-columns: 4rem 1fr; column-gap: 1rem; align-items: center; text-align: left !important; }
+          .journey-grid > div > div:first-child { grid-row: span 3; width: 4rem !important; height: 4rem !important; margin: 0 !important; }
+          .journey-grid > div > div:nth-child(2), .journey-grid > div > div:nth-child(3), .journey-grid > div > div:nth-child(4) { margin-bottom: 0 !important; }
         }
       `}</style>
     </section>

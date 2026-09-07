@@ -1,4 +1,4 @@
-package com.farmdirect.app;
+package com.kisansetu.app;
 
 import com.getcapacitor.BridgeActivity;
 

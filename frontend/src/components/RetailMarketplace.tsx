@@ -10,6 +10,12 @@ const navItems = ['Home', 'Marketplace', 'Cart', 'Orders', 'Profile']
 const searchLatitude = '28.6139'
 const searchLongitude = '77.2090'
 type SortMode = 'relevance' | 'distance' | 'price-low-high' | 'price-high-low'
+const sortOptions: Array<{ value: SortMode; label: string }> = [
+  { value: 'relevance', label: 'Relevance' },
+  { value: 'distance', label: 'Distance: Nearest first' },
+  { value: 'price-low-high', label: 'Price: Low to high' },
+  { value: 'price-high-low', label: 'Price: High to low' },
+]
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -67,6 +73,19 @@ const formatLineTotal = (listing: MarketplaceListing, quantity: number) => {
   return formatCurrency(unitPrice === null ? null : unitPrice * quantity)
 }
 
+const formatOrderDate = (value?: string) => {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return `Placed on ${date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`
+}
+
+const getOrderStatusPresentation = (status: Order['status']) => {
+  if (status === 'delivered') return { label: 'Delivered', className: 'bg-green-100 text-green-800 font-semibold', icon: '✓' }
+  if (status === 'disputed') return { label: 'Cancelled', className: 'bg-red-50 text-red-700 font-medium', icon: '!' }
+  return { label: status === 'placed' ? 'Pending' : status.replace(/_/g, ' '), className: 'bg-emerald-50 text-emerald-700 font-medium', icon: '📦' }
+}
+
 interface RetailMarketplaceProps {
   embedded?: boolean
   wholesale?: boolean
@@ -84,6 +103,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const [cropQuery, setCropQuery] = useState('')
   const [sortMode, setSortMode] = useState<SortMode>('relevance')
+  const [isSortOpen, setIsSortOpen] = useState(false)
   const [cart, setCart] = useState<Record<string | number, number>>({})
   const [dashboardMessage, setDashboardMessage] = useState('')
   const [allListings, setAllListings] = useState<MarketplaceListing[]>([])
@@ -383,7 +403,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
 
   return (
     <section className={embedded ? 'w-full' : 'section-shell py-16'}>
-      <div className="mx-auto max-w-6xl rounded-4xl border border-emerald-100/60 bg-white p-4 shadow-xl shadow-emerald-950/5 md:p-6">
+      <div className="w-full max-w-full min-h-screen rounded-4xl border border-emerald-100/60 bg-white px-3 py-4 shadow-xl shadow-emerald-950/5 sm:px-6 md:py-6">
         <div className="rounded-3xl bg-linear-to-br from-emerald-50 via-white to-amber-50 p-4 md:p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -392,13 +412,10 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
             </div>
             <div className="flex items-center gap-2">
               {onBackToFarmer && (
-                <button type="button" onClick={onBackToFarmer} className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">
-                  Back to Farmer Dashboard 🌾
+                <button type="button" onClick={onBackToFarmer} className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800">
+                  <span>Farmer View 🌾</span>
                 </button>
               )}
-              <button type="button" onClick={() => setActiveNav('Cart')} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-                Cart ({cartCount})
-              </button>
             </div>
           </div>
 
@@ -476,8 +493,8 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
 
           {(activeNav === 'Home' || activeNav === 'Marketplace') && (
           <div className="mt-5 rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-100 md:p-4">
-            <div className="flex w-full min-w-0 items-center gap-3">
-              <div className="relative min-w-0 flex-1">
+            <div className="mt-3 flex w-full flex-wrap items-center justify-between gap-3">
+              <div className="relative min-w-[140px] flex-1">
                 <input
                   value={cropQuery}
                   onChange={(event) => {
@@ -500,24 +517,52 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
               </div>
 
               {!wholesale && (
-                <div className="shrink-0">
-                  <label className="flex items-center gap-2 whitespace-nowrap text-sm font-semibold text-slate-700">
+                <div className="relative flex min-w-[160px] flex-1 items-center gap-2 whitespace-nowrap text-sm font-semibold text-slate-700">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
                     <span>Sort by</span>
-                    <select
-                      value={sortMode}
-                      onChange={(event) => {
-                        const nextSortMode = event.target.value as SortMode
-                        setSortMode(nextSortMode)
-                        if (cropQuery.trim()) void handleSearch(cropQuery, nextSortMode)
-                      }}
-                      className="min-w-[14rem] rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                    <button
+                      type="button"
+                      aria-haspopup="listbox"
+                      aria-expanded={isSortOpen}
+                      onClick={() => setIsSortOpen((open) => !open)}
+                      className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 shadow-sm"
                     >
-                      <option value="relevance">Relevance</option>
-                      <option value="distance">Distance: Nearest first</option>
-                      <option value="price-low-high">Price: Low to high</option>
-                      <option value="price-high-low">Price: High to low</option>
-                    </select>
-                  </label>
+                      <span className="truncate">Sort: {sortOptions.find((option) => option.value === sortMode)?.label}</span>
+                      <span aria-hidden="true" className="text-sm">⌄</span>
+                    </button>
+                  </div>
+                  {isSortOpen && (
+                    <>
+                      <button
+                        type="button"
+                        aria-label="Close sort options"
+                        onClick={() => setIsSortOpen(false)}
+                        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]"
+                      />
+                      <div role="listbox" aria-label="Sort listings" className="fixed bottom-4 left-4 right-4 z-50 space-y-1 rounded-2xl border border-slate-100 bg-white p-4 shadow-xl animate-in fade-in slide-in-from-bottom-2 sm:absolute sm:bottom-auto sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-72">
+                        {sortOptions.map((option) => {
+                          const isActive = option.value === sortMode
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              role="option"
+                              aria-selected={isActive}
+                              onClick={() => {
+                                setSortMode(option.value)
+                                setIsSortOpen(false)
+                                if (cropQuery.trim()) void handleSearch(cropQuery, option.value)
+                              }}
+                              className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${isActive ? 'bg-emerald-50 font-semibold text-emerald-800' : 'font-normal text-slate-600 hover:bg-slate-50'}`}
+                            >
+                              <span>{option.label}</span>
+                              {isActive && <span aria-hidden="true">✓</span>}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -831,16 +876,32 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
           {activeNav === 'Orders' && (
           <div id="retail-orders" className="mt-6 scroll-mt-24 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
             <h3 className="text-xl font-black text-slate-900">Orders</h3>
-            <div className="mt-4 space-y-4">
-              {!buyerOrders.length && <div className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-500">No previous orders found.</div>}
+            <div className="mt-4 space-y-3">
+              {!buyerOrders.length && (
+                <div className="rounded-2xl border border-emerald-100 bg-white p-6 text-center shadow-sm">
+                  <div className="text-3xl" aria-hidden="true">🛍️</div>
+                  <p className="mt-2 font-bold text-slate-900">No orders placed yet</p>
+                  <button type="button" onClick={() => { setActiveNav('Marketplace'); scrollToSection('retail-products') }} className="mt-4 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
+                    Browse Marketplace
+                  </button>
+                </div>
+              )}
               {buyerOrders.map((order) => (
-                <div key={order.oid} className="rounded-2xl bg-emerald-50 p-3">
-                  <div className="mb-3 flex items-center justify-between text-sm text-slate-600">
-                    <span>Order #{order.oid}</span>
-                    <span className="font-bold text-emerald-700">{order.status.replace(/_/g, ' ')}</span>
+                <div key={order.oid} className="space-y-3 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-bold text-slate-900">Order #{order.oid}</span>
+                    {(() => {
+                      const status = getOrderStatusPresentation(order.status)
+                      return <span className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${status.className}`}><span aria-hidden="true">{status.icon}</span>{status.label}</span>
+                    })()}
                   </div>
-                  <div className="text-sm text-slate-600">
-                    {order.crop_name || 'Crop not available'} · {order.quantity} kg · ₹{Number(order.landed_price || 0).toLocaleString('en-IN')}
+                  <div>
+                    <div className="text-base font-bold text-slate-900">{order.crop_name || 'Crop not available'}</div>
+                    <div className="text-sm text-slate-600">{order.quantity} kg · {formatCurrency(order.quantity ? Number(order.produce_price || 0) / order.quantity : 0)} / kg</div>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-sm">
+                    <span className="text-slate-500">{formatOrderDate(order.ordered_at) || 'Order date unavailable'}</span>
+                    <span className="font-bold text-slate-900">Total: {formatCurrency(order.landed_price)}</span>
                   </div>
                 </div>
               ))}

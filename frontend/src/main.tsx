@@ -5,18 +5,29 @@ import './index.css'
 import { AppRoutes } from './routes'
 import { AuthProvider } from './context/AuthContext'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
-  </StrictMode>,
-)
+const rootElement = document.getElementById('root')
+
+if (rootElement) {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </StrictMode>,
+  )
+} else {
+  console.error('Kisan Setu root element was not found')
+}
 
 // Scroll-reveal: add .revealed class when elements enter viewport
 function initScrollReveal() {
+  if (typeof IntersectionObserver === 'undefined' || typeof MutationObserver === 'undefined') return
+
+  const root = document.getElementById('root')
+  if (!root) return
+
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
@@ -38,8 +49,10 @@ function initScrollReveal() {
 
   // Re-observe on route changes (SPA navigation)
   const mo = new MutationObserver(observe)
-  mo.observe(document.getElementById('root')!, { childList: true, subtree: true })
+  mo.observe(root, { childList: true, subtree: true })
 }
 
 // Run after first paint
-requestAnimationFrame(() => requestAnimationFrame(initScrollReveal))
+if (typeof requestAnimationFrame !== 'undefined') {
+  requestAnimationFrame(() => requestAnimationFrame(initScrollReveal))
+}

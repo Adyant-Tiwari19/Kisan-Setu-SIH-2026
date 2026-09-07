@@ -26,6 +26,19 @@ const formatDate = (value: string | null | undefined) => {
 const formatOrderStatus = (status: Order['status']) =>
   status.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
 
+const formatOrderDate = (value?: string) => {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return `Placed on ${date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`
+}
+
+const getOrderStatusPresentation = (status: Order['status']) => {
+  if (status === 'delivered') return { label: 'Delivered', className: 'bg-green-100 text-green-800 font-semibold', icon: '✓' }
+  if (status === 'disputed') return { label: 'Cancelled', className: 'bg-red-50 text-red-700 font-medium', icon: '!' }
+  return { label: status === 'placed' ? 'Pending' : formatOrderStatus(status), className: 'bg-emerald-50 text-emerald-700 font-medium', icon: '📦' }
+}
+
 const getFarmerCropImage = (listing: Listing) => {
   const filename = listing.sample_img_url?.split(/[\\/]/).pop()?.trim()
     || listing.crop_name?.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
@@ -42,7 +55,6 @@ export function FarmerDashboard() {
   const [listingName, setListingName] = useState('')
   const [listingQuantity, setListingQuantity] = useState('')
   const [listingPrice, setListingPrice] = useState('')
-  const [listingImageUrl, setListingImageUrl] = useState('')
   const [listingSubmitted, setListingSubmitted] = useState(false)
   const [isPublishingListing, setIsPublishingListing] = useState(false)
   const [listingError, setListingError] = useState('')
@@ -252,6 +264,11 @@ export function FarmerDashboard() {
     }
   }
 
+  const handleCancelListing = () => {
+    setShowListingForm(false)
+    if (!activeNav) setActiveNav('Home')
+  }
+
   const submitListing = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setListingSubmitted(false)
@@ -269,7 +286,6 @@ export function FarmerDashboard() {
       setListingName('')
       setListingQuantity('')
       setListingPrice('')
-      setListingImageUrl('')
       setListingSubmitted(true)
       setDashboardMessage(`${createdListing.crop_name || listingName} listing was added successfully.`)
       setShowListingForm(false)
@@ -293,21 +309,22 @@ export function FarmerDashboard() {
 
   return (
     <section className="section-shell anim-fade-up py-20">
-      <div className="mx-auto max-w-6xl rounded-[2rem] border border-emerald-100 bg-white p-3 shadow-[0_20px_70px_rgba(16,185,129,0.08)] md:p-5">
+      <div className="w-full max-w-full min-h-screen rounded-[2rem] border border-emerald-100 bg-white px-3 py-3 shadow-[0_20px_70px_rgba(16,185,129,0.08)] sm:px-6 md:py-5">
         <div className="rounded-[1.6rem] bg-gradient-to-br from-emerald-50 via-white to-amber-50 p-4 md:p-6">
-          <div className="flex items-center justify-between gap-3">
+          <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
               <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Farmer Dashboard</div>
               <h2 className="mt-2 text-2xl font-black tracking-[-0.05em] text-slate-900 md:text-3xl">
                 Good morning, {user?.name || 'there'}
               </h2>
             </div>
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => setIsRetailMode(true)} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20">
-                Switch to Retail Marketplace 🛒
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => setIsRetailMode(true)} className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800">
+                <span>Switch to Retail 🛒</span>
               </button>
-              <button type="button" onClick={() => handleNavClick('Add Listing')} className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20">
-                + Add crop
+              <button type="button" onClick={() => handleNavClick('Add Listing')} className="flex shrink-0 items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-medium text-white shadow-sm hover:bg-emerald-700">
+                <span aria-hidden="true">+</span>
+                <span>Add Crop</span>
               </button>
             </div>
           </div>
@@ -518,29 +535,38 @@ export function FarmerDashboard() {
 
                 <div className="mt-4 space-y-3">
                   {!isLoading && isCurrentUserData && currentOrders.length === 0 && (
-                    <div className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-500">No orders available yet.</div>
+                    <div className="rounded-2xl border border-emerald-100 bg-white p-6 text-center shadow-sm">
+                      <div className="text-3xl" aria-hidden="true">🛍️</div>
+                      <p className="mt-2 font-bold text-slate-900">No orders placed yet</p>
+                      <button type="button" onClick={() => { setIsRetailMode(true) }} className="mt-4 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
+                        Browse Marketplace
+                      </button>
+                    </div>
                   )}
                   {currentOrders.map((order) => (
-                    <div key={order.oid} className="flex items-center justify-between rounded-2xl bg-slate-50 p-3">
-                      <div>
-                        <div className="font-bold text-slate-900">{order.buyer_name || 'Buyer not available'}</div>
-                        <div className="text-sm text-slate-500">
-                          {order.crop_name || 'Crop not available'} · {formatQuantity(order.quantity)}
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-slate-700">
-                          Amount: {formatCurrency(order.produce_price)}
-                        </div>
+                    <div key={order.oid} className="space-y-3 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="font-bold text-slate-900">Order #{order.oid}</div>
+                        {(() => {
+                          const status = getOrderStatusPresentation(order.status)
+                          return <span className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${status.className}`}><span aria-hidden="true">{status.icon}</span>{status.label}</span>
+                        })()}
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-700">
-                          {formatOrderStatus(order.status)}
-                        </span>
+                      <div>
+                        <div className="text-base font-bold text-slate-900">{order.crop_name || 'Crop not available'}</div>
+                        <div className="text-sm text-slate-600">{order.buyer_name || 'Buyer not available'} · {formatQuantity(order.quantity)} · {formatCurrency(order.quantity ? Number(order.produce_price || 0) / order.quantity : 0)} / kg</div>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 text-sm">
+                        <span className="text-slate-500">{formatOrderDate(order.ordered_at) || 'Order date unavailable'}</span>
+                        <span className="font-bold text-slate-900">Total: {formatCurrency(order.landed_price)}</span>
+                      </div>
+                      <div className="flex justify-end">
                         {order.status === 'placed' && (
                           <button
                             type="button"
                             disabled={updatingOrderId === order.oid}
                             onClick={() => void acceptOrder(order)}
-                            className="text-xs font-bold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-full bg-emerald-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {updatingOrderId === order.oid ? 'Accepting...' : 'Accept'}
                           </button>
@@ -555,14 +581,14 @@ export function FarmerDashboard() {
           </div>
           )}
 
-          {showListingForm && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-md">
-          <form id="listing-form" onSubmit={submitListing} className="mx-4 w-full max-w-lg rounded-[1.75rem] border border-emerald-200/70 bg-white/95 p-5 shadow-2xl shadow-emerald-950/20 backdrop-blur-md sm:mx-0 sm:rounded-2xl sm:p-6">
+          {showListingForm && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-md" onClick={handleCancelListing}>
+          <form id="listing-form" onSubmit={submitListing} onClick={(event) => event.stopPropagation()} className="mx-4 w-full max-w-lg rounded-[1.75rem] border border-emerald-200/70 bg-white/95 p-5 shadow-2xl shadow-emerald-950/20 backdrop-blur-md sm:mx-0 sm:rounded-2xl sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Farmer inventory</div>
                 <h3 className="mt-1 text-2xl font-black text-slate-900">Add crop listing</h3>
               </div>
-              <button type="button" onClick={() => setShowListingForm(false)} className="text-sm font-semibold text-slate-500">Cancel</button>
+              <button type="button" onClick={handleCancelListing} className="text-sm font-semibold text-slate-500">Cancel</button>
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <label className="text-sm font-semibold text-slate-700">Crop Name
@@ -573,9 +599,6 @@ export function FarmerDashboard() {
               </label>
               <label className="text-sm font-semibold text-slate-700">Price per kg (₹)
                 <input required type="number" min="1" value={listingPrice} onChange={(event) => setListingPrice(event.target.value)} placeholder="Price per kg" className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
-              </label>
-              <label className="text-sm font-semibold text-slate-700 md:col-span-2">Image URL/Upload
-                <input type="url" value={listingImageUrl} onChange={(event) => setListingImageUrl(event.target.value)} placeholder="Optional image URL" className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
               </label>
             </div>
             <button
