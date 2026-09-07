@@ -30,6 +30,7 @@ class ListingCreate(BaseModel):
 class ListingUpdate(BaseModel):
     quantity_available: float
     price_per_unit: float
+    harvested_at: Optional[datetime] = None
 
 
 class ListingResponse(BaseModel):

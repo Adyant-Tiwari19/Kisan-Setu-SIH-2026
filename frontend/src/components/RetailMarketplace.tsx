@@ -4,6 +4,7 @@ import { listingService, type MarketplaceListing } from '../services/listingServ
 import { orderService, type Order } from '../services/orderService'
 import { useAuth } from '../context/AuthContext'
 import { authService, type User } from '../services/authService'
+import { API_BASE_URL } from '../services/apiClient'
 
 const navItems = ['Home', 'Marketplace', 'Cart', 'Orders', 'Profile']
 const searchLatitude = '28.6139'
@@ -38,9 +39,16 @@ const getDisplayedPrice = (listing: MarketplaceListing) => listing.price_per_uni
 
 const getCropImageUrl = (sampleImageUrl: string | null | undefined) => {
   if (!sampleImageUrl) return null
+  if (/^https?:\/\//i.test(sampleImageUrl)) return sampleImageUrl
+  if (sampleImageUrl.startsWith('/crops/')) {
+    return `/images/${encodeURIComponent(sampleImageUrl.slice('/crops/'.length))}`
+  }
+  if (sampleImageUrl.startsWith('/uploads/') || sampleImageUrl.startsWith('/static/')) {
+    return `${API_BASE_URL.replace(/\/api\/v1$/, '')}${sampleImageUrl}`
+  }
+  if (sampleImageUrl.startsWith('/')) return sampleImageUrl
   const filename = sampleImageUrl.split(/[\\/]/).pop()?.trim()
-  if (!filename || filename === '.' || filename === '..') return null
-  return `/images/${encodeURIComponent(filename)}`
+  return filename && filename !== '.' && filename !== '..' ? `/images/${encodeURIComponent(filename)}` : null
 }
 
 const getFallbackCropImageUrl = (cropName: string) => {
@@ -60,9 +68,11 @@ const formatLineTotal = (listing: MarketplaceListing, quantity: number) => {
 interface RetailMarketplaceProps {
   embedded?: boolean
   wholesale?: boolean
+  hideProfile?: boolean
+  onBackToFarmer?: () => void
 }
 
-export function RetailMarketplace({ embedded = false, wholesale = false }: RetailMarketplaceProps) {
+export function RetailMarketplace({ embedded = false, wholesale = false, hideProfile = false, onBackToFarmer }: RetailMarketplaceProps) {
   const navigate = useNavigate()
   const { user, isProfileVisible, toggleProfile } = useAuth()
   const [profileUser, setProfileUser] = useState<User | null>(user)
@@ -133,6 +143,8 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
   }, [loadCatalog])
 
   useEffect(() => {
+    if (hideProfile) return
+
     const timer = setTimeout(() => {
       if (isProfileVisible && activeNav !== 'Profile') {
         setActiveNav('Profile')
@@ -142,7 +154,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
     }, 0)
 
     return () => clearTimeout(timer)
-  }, [activeNav, isProfileVisible])
+  }, [activeNav, hideProfile, isProfileVisible])
 
   const buyerOrders = useMemo(
     () => orders.filter((order) => currentUserId !== undefined && String(order.bid) === String(currentUserId)),
@@ -371,13 +383,20 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
               <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{wholesale ? 'Wholesale User' : 'Retail Consumer'}</div>
               <h2 className="mt-2 text-2xl font-black tracking-tighter text-slate-900 md:text-3xl">{wholesale ? 'Fresh picks at best prices' : 'Fresh picks near you'}</h2>
             </div>
-            <button type="button" onClick={() => setActiveNav('Cart')} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-              Cart ({cartCount})
-            </button>
+            <div className="flex items-center gap-2">
+              {onBackToFarmer && (
+                <button type="button" onClick={onBackToFarmer} className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">
+                  Back to Farmer Dashboard 🌾
+                </button>
+              )}
+              <button type="button" onClick={() => setActiveNav('Cart')} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                Cart ({cartCount})
+              </button>
+            </div>
           </div>
 
           <div className="mt-5 flex gap-2 overflow-x-auto pb-2 md:gap-3">
-            {navItems.map((item) => (
+            {navItems.filter((item) => !hideProfile || item !== 'Profile').map((item) => (
               <button
                 key={item}
                 type="button"
@@ -571,8 +590,10 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                             const fallbackUrl = getFallbackCropImageUrl(listing.crop_name)
                             if (fallbackUrl && event.currentTarget.src !== `${window.location.origin}${fallbackUrl}`) {
                               event.currentTarget.src = fallbackUrl
-                            } else {
+                            } else if (event.currentTarget.src.endsWith('/images/icon.png')) {
                               event.currentTarget.style.display = 'none'
+                            } else {
+                              event.currentTarget.src = '/images/icon.png'
                             }
                           }}
                         />
@@ -583,7 +604,8 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                           alt={listing.crop_name}
                           className="h-full w-full object-cover"
                           onError={(event) => {
-                            event.currentTarget.style.display = 'none'
+                            if (!event.currentTarget.src.endsWith('/images/icon.png')) event.currentTarget.src = '/images/icon.png'
+                            else event.currentTarget.style.display = 'none'
                           }}
                         />
                       )}

@@ -66,6 +66,7 @@ def get_farmer_income_dashboard(
         func.coalesce(func.sum(Order.produce_price), 0.0)
     ).filter(
         Order.lid.in_(farmer_listing_ids),
+        Order.status == OrderStatus.DELIVERED,
         Order.ordered_at >= month_start,
         Order.ordered_at < next_month,
     ).scalar()

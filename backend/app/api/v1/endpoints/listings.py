@@ -412,6 +412,8 @@ def update_listing(
 
     listing.quantity_available = listing_in.quantity_available
     listing.price_per_unit = listing_in.price_per_unit
+    if listing_in.harvested_at is not None:
+        listing.harvested_at = listing_in.harvested_at
     listing.is_active = listing_in.quantity_available > 0
     db.commit()
     db.refresh(listing)

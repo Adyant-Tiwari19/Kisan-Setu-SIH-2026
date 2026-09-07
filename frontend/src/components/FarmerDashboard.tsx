@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { authService, type User } from '../services/authService'
@@ -8,7 +8,7 @@ import { orderService, type Order } from '../services/orderService'
 import { aiService, type DemandForecast } from '../services/aiService'
 import { RetailMarketplace } from './RetailMarketplace'
 
-const navItems = ['Home', 'My Crops', 'My Profile', 'Edit Listing', 'Orders', 'Demand Forecast', 'Earnings', 'Retail Dashboard']
+const navItems = ['Home', 'My Crops', 'My Profile', 'Edit Listing', 'Orders', 'Demand Forecast', 'Earnings']
 
 const formatCurrency = (value: number) =>
   `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
@@ -19,15 +19,24 @@ const formatQuantity = (value: number) =>
 const formatOrderStatus = (status: Order['status']) =>
   status.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
 
+const getFarmerCropImage = (listing: Listing) => {
+  const filename = listing.sample_img_url?.split(/[\\/]/).pop()?.trim()
+    || listing.crop_name?.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
+  return filename ? `/images/${encodeURIComponent(filename.endsWith('.jpg') ? filename : `${filename}.jpg`)}` : '/images/icon.png'
+}
+
 export function FarmerDashboard() {
   const navigate = useNavigate()
   const { user, isProfileVisible, toggleProfile } = useAuth()
   const [profileUser, setProfileUser] = useState<User | null>(user)
   const [activeNav, setActiveNav] = useState('Home')
+  const [isRetailMode, setIsRetailMode] = useState(false)
   const [showListingForm, setShowListingForm] = useState(false)
   const [listingName, setListingName] = useState('')
   const [listingQuantity, setListingQuantity] = useState('')
   const [listingPrice, setListingPrice] = useState('')
+  const [listingHarvestDate, setListingHarvestDate] = useState('')
+  const [listingImageUrl, setListingImageUrl] = useState('')
   const [listingSubmitted, setListingSubmitted] = useState(false)
   const [isPublishingListing, setIsPublishingListing] = useState(false)
   const [listingError, setListingError] = useState('')
@@ -39,26 +48,22 @@ export function FarmerDashboard() {
   const [loadedUserPhone, setLoadedUserPhone] = useState<string | null>(null)
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null)
   const [updatingListingId, setUpdatingListingId] = useState<number | null>(null)
-  const [listingEditValues, setListingEditValues] = useState<Record<number, { quantity: string; price: string }>>({})
+  const [listingEditValues, setListingEditValues] = useState<Record<number, { quantity: string; price: string; harvestDate: string }>>({})
   const [isEditingListings, setIsEditingListings] = useState(false)
   const [editingListingId, setEditingListingId] = useState<number | null>(null)
   const [demandForecasts, setDemandForecasts] = useState<Record<number, DemandForecast>>({})
   const [isLoadingDemandForecasts, setIsLoadingDemandForecasts] = useState(false)
-  const editListingButtonRef = useRef<HTMLButtonElement>(null)
-  const activeListingsRef = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
     let isMounted = true
-    setProfileUser(user)
     void authService.getCurrentUserProfile().then((profile) => {
       if (isMounted) setProfileUser(profile)
     }).catch(() => {
-      // Keep the authenticated session values when the profile endpoint is unavailable.
+      if (isMounted) setProfileUser(user)
     })
     return () => {
       isMounted = false
     }
-  }, [user?.phone])
+  }, [user])
 
   useEffect(() => {
     let isMounted = true
@@ -98,42 +103,14 @@ export function FarmerDashboard() {
     }
   }, [user?.phone])
 
-  useEffect(() => {
-    if (isProfileVisible) {
-      setActiveNav('My Profile')
-      scrollToSection('farmer-profile')
-    } else if (activeNav === 'My Profile') {
-      setActiveNav('Home')
-    }
-  }, [isProfileVisible])
-
-  useEffect(() => {
-    if (!isEditingListings) return
-
-    const handleClickOutsideEditMode = (event: MouseEvent) => {
-      const target = event.target as Node
-      if (
-        editListingButtonRef.current?.contains(target) ||
-        activeListingsRef.current?.contains(target)
-      ) {
-        return
-      }
-
-      setIsEditingListings(false)
-      setEditingListingId(null)
-      setActiveNav('Home')
-    }
-
-    document.addEventListener('mousedown', handleClickOutsideEditMode)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutsideEditMode)
-    }
-  }, [isEditingListings])
-
   const isCurrentUserData = loadedUserPhone === user?.phone
   const currentDashboard = isCurrentUserData ? dashboard : null
   const currentListings = isCurrentUserData ? listings : []
   const currentOrders = isCurrentUserData ? orders : []
+  const deliveredOrders = currentOrders.filter((order) => order.status === 'delivered')
+  const calculatedTotalEarnings = deliveredOrders.reduce((total, order) => total + (Number(order.produce_price) || 0), 0)
+  const totalEarnings = Math.max(currentDashboard?.total_earnings || 0, calculatedTotalEarnings)
+  const monthlyEarnings = Math.min(currentDashboard?.monthly_earnings || 0, totalEarnings)
 
   const scrollToSection = (id: string) => {
     requestAnimationFrame(() => {
@@ -142,20 +119,19 @@ export function FarmerDashboard() {
   }
 
   const handleNavClick = (label: string) => {
+    if (label === activeNav) return
     setActiveNav(label)
     setDashboardMessage('')
-    if (label === 'Retail Dashboard') return
     if (label === 'Add Listing') {
       setShowListingForm(true)
-      scrollToSection('listing-form')
       return
     }
     if (label === 'My Profile') {
-      toggleProfile()
-      setActiveNav(isProfileVisible ? 'Home' : 'My Profile')
-      if (!isProfileVisible) scrollToSection('farmer-profile')
+      if (!isProfileVisible) toggleProfile()
+      scrollToSection('farmer-profile')
       return
     }
+    if (isProfileVisible) toggleProfile()
     if (label === 'Edit Listing') {
       setShowListingForm(false)
       setIsEditingListings(true)
@@ -163,28 +139,21 @@ export function FarmerDashboard() {
       scrollToSection('active-listings')
       return
     }
-    const target = label === 'Home' ? 'farmer-overview' : label === 'My Crops' ? 'active-listings' : label === 'Orders' ? 'farmer-orders' : label === 'Demand Forecast' ? 'demand-forecast' : null
+    const target = label === 'Home' ? 'farmer-overview' : label === 'My Crops' ? 'my-crops' : label === 'Orders' ? 'farmer-orders' : label === 'Demand Forecast' ? 'demand-forecast' : null
     if (target) scrollToSection(target)
     if (label === 'Earnings') {
-      if (!currentDashboard || currentDashboard.monthly_earnings <= 0) {
+      if (monthlyEarnings <= 0) {
         setDashboardMessage('Please wait for your first order this month.')
       } else {
         const nextMonth = new Date()
         nextMonth.setMonth(nextMonth.getMonth() + 1, 1)
         const monthName = nextMonth.toLocaleString('en-IN', { month: 'long' })
         setDashboardMessage(
-          `Earnings this month: ${formatCurrency(currentDashboard.monthly_earnings)}. Next payout is scheduled on 1st ${monthName}.`
+          `Earnings this month: ${formatCurrency(monthlyEarnings)}. Next payout is scheduled on 1st ${monthName}.`
         )
       }
     }
     if (label === 'Profile') setDashboardMessage('Profile settings are ready for your farm details and pickup preferences.')
-  }
-
-  const viewAllOrders = () => {
-    setActiveNav('Orders')
-    requestAnimationFrame(() => {
-      document.getElementById('farmer-orders')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
   }
 
   const acceptOrder = async (order: Order) => {
@@ -219,6 +188,7 @@ export function FarmerDashboard() {
     listingEditValues[listing.lid] || {
       quantity: String(listing.quantity_available),
       price: String(listing.price_per_unit),
+      harvestDate: listing.harvested_at ? listing.harvested_at.slice(0, 10) : '',
     }
 
   const updateListing = async (listing: Listing) => {
@@ -236,9 +206,10 @@ export function FarmerDashboard() {
       const updatedListing = await listingService.updateListing(listing.lid, {
         quantity_available: quantity,
         price_per_unit: price,
+        harvested_at: values.harvestDate || undefined,
       })
       setListings((current) => current.map((item) => item.lid === updatedListing.lid ? updatedListing : item))
-      setListingEditValues((current) => ({ ...current, [listing.lid]: { quantity: String(updatedListing.quantity_available), price: String(updatedListing.price_per_unit) } }))
+      setListingEditValues((current) => ({ ...current, [listing.lid]: { quantity: String(updatedListing.quantity_available), price: String(updatedListing.price_per_unit), harvestDate: updatedListing.harvested_at ? updatedListing.harvested_at.slice(0, 10) : '' } }))
       setDashboardMessage(`${updatedListing.crop_name || 'Listing'} was updated successfully.`)
     } catch {
       setDashboardMessage('Unexpected error occurred.')
@@ -289,13 +260,17 @@ export function FarmerDashboard() {
         crop_name: listingName.trim(),
         quantity_available: Number(listingQuantity),
         price_per_unit: Number(listingPrice),
+        harvested_at: listingHarvestDate || undefined,
       })
       setListings((current) => [createdListing, ...current])
       setListingName('')
       setListingQuantity('')
       setListingPrice('')
+      setListingHarvestDate('')
+      setListingImageUrl('')
       setListingSubmitted(true)
       setDashboardMessage(`${createdListing.crop_name || listingName} listing was added successfully.`)
+      setShowListingForm(false)
       setActiveNav('My Crops')
     } catch {
       setListingError('Unexpected error occurred.')
@@ -304,26 +279,13 @@ export function FarmerDashboard() {
     }
   }
 
-  if (activeNav === 'Retail Dashboard') {
+  if (isRetailMode) {
     return (
-      <section className="section-shell py-8 md:py-12">
-        <div key="retail-dashboard" className="anim-fade-up">
-          <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-white px-5 py-4 shadow-sm md:mb-10 md:px-6">
-            <div>
-              <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Farmer workspace</div>
-              <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900">Retail marketplace</h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveNav('Home')}
-              className="rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-            >
-              ← Back to farmer dashboard
-            </button>
-          </div>
-          <RetailMarketplace embedded />
-        </div>
-      </section>
+      <RetailMarketplace
+        embedded
+        hideProfile
+        onBackToFarmer={() => setIsRetailMode(false)}
+      />
     )
   }
 
@@ -338,9 +300,14 @@ export function FarmerDashboard() {
                 Good morning, {user?.name || 'there'}
               </h2>
             </div>
-            <button type="button" onClick={() => handleNavClick('Add Listing')} className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20">
-              + Add crop
-            </button>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setIsRetailMode(true)} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20">
+                Switch to Retail Marketplace 🛒
+              </button>
+              <button type="button" onClick={() => handleNavClick('Add Listing')} className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20">
+                + Add crop
+              </button>
+            </div>
           </div>
 
           <div id="farmer-overview" className="scroll-mt-24 mt-5 flex gap-2 overflow-x-auto pb-2 md:gap-3">
@@ -348,7 +315,6 @@ export function FarmerDashboard() {
               <button
                 key={item}
                 type="button"
-                ref={item === 'Edit Listing' ? editListingButtonRef : undefined}
                 onClick={() => handleNavClick(item)}
                 className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition ${item === activeNav
                   ? 'bg-slate-900 text-white'
@@ -359,7 +325,7 @@ export function FarmerDashboard() {
               </button>
             ))}
           </div>
-          {isProfileVisible && (
+          {activeNav === 'My Profile' && (
             <div id="farmer-profile" className="mt-5 scroll-mt-24 rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -392,9 +358,10 @@ export function FarmerDashboard() {
           )}
           {dashboardMessage && <div className="mt-3 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{dashboardMessage}</div>}
 
+          {activeNav === 'Home' && (
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {[
-              { label: 'Income', value: currentDashboard ? formatCurrency(currentDashboard.total_earnings) : '—', note: 'Delivered earnings' },
+              { label: 'Income', value: isLoading || !isCurrentUserData ? '—' : formatCurrency(totalEarnings), note: 'Delivered earnings' },
               { label: 'Listings', value: isLoading || !isCurrentUserData ? '—' : String(currentListings.filter((item) => item.is_active).length), note: 'Active crops' },
               {
                 label: 'Orders',
@@ -409,17 +376,19 @@ export function FarmerDashboard() {
               </div>
             ))}
           </div>
+          )}
 
+          {(activeNav === 'Home' || activeNav === 'Orders' || activeNav === 'Edit Listing') && (
           <div className="mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+            {(activeNav === 'Home' || activeNav === 'Edit Listing') && (
             <div className="space-y-5">
-              <div ref={activeListingsRef} id="active-listings" className="scroll-mt-24 rounded-[1.5rem] bg-slate-900 p-4 text-white">
+              <div id="active-listings" className="scroll-mt-24 rounded-[1.5rem] bg-slate-900 p-4 text-white">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold">Active listings</h3>
                   <span className="rounded-full bg-emerald-500/20 px-2 py-1 text-xs font-semibold text-emerald-300">
                     {isLoading || !isCurrentUserData ? '—' : `${currentListings.filter((item) => item.is_active).length} live`}
                   </span>
                 </div>
-
                 <div className="mt-4 space-y-3">
                   {!isLoading && isCurrentUserData && currentListings.length === 0 && (
                     <div className="rounded-2xl bg-white/5 p-3 text-sm text-slate-300">No listings available yet.</div>
@@ -467,6 +436,15 @@ export function FarmerDashboard() {
                               />
                             </label>
                             <label className="text-xs font-semibold text-slate-300">
+                              Harvest date
+                              <input
+                                type="date"
+                                value={values.harvestDate}
+                                onChange={(event) => setListingEditValues((current) => ({ ...current, [item.lid]: { ...values, harvestDate: event.target.value } }))}
+                                className="mt-1 w-full rounded-xl border-0 bg-white px-3 py-2 text-sm text-slate-900"
+                              />
+                            </label>
+                            <label className="text-xs font-semibold text-slate-300">
                               Price / kg
                               <input
                                 type="number"
@@ -500,8 +478,10 @@ export function FarmerDashboard() {
               </div>
 
             </div>
+            )}
 
             <div className="space-y-5">
+              {activeNav === 'Home' && (
               <div className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-slate-900">Upcoming pickups</h3>
@@ -535,11 +515,12 @@ export function FarmerDashboard() {
                   ))}
                 </div>
               </div>
+              )}
 
+              {activeNav === 'Orders' && (
               <div id="farmer-orders" className="scroll-mt-24 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-slate-900">Orders</h3>
-                  <button type="button" onClick={viewAllOrders} className="text-sm font-semibold text-emerald-700">View all</button>
                 </div>
 
                 <div className="mt-4 space-y-3">
@@ -576,30 +557,90 @@ export function FarmerDashboard() {
                   ))}
                 </div>
               </div>
+              )}
             </div>
           </div>
+          )}
 
-          {showListingForm && <form id="listing-form" onSubmit={submitListing} className="scroll-mt-24 mt-6 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
+          {showListingForm && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-md">
+          <form id="listing-form" onSubmit={submitListing} className="w-full max-w-2xl rounded-[1.75rem] border border-emerald-200/70 bg-white/95 p-6 shadow-2xl shadow-emerald-950/20 backdrop-blur-md">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-lg font-bold text-slate-900">Add crop listing</h3>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Farmer inventory</div>
+                <h3 className="mt-1 text-2xl font-black text-slate-900">Add crop listing</h3>
+              </div>
               <button type="button" onClick={() => setShowListingForm(false)} className="text-sm font-semibold text-slate-500">Cancel</button>
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              <input required value={listingName} onChange={(event) => setListingName(event.target.value)} placeholder="Crop name" className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-              <input required type="number" min="1" value={listingQuantity} onChange={(event) => setListingQuantity(event.target.value)} placeholder="Quantity in kg" className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-              <input required type="number" min="1" value={listingPrice} onChange={(event) => setListingPrice(event.target.value)} placeholder="Price per kg" className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <label className="text-sm font-semibold text-slate-700">Crop Name
+                <input required value={listingName} onChange={(event) => setListingName(event.target.value)} placeholder="e.g. Tomato" className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
+              </label>
+              <label className="text-sm font-semibold text-slate-700">Available Quantity (kg)
+                <input required type="number" min="1" value={listingQuantity} onChange={(event) => setListingQuantity(event.target.value)} placeholder="Quantity in kg" className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
+              </label>
+              <label className="text-sm font-semibold text-slate-700">Price per kg (₹)
+                <input required type="number" min="1" value={listingPrice} onChange={(event) => setListingPrice(event.target.value)} placeholder="Price per kg" className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
+              </label>
+              <label className="text-sm font-semibold text-slate-700">Harvest Date
+                <input type="date" value={listingHarvestDate} onChange={(event) => setListingHarvestDate(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
+              </label>
+              <label className="text-sm font-semibold text-slate-700 md:col-span-2">Image URL/Upload
+                <input type="url" value={listingImageUrl} onChange={(event) => setListingImageUrl(event.target.value)} placeholder="Optional image URL" className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
+              </label>
             </div>
             <button
               type="submit"
               disabled={isPublishingListing}
-              className="mt-4 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-6 w-full rounded-full bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isPublishingListing ? 'Publishing...' : 'Publish listing'}
+              {isPublishingListing ? 'Publishing...' : 'Publish Listing'}
             </button>
             {listingSubmitted && <div className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">Listing published successfully.</div>}
             {listingError && <div role="alert" className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{listingError}</div>}
-          </form>}
+          </form>
+          </div>}
 
+          {activeNav === 'My Crops' && (
+            <div id="my-crops" className="mt-6 scroll-mt-24">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">My Crops</div>
+                  <h3 className="mt-1 text-2xl font-black text-slate-900">Your produce listings</h3>
+                </div>
+                <button type="button" onClick={() => handleNavClick('Edit Listing')} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Edit listings</button>
+              </div>
+              {currentListings.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">No crops listed yet.</div>
+              ) : (
+                <div className="grid gap-5 lg:grid-cols-3">
+                  {currentListings.map((listing) => (
+                    <article key={listing.lid} className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                      <div className="h-28 overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-200 via-lime-100 to-amber-100">
+                        <img
+                          src={listing.sample_img_url?.startsWith('http') ? listing.sample_img_url : getFarmerCropImage(listing)}
+                          alt={listing.crop_name || 'Crop'}
+                          className="h-full w-full object-cover"
+                          onError={(event) => {
+                            if (event.currentTarget.src.endsWith('/images/icon.png')) event.currentTarget.style.display = 'none'
+                            else event.currentTarget.src = '/images/icon.png'
+                          }}
+                        />
+                      </div>
+                      <h3 className="mt-4 text-2xl font-black text-slate-900">{listing.crop_name || 'Unnamed crop'}</h3>
+                      <div className="mt-3 space-y-2 text-sm text-slate-600">
+                        <div className="flex justify-between"><span>Available</span><span className="font-semibold text-slate-800">{formatQuantity(listing.quantity_available)}</span></div>
+                        <div className="flex justify-between"><span>Price / kg</span><span className="font-semibold text-slate-800">{formatCurrency(listing.price_per_unit)}</span></div>
+                        <div className="flex justify-between"><span>Harvested</span><span className="font-semibold text-slate-800">{listing.harvested_at ? new Date(listing.harvested_at).toLocaleDateString('en-IN') : 'Not available'}</span></div>
+                      </div>
+                      <button type="button" onClick={() => { setActiveNav('Edit Listing'); setIsEditingListings(true); setEditingListingId(listing.lid) }} className="mt-5 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white">Edit Listing</button>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeNav === 'Demand Forecast' && (
           <div id="demand-forecast" className="scroll-mt-24 mt-6 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-900">Demand forecast</h3>
@@ -607,13 +648,11 @@ export function FarmerDashboard() {
                 AI forecast
               </span>
             </div>
-
             {isLoadingDemandForecasts && (
               <div className="mt-4 rounded-[1.25rem] bg-slate-50 p-4 text-sm text-slate-600">
                 Preparing demand forecasts for your active crops...
               </div>
             )}
-
             {!isLoadingDemandForecasts && currentListings.filter((listing) => listing.is_active).length === 0 && (
               <div className="mt-4 rounded-[1.25rem] bg-slate-50 p-4 text-sm text-slate-600">
                 Activate a crop listing to see its local demand forecast.
@@ -667,6 +706,28 @@ export function FarmerDashboard() {
               </div>
             )}
           </div>
+          )}
+
+          {activeNav === 'Earnings' && (
+            <div id="farmer-earnings" className="mt-6 rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
+              <div className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Earnings breakdown</div>
+              <h3 className="mt-2 text-2xl font-black text-slate-900">Your farm income</h3>
+              <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl bg-emerald-50 p-4">
+                  <div className="text-sm text-slate-600">Total earnings</div>
+                  <div className="mt-1 text-2xl font-black text-slate-900">{formatCurrency(totalEarnings)}</div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <div className="text-sm text-slate-600">This month</div>
+                  <div className="mt-1 text-2xl font-black text-slate-900">{formatCurrency(monthlyEarnings)}</div>
+                </div>
+                <div className="rounded-2xl bg-amber-50 p-4">
+                  <div className="text-sm text-slate-600">Delivered orders</div>
+                  <div className="mt-1 text-2xl font-black text-slate-900">{deliveredOrders.length}</div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>
