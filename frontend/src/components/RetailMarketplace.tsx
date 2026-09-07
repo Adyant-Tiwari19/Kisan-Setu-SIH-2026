@@ -6,9 +6,9 @@ import { useAuth } from '../context/AuthContext'
 import { authService, type User } from '../services/authService'
 
 const navItems = ['Home', 'Marketplace', 'Cart', 'Orders', 'Profile']
-const radiusOptions: Array<number | null> = [20, 50, 100, 500]
 const searchLatitude = '28.6139'
 const searchLongitude = '77.2090'
+type SortMode = 'relevance' | 'distance' | 'price-low-high' | 'price-high-low'
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -33,12 +33,22 @@ const formatHarvestDate = (value: string | null) => {
 }
 
 const getUnitPrice = (listing: MarketplaceListing) => listing.estimated_landed_price ?? listing.price_per_unit
+const getDisplayedPrice = (listing: MarketplaceListing) => listing.price_per_unit ?? Number.MAX_SAFE_INTEGER
 
 const getCropImageUrl = (sampleImageUrl: string | null | undefined) => {
   if (!sampleImageUrl) return null
   const filename = sampleImageUrl.split(/[\\/]/).pop()?.trim()
   if (!filename || filename === '.' || filename === '..') return null
   return `/images/${encodeURIComponent(filename)}`
+}
+
+const getFallbackCropImageUrl = (cropName: string) => {
+  const filename = cropName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+  return filename ? `/images/${encodeURIComponent(filename)}.jpg` : null
 }
 
 const formatLineTotal = (listing: MarketplaceListing, quantity: number) => {
@@ -59,7 +69,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
   const [activeNav, setActiveNav] = useState('Marketplace')
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [cropQuery, setCropQuery] = useState('')
-  const [radiusKm, setRadiusKm] = useState<number | null>(20)
+  const [sortMode, setSortMode] = useState<SortMode>('relevance')
   const [cart, setCart] = useState<Record<string | number, number>>({})
   const [dashboardMessage, setDashboardMessage] = useState('')
   const [listings, setListings] = useState<MarketplaceListing[]>([])
@@ -87,16 +97,34 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
     if (!listings.length) return []
 
     return [...listings].sort((first, second) => {
-      const firstPrice = first.estimated_landed_price ?? first.price_per_unit ?? Number.MAX_SAFE_INTEGER
-      const secondPrice = second.estimated_landed_price ?? second.price_per_unit ?? Number.MAX_SAFE_INTEGER
+      const firstPrice = getDisplayedPrice(first)
+      const secondPrice = getDisplayedPrice(second)
       const firstDistance = first.distance_km ?? Number.MAX_SAFE_INTEGER
       const secondDistance = second.distance_km ?? Number.MAX_SAFE_INTEGER
+      const firstRelevance = first.relevance_score ?? -1
+      const secondRelevance = second.relevance_score ?? -1
       const firstFreshness = first.freshness_score ?? 0
       const secondFreshness = second.freshness_score ?? 0
 
+      if (sortMode === 'distance') {
+        return firstDistance - secondDistance || firstPrice - secondPrice
+      }
+
+      if (sortMode === 'price-low-high') {
+        return firstPrice - secondPrice || firstDistance - secondDistance
+      }
+
+      if (sortMode === 'price-high-low') {
+        return secondPrice - firstPrice || firstDistance - secondDistance
+      }
+
+      if (firstRelevance >= 0 || secondRelevance >= 0) {
+        return secondRelevance - firstRelevance || firstPrice - secondPrice
+      }
+
       return firstPrice - secondPrice || firstDistance - secondDistance || secondFreshness - firstFreshness
     })
-  }, [listings])
+  }, [listings, sortMode])
 
   const cartCount = Object.values(cart).reduce((total, quantity) => total + quantity, 0)
   const cartItems = visibleProducts.filter((product) => (cart[product.id] ?? 0) > 0)
@@ -132,7 +160,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
     updateQuantity(listing, nextQuantity)
   }
 
-  const handleSearch = async (selectedRadius = radiusKm) => {
+  const handleSearch = async (selectedSortMode = sortMode) => {
     const trimmedCrop = cropQuery.trim()
 
     if (!trimmedCrop) {
@@ -146,16 +174,39 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
     setDashboardMessage('')
 
     try {
-      const results = await listingService.searchListings(trimmedCrop, searchLatitude, searchLongitude, selectedRadius)
-      setListings(results)
+      const rankedResults = await listingService.rankListings(trimmedCrop)
+      let sortedResults = rankedResults
 
-      if (!results.length) {
+      try {
+        const searchResults = await listingService.searchListings(trimmedCrop, searchLatitude, searchLongitude, null)
+        const searchById = new Map(searchResults.map((listing) => [String(listing.id), listing]))
+        sortedResults = rankedResults.map((rankedListing) => ({
+          ...searchById.get(String(rankedListing.id)),
+          ...rankedListing,
+          sample_img_url: searchById.get(String(rankedListing.id))?.sample_img_url ?? rankedListing.sample_img_url,
+          farmer_address: searchById.get(String(rankedListing.id))?.farmer_address ?? rankedListing.farmer_address,
+          farmer_phone: searchById.get(String(rankedListing.id))?.farmer_phone ?? rankedListing.farmer_phone,
+        }))
+      } catch {
+        // Ranked results remain usable when supplementary listing details are unavailable.
+      }
+
+      if (selectedSortMode === 'relevance' && !sortedResults.some((listing) => listing.relevance_score !== null)) {
+        sortedResults = [...sortedResults].sort((first, second) => getDisplayedPrice(first) - getDisplayedPrice(second))
+        setDashboardMessage('Seller relevance is unavailable, so results are sorted by price.')
+      }
+
+      setListings(sortedResults)
+
+      if (!rankedResults.length) {
         setSearchStatus('empty')
         return
       }
 
       setSearchStatus('success')
-      setDashboardMessage('Fresh produce results loaded for your selected location.')
+      if (selectedSortMode !== 'relevance' || sortedResults.some((listing) => listing.relevance_score !== null)) {
+        setDashboardMessage('Fresh produce results loaded for your selected location.')
+      }
     } catch {
       setListings([])
       setSearchStatus('apiError')
@@ -281,21 +332,27 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                 />
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {radiusOptions.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => {
-                      setRadiusKm(option)
-                      void handleSearch(option)
-                    }}
-                    className={`rounded-full px-3 py-2 text-sm font-medium transition ${radiusKm === option ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-                  >
-                    {option} kms
-                  </button>
-                ))}
-              </div>
+              {!wholesale && (
+                <div className="md:col-span-3">
+                  <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                    <span>Sort by</span>
+                    <select
+                      value={sortMode}
+                      onChange={(event) => {
+                        const nextSortMode = event.target.value as SortMode
+                        setSortMode(nextSortMode)
+                        if (cropQuery.trim()) void handleSearch(nextSortMode)
+                      }}
+                      className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                    >
+                      <option value="relevance">Relevance</option>
+                      <option value="distance">Distance: nearest first</option>
+                      <option value="price-low-high">Price: low to high</option>
+                      <option value="price-high-low">Price: high to low</option>
+                    </select>
+                  </label>
+                </div>
+              )}
 
               <button
                 type="button"
@@ -343,9 +400,9 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
               <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">
                 <div className="text-3xl">📍</div>
                 <h3 className="mt-4 text-xl font-black text-slate-900">
-                  No fresh produce was found {radiusKm === null ? '' : `within ${radiusKm} km `}for {cropQuery.trim()}.
+                  No fresh produce was found for {cropQuery.trim()}.
                 </h3>
-                <p className="mt-2 text-sm text-slate-500">Try a wider radius or another crop.</p>
+                <p className="mt-2 text-sm text-slate-500">Try another crop.</p>
               </div>
             )}
 
@@ -357,6 +414,21 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                       {getCropImageUrl(listing.sample_img_url) && (
                         <img
                           src={getCropImageUrl(listing.sample_img_url) || undefined}
+                          alt={listing.crop_name}
+                          className="h-full w-full object-cover"
+                          onError={(event) => {
+                            const fallbackUrl = getFallbackCropImageUrl(listing.crop_name)
+                            if (fallbackUrl && event.currentTarget.src !== `${window.location.origin}${fallbackUrl}`) {
+                              event.currentTarget.src = fallbackUrl
+                            } else {
+                              event.currentTarget.style.display = 'none'
+                            }
+                          }}
+                        />
+                      )}
+                      {!getCropImageUrl(listing.sample_img_url) && getFallbackCropImageUrl(listing.crop_name) && (
+                        <img
+                          src={getFallbackCropImageUrl(listing.crop_name) || undefined}
                           alt={listing.crop_name}
                           className="h-full w-full object-cover"
                           onError={(event) => {
