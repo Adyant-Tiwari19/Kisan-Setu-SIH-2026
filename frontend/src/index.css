@@ -393,6 +393,14 @@ img { max-width: 100%; display: block; }
   0%, 100% { transform: translateY(0); }
   50%       { transform: translateY(-8px); }
 }
+@keyframes checkout-progress {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(420%); }
+}
+@keyframes checkout-crop {
+  0% { left: 0%; }
+  100% { left: 94%; }
+}
 
 /* ── Animation Utility Classes ───────────────────────────── */
 .anim-fade-up   { animation: fadeUp   0.6s cubic-bezier(0.22,1,0.36,1) both; }

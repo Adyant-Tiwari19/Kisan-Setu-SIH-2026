@@ -79,6 +79,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
   const [showCheckout, setShowCheckout] = useState(false)
   const [activeNav, setActiveNav] = useState('Marketplace')
   const [orderPlaced, setOrderPlaced] = useState(false)
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const [cropQuery, setCropQuery] = useState('')
   const [sortMode, setSortMode] = useState<SortMode>('relevance')
   const [cart, setCart] = useState<Record<string | number, number>>({})
@@ -352,6 +353,9 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
   }
 
   const placeOrder = async () => {
+    if (isPlacingOrder || cartItems.length === 0) return
+    setIsPlacingOrder(true)
+
     try {
       const createdOrders = await Promise.all(
         cartItems
@@ -370,6 +374,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
       setShowCheckout(false)
       setActiveNav('Orders')
     } catch (error) {
+      setIsPlacingOrder(false)
       setDashboardMessage(error instanceof Error ? error.message : 'Unable to place order with the requested quantity.')
     }
   }
@@ -657,7 +662,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                       {cart[listing.id] ? (
                         <div className="flex items-center gap-2 rounded-full bg-emerald-50 p-1 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-200">
                           <button type="button" onClick={() => updateQuantity(listing, (cart[listing.id] ?? 1) - 1)} className="h-8 w-8 rounded-full bg-white text-lg transition-all duration-200 active:scale-95">−</button>
-                          <span className="min-w-16 text-center">{cart[listing.id]} in cart</span>
+                          <span className="min-w-8 text-center">{cart[listing.id]}</span>
                           <button type="button" onClick={() => addToCart(listing)} className="h-8 w-8 rounded-full bg-white text-lg transition-all duration-200 active:scale-95">+</button>
                         </div>
                       ) : (
@@ -686,8 +691,9 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                 </div>
                 <button
                   type="button"
+                  disabled={isPlacingOrder}
                   onClick={() => setShowCheckout(false)}
-                  className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white"
+                  className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Back to cart
                 </button>
@@ -740,12 +746,23 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
 
                   <button
                     type="button"
-                    disabled={cartCount === 0}
+                    disabled={cartCount === 0 || isPlacingOrder}
                     onClick={() => void placeOrder()}
                     className="mt-5 w-full rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Place order
+                    {isPlacingOrder ? 'Placing your order...' : 'Place order'}
                   </button>
+                  {isPlacingOrder && (
+                    <div className="mt-4" aria-live="polite">
+                      <div className="relative h-3 overflow-hidden rounded-full bg-emerald-100">
+                        <div className="h-full w-1/3 rounded-full bg-emerald-600 animate-[checkout-progress_1.6s_ease-in-out_infinite]" />
+                        <span className="absolute top-1/2 -translate-y-1/2 text-base leading-none animate-[checkout-crop_1.6s_ease-in-out_infinite]" aria-hidden="true">
+                          🌱
+                        </span>
+                      </div>
+                      <p className="mt-2 text-center text-sm font-semibold text-emerald-700">Placing your order...</p>
+                    </div>
+                  )}
                   {orderPlaced && <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-center text-sm font-semibold text-emerald-700">Order placed successfully. Your farmer is preparing it.</p>}
                 </div>
               </div>
@@ -830,14 +847,16 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
             <button
               type="button"
               onClick={() => setActiveNav('Cart')}
-              className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-full bg-slate-900/95 px-4 py-3 text-left text-white shadow-2xl ring-1 ring-emerald-300/40 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-emerald-800"
+              aria-label={`Open cart with ${cartCount} ${cartCount === 1 ? 'item' : 'items'}`}
+              className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-slate-900/95 text-white shadow-2xl ring-1 ring-emerald-300/40 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-emerald-800"
             >
-              <span className="text-xl" aria-hidden="true">🛍</span>
-              <span>
-                <span className="block text-sm font-bold">{cartCount} {cartCount === 1 ? 'Item' : 'Items'} in Cart</span>
-                {orderTotal !== null && <span className="block text-xs text-slate-300">{formatCurrency(orderTotal)}</span>}
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth="1.8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 8h12l-1 12H7L6 8Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 8a3 3 0 0 1 6 0" />
+              </svg>
+              <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-600 px-1.5 text-xs font-bold text-white">
+                {cartCount}
               </span>
-              <span className="text-sm font-bold text-emerald-300">View Cart →</span>
             </button>
           )}
         </div>
