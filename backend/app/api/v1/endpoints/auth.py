@@ -495,6 +495,7 @@ def read_users_me(current_user: User = Depends(get_current_user)):
 def update_user_profile(
     name: Optional[str] = Query(None,description="Name of the User"),
     address: Optional[str] = Query(None,description="Address of the User"),
+    pincode: Optional[str] = Query(None,description="Pincode of the User"),
     account_num: Optional[str] = Query(None,description="Account Number of the user"),
     ifsc: Optional[str] = Query(None,description="IFSC code of User's acc"),
     db: Session = Depends(get_db),
@@ -506,6 +507,9 @@ def update_user_profile(
 
     if (current_user.address != address and address != None):
         current_user.address = address
+
+    if (current_user.pincode != pincode and pincode != None):
+        current_user.pincode = pincode
 
     if (current_user.account_num != account_num and account_num):
         current_user.account_num = account_num

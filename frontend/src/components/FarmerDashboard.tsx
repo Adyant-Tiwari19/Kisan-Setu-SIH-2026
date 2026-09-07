@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { authService, type User } from '../services/authService'
 import { dashboardService, type FarmerIncomeDashboard } from '../services/dashboardService'
@@ -19,6 +20,7 @@ const formatOrderStatus = (status: Order['status']) =>
   status.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
 
 export function FarmerDashboard() {
+  const navigate = useNavigate()
   const { user, isProfileVisible, toggleProfile } = useAuth()
   const [profileUser, setProfileUser] = useState<User | null>(user)
   const [activeNav, setActiveNav] = useState('Home')
@@ -380,6 +382,11 @@ export function FarmerDashboard() {
                     <div className="mt-1 break-words text-sm font-bold text-slate-900">{detail.value || 'Not available'}</div>
                   </div>
                 ))}
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button type="button" onClick={() => navigate('/profile/edit')} className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
+                  Edit profile
+                </button>
               </div>
             </div>
           )}

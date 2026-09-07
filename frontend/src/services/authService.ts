@@ -291,6 +291,8 @@ class AuthService {
           backendRole: backendUser.role,
           address: backendUser.address,
           pincode: backendUser.pincode,
+          ...(updates.email !== undefined ? { email: updates.email.trim() } : {}),
+          ...(updates.organization !== undefined ? { organization: updates.organization.trim() } : {}),
           account_num: backendUser.account_num,
           ifsc: backendUser.ifsc,
           location: backendUser.address || 'India',
@@ -527,6 +529,81 @@ class AuthService {
       account_num: backendUser.account_num,
       ifsc: backendUser.ifsc,
       location: backendUser.address || 'India',
+    }
+  }
+
+  async updateCurrentUserProfile(updates: {
+    name: string
+    address: string
+    pincode: string
+    email?: string
+    organization?: string
+    account_num?: string
+    ifsc?: string
+  }): Promise<User> {
+    const params = new URLSearchParams({
+      name: updates.name.trim(),
+      address: updates.address.trim(),
+      pincode: updates.pincode.trim(),
+    })
+
+    if (updates.email !== undefined) params.set('email', updates.email.trim())
+    if (updates.organization !== undefined) params.set('organization', updates.organization.trim())
+    if (updates.account_num !== undefined) params.set('account_num', updates.account_num.trim())
+    if (updates.ifsc !== undefined) params.set('ifsc', updates.ifsc.trim().toUpperCase())
+
+    try {
+      const backendUser = await apiClient.patch<{
+        uid: number
+        name: string
+        phone: string
+        role: string
+        address?: string
+        pincode?: string
+        account_num?: string
+        ifsc?: string
+      }>(`/auth/me?${params.toString()}`)
+
+      const currentUser = this.getCurrentUser()
+      const updatedUser: User = {
+        ...currentUser,
+        id: backendUser.uid,
+        uid: backendUser.uid,
+        name: backendUser.name,
+        phone: backendUser.phone,
+        role: backendToFrontendRole(backendUser.role),
+        backendRole: backendUser.role as BackendUserRole,
+        address: backendUser.address,
+        pincode: backendUser.pincode,
+        account_num: backendUser.account_num,
+        ifsc: backendUser.ifsc,
+      }
+      const token = this.getAuthToken()
+      if (token) this.saveSession(token, updatedUser)
+      return updatedUser
+    } catch (error) {
+      const currentUser = this.getCurrentUser()
+      if (!currentUser) throw error
+
+      const updatedUser = {
+        ...currentUser,
+        name: updates.name.trim(),
+        address: updates.address.trim(),
+        pincode: updates.pincode.trim(),
+        ...(updates.email !== undefined ? { email: updates.email.trim() } : {}),
+        ...(updates.organization !== undefined ? { organization: updates.organization.trim() } : {}),
+        ...(updates.account_num !== undefined ? { account_num: updates.account_num.trim() } : {}),
+        ...(updates.ifsc !== undefined ? { ifsc: updates.ifsc.trim().toUpperCase() } : {}),
+      }
+      const registry = this.getLocalRegistry()
+      registry[currentUser.phone] = {
+        ...registry[currentUser.phone],
+        user: updatedUser,
+      }
+      this.saveLocalRegistry(registry)
+      const token = this.getAuthToken()
+      if (token) this.saveSession(token, updatedUser)
+      return updatedUser
     }
   }
 

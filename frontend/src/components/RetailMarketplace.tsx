@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { listingService, type MarketplaceListing } from '../services/listingService'
 import { orderService, type Order } from '../services/orderService'
 import { useAuth } from '../context/AuthContext'
+import { authService, type User } from '../services/authService'
 
-const navItems = ['Home', 'Marketplace', 'Cart', 'Orders']
+const navItems = ['Home', 'Marketplace', 'Cart', 'Orders', 'Profile']
 const radiusOptions: Array<number | null> = [20, 50, 100, 500]
 const searchLatitude = '28.6139'
 const searchLongitude = '77.2090'
@@ -50,7 +52,9 @@ interface RetailMarketplaceProps {
 }
 
 export function RetailMarketplace({ embedded = false, wholesale = false }: RetailMarketplaceProps) {
-  const { user } = useAuth()
+  const navigate = useNavigate()
+  const { user, isProfileVisible, toggleProfile } = useAuth()
+  const [profileUser, setProfileUser] = useState<User | null>(user)
   const [showCheckout, setShowCheckout] = useState(false)
   const [activeNav, setActiveNav] = useState('Marketplace')
   const [orderPlaced, setOrderPlaced] = useState(false)
@@ -62,6 +66,18 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
   const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'success' | 'empty' | 'apiError'>('idle')
   const [validationMessage, setValidationMessage] = useState('')
   const [orders, setOrders] = useState<Order[]>([])
+
+  useEffect(() => {
+    let isMounted = true
+    void authService.getCurrentUserProfile().then((profile) => {
+      if (isMounted) setProfileUser(profile)
+    }).catch(() => {
+      // Keep the authenticated session values when the profile endpoint is unavailable.
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [user])
 
   useEffect(() => {
     void orderService.getMyOrders().then(setOrders)
@@ -192,17 +208,61 @@ export function RetailMarketplace({ embedded = false, wholesale = false }: Retai
                 key={item}
                 type="button"
                 onClick={() => {
+                  if (item === 'Profile') {
+                    toggleProfile()
+                    setActiveNav(isProfileVisible ? 'Marketplace' : 'Profile')
+                    return
+                  }
                   setActiveNav(item)
                   setDashboardMessage('')
                   const target = item === 'Marketplace' ? 'retail-products' : item === 'Cart' ? 'retail-cart' : item === 'Orders' ? 'retail-orders' : null
                   if (target) scrollToSection(target)
                 }}
-                className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition ${item === activeNav ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'}`}
+                className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition ${item === (isProfileVisible ? 'Profile' : activeNav) ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'}`}
               >
                 {item}
               </button>
             ))}
           </div>
+
+          {isProfileVisible && (
+            <div id="retail-profile" className="mt-5 scroll-mt-24 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
+                    {wholesale ? 'Bulk buyer profile' : 'Retailer profile'}
+                  </div>
+                  <h3 className="mt-1 text-xl font-black text-slate-900">{profileUser?.name || 'My profile'}</h3>
+                </div>
+                <button type="button" onClick={toggleProfile} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-emerald-700">
+                  Hide profile
+                </button>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  { label: 'Mobile number', value: profileUser?.phone },
+                  { label: 'Address', value: profileUser?.address },
+                  { label: 'Pincode', value: profileUser?.pincode },
+                  ...(wholesale
+                    ? [
+                        { label: 'Email address', value: profileUser?.email },
+                        { label: 'Organization', value: profileUser?.organization },
+                      ]
+                    : []),
+                ].map((detail) => (
+                  <div key={detail.label} className="rounded-xl bg-slate-50 p-3">
+                    <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{detail.label}</div>
+                    <div className="mt-1 break-words text-sm font-bold text-slate-900">{detail.value || 'Not available'}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button type="button" onClick={() => navigate('/profile/edit')} className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
+                  Edit profile
+                </button>
+              </div>
+            </div>
+          )}
 
           {dashboardMessage && <div className="mt-3 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{dashboardMessage}</div>}
 

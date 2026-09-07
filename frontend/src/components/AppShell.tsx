@@ -3,7 +3,7 @@ import { DashboardHeader } from './DashboardHeader'
 import { Footer } from './Footer'
 import { Header } from './Header'
 
-const dashboardRoutes = ['/farmer', '/retailer', '/marketplace', '/buyer']
+const dashboardRoutes = ['/farmer', '/retailer', '/marketplace', '/buyer', '/profile/edit']
 
 export function AppShell() {
   const { pathname } = useLocation()

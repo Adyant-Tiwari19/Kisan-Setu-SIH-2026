@@ -7,6 +7,7 @@ import { BulkBuyerDashboard } from './components/BulkBuyerDashboard'
 import { Hero } from './components/Hero'
 import { HowItWorks } from './components/HowItWorks'
 import { Benefits } from './components/Benefits'
+import { EditProfile } from './components/EditProfile'
 
 export function AppRoutes() {
   return (
@@ -26,6 +27,7 @@ export function AppRoutes() {
         <Route path="retailer" element={<RetailMarketplace />} />
         <Route path="marketplace" element={<RetailMarketplace />} />
         <Route path="buyer" element={<BulkBuyerDashboard />} />
+        <Route path="profile/edit" element={<EditProfile />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
