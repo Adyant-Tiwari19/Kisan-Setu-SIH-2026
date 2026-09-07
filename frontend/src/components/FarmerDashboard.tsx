@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { authService, type User } from '../services/authService'
 import { dashboardService, type FarmerIncomeDashboard } from '../services/dashboardService'
@@ -42,6 +42,8 @@ export function FarmerDashboard() {
   const [editingListingId, setEditingListingId] = useState<number | null>(null)
   const [demandForecasts, setDemandForecasts] = useState<Record<number, DemandForecast>>({})
   const [isLoadingDemandForecasts, setIsLoadingDemandForecasts] = useState(false)
+  const editListingButtonRef = useRef<HTMLButtonElement>(null)
+  const activeListingsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -103,6 +105,29 @@ export function FarmerDashboard() {
     }
   }, [isProfileVisible])
 
+  useEffect(() => {
+    if (!isEditingListings) return
+
+    const handleClickOutsideEditMode = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (
+        editListingButtonRef.current?.contains(target) ||
+        activeListingsRef.current?.contains(target)
+      ) {
+        return
+      }
+
+      setIsEditingListings(false)
+      setEditingListingId(null)
+      setActiveNav('Home')
+    }
+
+    document.addEventListener('mousedown', handleClickOutsideEditMode)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutsideEditMode)
+    }
+  }, [isEditingListings])
+
   const isCurrentUserData = loadedUserPhone === user?.phone
   const currentDashboard = isCurrentUserData ? dashboard : null
   const currentListings = isCurrentUserData ? listings : []
@@ -130,12 +155,6 @@ export function FarmerDashboard() {
       return
     }
     if (label === 'Edit Listing') {
-      if (isEditingListings) {
-        setIsEditingListings(false)
-        setEditingListingId(null)
-        setActiveNav('Home')
-        return
-      }
       setShowListingForm(false)
       setIsEditingListings(true)
       setEditingListingId(null)
@@ -327,6 +346,7 @@ export function FarmerDashboard() {
               <button
                 key={item}
                 type="button"
+                ref={item === 'Edit Listing' ? editListingButtonRef : undefined}
                 onClick={() => handleNavClick(item)}
                 className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition ${item === activeNav
                   ? 'bg-slate-900 text-white'
@@ -385,7 +405,7 @@ export function FarmerDashboard() {
 
           <div className="mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-5">
-              <div id="active-listings" className="scroll-mt-24 rounded-[1.5rem] bg-slate-900 p-4 text-white">
+              <div ref={activeListingsRef} id="active-listings" className="scroll-mt-24 rounded-[1.5rem] bg-slate-900 p-4 text-white">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold">Active listings</h3>
                   <span className="rounded-full bg-emerald-500/20 px-2 py-1 text-xs font-semibold text-emerald-300">
