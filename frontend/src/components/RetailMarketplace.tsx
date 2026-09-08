@@ -613,7 +613,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
             )}
 
             {searchStatus === 'loading' && (
-              <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid w-full grid-cols-2 gap-2.5 p-2 sm:grid-cols-3 lg:grid-cols-4">
                 <CropCardSkeleton />
                 <CropCardSkeleton />
                 <CropCardSkeleton />
@@ -632,18 +632,18 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
             )}
 
             {searchStatus === 'success' && visibleProducts.length > 0 && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2.5 p-2 sm:grid-cols-3 lg:grid-cols-4">
                 {visibleProducts.map((listing) => (
                   <article
                     key={String(listing.id)}
-                    className={`transform-gpu rounded-3xl bg-white p-4 transition-all duration-300 ease-out [perspective:1000px] hover:-translate-y-2 hover:scale-[1.02] hover:shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)] ${String(listing.id) === String(bestMatchId) ? 'border-2 border-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]' : 'ring-1 ring-slate-100'}`}
+                    className={`transform-gpu rounded-2xl bg-white p-2 transition-all duration-300 ease-out [perspective:1000px] hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg ${String(listing.id) === String(bestMatchId) ? 'border-2 border-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]' : 'ring-1 ring-slate-100'}`}
                   >
                     {String(listing.id) === String(bestMatchId) && (
                       <div className="mb-2 inline-flex rounded-tl-2xl rounded-br-2xl rounded-tr-sm rounded-bl-sm bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs animate-pulse">
                         {t('aiTopPick')}
                       </div>
                     )}
-                    <div className="mt-4 h-28 overflow-hidden rounded-tl-3xl rounded-br-3xl rounded-tr-lg rounded-bl-lg bg-linear-to-br from-emerald-200 via-lime-100 to-amber-100">
+                    <div className="h-24 w-full overflow-hidden rounded-xl bg-linear-to-br from-emerald-200 via-lime-100 to-amber-100 sm:h-32">
                       {getCropImageUrl(listing.sample_img_url) && (
                         <img
                           src={getCropImageUrl(listing.sample_img_url) || undefined}
@@ -674,11 +674,11 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                       )}
                     </div>
 
-                    <div className="mt-4 flex items-start justify-between gap-3">
+                    <div className="mt-2 flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="text-2xl font-black text-slate-900">{listing.crop_name}</h3>
+                        <h3 className="truncate text-sm font-bold text-slate-900">{listing.crop_name}</h3>
                         {wholesale && (
-                          <div className="mt-2 space-y-1 text-sm text-slate-600">
+                          <div className="mt-1 space-y-0.5 text-[10px] text-slate-600">
                             {listing.farmer_name !== 'Not available' && (
                               <div><span className="font-semibold text-slate-800">{t('marketplace.farmer')}:</span> {listing.farmer_name}</div>
                             )}
@@ -690,49 +690,45 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                       </div>
                     </div>
 
-                    <div className="mt-4 space-y-2 text-sm text-slate-600">
+                    <div className="mt-2 flex min-w-0 items-center gap-1.5 overflow-hidden">
+                      <span className="shrink-0 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                        📍 {formatDistance(listing.distance_km)}
+                      </span>
+                      <span className="truncate text-[10px] text-slate-500">
+                        🌾 {formatHarvestDate(listing.harvested_at, listing.created_at)}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 rounded-xl bg-slate-50 px-2 py-1.5">
                       <div className="flex items-center justify-between">
-                        <span>{t('marketplace.distance')}</span>
-                        <span className="font-semibold text-slate-800">{formatDistance(listing.distance_km)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>{t('marketplace.harvested')}</span>
-                        <span className="font-semibold text-slate-800">
-                          {formatHarvestDate(listing.harvested_at, listing.created_at)}
-                        </span>
+                        <span className="sr-only">{t('marketplace.pricePerKg')}</span>
+                        <span className="text-xs font-bold text-emerald-700">{formatCurrency(listing.price_per_unit)} / kg</span>
                       </div>
                     </div>
 
-                    <div className="mt-5 rounded-2xl bg-slate-50 p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-500">{t('marketplace.pricePerKg')}</span>
-                        <span className="text-xl font-black text-slate-900">{formatCurrency(listing.price_per_unit)}</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-5 flex flex-wrap justify-end gap-2">
+                    <div className="mt-2 flex w-full flex-wrap gap-1.5">
                       {wholesale && (
                         <a
                           href={listing.farmer_phone ? `tel:${listing.farmer_phone}` : undefined}
                           aria-disabled={!listing.farmer_phone}
-                          className={`rounded-full px-4 py-2.5 text-sm font-semibold transition-transform duration-150 ease-out active:scale-95 ${listing.farmer_phone ? 'bg-slate-900 text-white' : 'cursor-not-allowed bg-slate-200 text-slate-400'}`}
+                          className={`w-full rounded-lg px-2 py-1.5 text-center text-xs font-semibold transition-transform duration-150 ease-out active:scale-95 ${listing.farmer_phone ? 'bg-slate-900 text-white' : 'cursor-not-allowed bg-slate-200 text-slate-400'}`}
                         >
                           {t('common.joinNow')}
                         </a>
                       )}
                       {cart[listing.id] ? (
-                        <div className="flex items-center gap-2 rounded-full bg-emerald-50 p-1 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-200">
+                        <div className="flex w-full items-center justify-between gap-1 rounded-lg bg-emerald-50 p-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200">
                           <button type="button" onClick={() => updateQuantity(listing, (cart[listing.id] ?? 1) - 1)} className="h-8 w-8 rounded-full bg-white text-lg transition-transform duration-150 ease-out active:scale-95">−</button>
-                          <span className="min-w-8 text-center">{cart[listing.id]}</span>
+                          <span className="min-w-6 text-center">{cart[listing.id]}</span>
                           <button type="button" onClick={() => addToCart(listing)} className="h-8 w-8 rounded-full bg-white text-lg transition-transform duration-150 ease-out active:scale-95">+</button>
                         </div>
                       ) : (
                         <button
                           type="button"
                           onClick={() => addToCart(listing)}
-                          className="rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-95"
+                          className="mt-1 w-full rounded-lg bg-emerald-600 px-2 py-1.5 text-center text-xs font-semibold text-white transition-transform duration-150 ease-out active:scale-95"
                         >
-                          {t('marketplace.cart')}
+                          {t('common.addShort')}
                         </button>
                       )}
                     </div>
