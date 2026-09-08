@@ -9,6 +9,7 @@ import { aiService, type DemandForecast } from '../services/aiService'
 import { RetailMarketplace } from './RetailMarketplace'
 import { useTranslation } from 'react-i18next'
 import { getLocalizedCropName } from '../i18n'
+import type { RefreshRequest } from './PullToRefresh'
 
 const navItems = ['Home', 'My Crops', 'My Profile', 'Edit Listing', 'Orders', 'Demand Forecast', 'Earnings']
 
@@ -123,6 +124,25 @@ export function FarmerDashboard() {
       isMounted = false
     }
   }, [user?.phone])
+
+  useEffect(() => {
+    const handleRefresh = (event: Event) => {
+      const request = (event as CustomEvent<RefreshRequest>).detail
+      request.handled = true
+      void Promise.all([
+        dashboardService.getFarmerDashboard(),
+        listingService.getMyListings(),
+        orderService.getMyOrders(),
+      ]).then(([dashboardData, listingData, orderData]) => {
+        setDashboard(dashboardData)
+        setListings(listingData)
+        setOrders(orderData)
+      }).finally(request.resolve)
+    }
+
+    window.addEventListener('app-refresh-request', handleRefresh)
+    return () => window.removeEventListener('app-refresh-request', handleRefresh)
+  }, [])
 
   const isCurrentUserData = loadedUserPhone === user?.phone
   const currentDashboard = isCurrentUserData ? dashboard : null

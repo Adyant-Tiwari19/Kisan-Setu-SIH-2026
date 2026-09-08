@@ -8,6 +8,9 @@ import { API_BASE_URL } from '../services/apiClient'
 import { CropCardSkeleton } from './CropCardSkeleton'
 import { useTranslation } from 'react-i18next'
 import { getLocalizedCropName } from '../i18n'
+import type { RefreshRequest } from './PullToRefresh'
+import mapPinIcon from '../assets/map-pin.svg'
+import sproutIcon from '../assets/sprout.svg'
 
 const navItems = ['Home', 'Marketplace', 'Cart', 'Orders', 'Profile']
 const INITIAL_LISTING_LIMIT = 8
@@ -110,6 +113,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
   const [isSortOpen, setIsSortOpen] = useState(false)
   const [cart, setCart] = useState<Record<string | number, number>>({})
   const [quantityDrafts, setQuantityDrafts] = useState<Record<string | number, string>>({})
+  const [expandedListingId, setExpandedListingId] = useState<string | number | null>(null)
   const [dashboardMessage, setDashboardMessage] = useState('')
   const [allListings, setAllListings] = useState<MarketplaceListing[]>([])
   const [listings, setListings] = useState<MarketplaceListing[]>([])
@@ -183,6 +187,16 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
 
     return () => clearTimeout(timer)
   }, [activeNav, hideProfile, isProfileVisible])
+
+  useEffect(() => {
+    if (expandedListingId === null) return
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target
+      if (target instanceof Element && !target.closest('.marketplace-listing-card')) setExpandedListingId(null)
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [expandedListingId])
 
   const buyerOrders = useMemo(
     () => orders.filter((order) => currentUserId !== undefined && String(order.bid) === String(currentUserId)),
@@ -411,6 +425,22 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
     setDashboardMessage('')
     void loadCatalog()
   }
+
+  useEffect(() => {
+    const handleRefresh = (event: Event) => {
+      const request = (event as CustomEvent<RefreshRequest>).detail
+      request.handled = true
+      const refresh = activeNav === 'Orders'
+        ? orderService.getMyOrders().then((myOrders) => setOrders(myOrders))
+        : cropQuery.trim()
+          ? handleSearch()
+          : loadCatalog()
+      void refresh.finally(request.resolve)
+    }
+
+    window.addEventListener('app-refresh-request', handleRefresh)
+    return () => window.removeEventListener('app-refresh-request', handleRefresh)
+  }, [activeNav, cropQuery, loadCatalog])
 
   const placeOrder = async () => {
     if (isPlacingOrder || cartItems.length === 0) return
@@ -654,11 +684,16 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
             )}
 
             {searchStatus === 'success' && visibleProducts.length > 0 && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              <div className="marketplace-products-grid grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {visibleProducts.map((listing) => (
                   <article
                     key={String(listing.id)}
-                    className={`transform-gpu rounded-3xl bg-white p-4 transition-all duration-300 ease-out [perspective:1000px] hover:-translate-y-2 hover:scale-[1.02] hover:shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)] ${String(listing.id) === String(bestMatchId) ? 'border-2 border-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]' : 'ring-1 ring-slate-100'}`}
+                    onClick={(event) => {
+                      const target = event.target
+                      if (target instanceof Element && target.closest('button, input, a, select, textarea')) return
+                      setExpandedListingId((current) => String(current) === String(listing.id) ? null : listing.id)
+                    }}
+                    className={`marketplace-listing-card transform-gpu rounded-3xl bg-white p-4 transition-all duration-300 ease-out [perspective:1000px] hover:-translate-y-2 hover:scale-[1.02] hover:shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)] ${expandedListingId === listing.id ? 'mobile-listing-expanded' : ''} ${String(listing.id) === String(bestMatchId) ? 'border-2 border-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]' : 'ring-1 ring-slate-100'}`}
                   >
                     {String(listing.id) === String(bestMatchId) && (
                       <div className="mb-2 inline-flex rounded-tl-2xl rounded-br-2xl rounded-tr-sm rounded-bl-sm bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs animate-pulse">
@@ -694,6 +729,20 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                           }}
                         />
                       )}
+
+                      <style>{`
+                        .native-mobile-app .marketplace-products-grid {
+                          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                        }
+                        .native-mobile-app .marketplace-listing-card {
+                          min-width: 0;
+                          cursor: pointer;
+                        }
+                        .native-mobile-app .marketplace-listing-card.mobile-listing-expanded {
+                          grid-column: span 2 / span 2;
+                          transform: none;
+                        }
+                      `}</style>
                     </div>
 
                     <div className="mt-4 flex items-start justify-between gap-3">
@@ -712,14 +761,14 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                       </div>
                     </div>
 
-                    <div className="mt-4 space-y-2 text-sm text-slate-600">
-                      <div className="flex items-center justify-between">
-                        <span>{t('marketplace.distanceLabel')}</span>
-                        <span className="font-semibold text-slate-800">{formatDistance(listing.distance_km)}</span>
+                    <div className="mt-4 grid min-w-0 grid-cols-1 gap-2 text-sm text-slate-600">
+                      <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl bg-slate-50 px-2.5 py-2">
+                        <img src={mapPinIcon} alt="" aria-hidden="true" className="h-4 w-4 shrink-0" />
+                        <span className={`min-w-0 flex-1 text-right font-semibold text-slate-800 ${expandedListingId === listing.id ? 'break-words' : 'truncate'}`} title={formatDistance(listing.distance_km)}>{formatDistance(listing.distance_km)}</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span>{t('marketplace.harvested')}</span>
-                        <span className="font-semibold text-slate-800">
+                      <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl bg-slate-50 px-2.5 py-2">
+                        <img src={sproutIcon} alt="" aria-hidden="true" className="h-4 w-4 shrink-0" />
+                        <span className={`min-w-0 flex-1 text-right font-semibold text-slate-800 ${expandedListingId === listing.id ? 'break-words' : 'truncate'}`} title={formatHarvestDate(listing.harvested_at, listing.created_at)}>
                           {formatHarvestDate(listing.harvested_at, listing.created_at)}
                         </span>
                       </div>
@@ -808,9 +857,9 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
 
                   <div className="mt-4 space-y-3 text-sm text-slate-600">
                     {cartItems.map((listing) => (
-                      <div key={String(listing.id)} className="flex items-center justify-between">
-                        <span>{getLocalizedCropName(listing.crop_name)} × {cart[listing.id]}</span>
-                        <span className="font-bold text-slate-900">{formatLineTotal(listing, cart[listing.id] ?? 0)}</span>
+                      <div key={String(listing.id)} className="checkout-summary-row flex min-w-0 items-start justify-between gap-3">
+                        <span className="min-w-0 break-words">{getLocalizedCropName(listing.crop_name)} × {cart[listing.id]}</span>
+                        <span className="shrink-0 font-bold text-slate-900">{formatLineTotal(listing, cart[listing.id] ?? 0)}</span>
                       </div>
                     ))}
                     <div className="flex items-center justify-between">
@@ -856,12 +905,12 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                 <h3 className="text-xl font-black text-slate-900">{t('marketplace.cart')}</h3>
                 <div className="mt-4 space-y-3">
                   {cartItems.map((listing) => (
-                    <div key={String(listing.id)} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3">
-                      <div>
+                    <div key={String(listing.id)} className="cart-item flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3">
+                    <div className="min-w-0 flex-1">
                         <div className="font-bold text-slate-900">{getLocalizedCropName(listing.crop_name)}</div>
-                        <div className="text-sm text-slate-500">{t('marketplace.pricePerKg')}: {formatCurrency(listing.price_per_unit)} / kg</div>
+                      <div className="break-words text-sm text-slate-500">{t('marketplace.pricePerKg')}: {formatCurrency(listing.price_per_unit)} / kg</div>
                       </div>
-                      <div className="flex items-center gap-2">
+                    <div className="cart-controls flex shrink-0 items-center gap-2">
                         <button type="button" onClick={() => decrementQuantity(listing)} className="h-8 w-8 rounded-full bg-white text-lg ring-1 ring-slate-200">−</button>
                         <input
                           type="number"
@@ -900,7 +949,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                           onClick={() => removeFromCart(listing)}
                           aria-label={`Remove ${listing.crop_name} from cart`}
                           title="Remove from cart"
-                          className="flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-600 ring-1 ring-red-100 transition-colors hover:bg-red-100"
+                          className="cart-remove-button flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-600 ring-1 ring-red-100 transition-colors hover:bg-red-100"
                         >
                           <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M3 6h18" />
@@ -988,6 +1037,49 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
         </div>
       </div>
       <style>{`
+        .native-mobile-app #retail-cart .cart-item {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .native-mobile-app #retail-cart .cart-controls {
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+
+        .native-mobile-app #retail-cart .cart-controls input {
+          flex: 1 1 4.5rem;
+          min-width: 4.5rem;
+        }
+
+        .native-mobile-app #retail-cart .cart-controls .cart-remove-button {
+          flex: 0 0 auto;
+        }
+
+        .native-mobile-app #retail-cart {
+          min-width: 0;
+          overflow: hidden;
+        }
+
+        .native-mobile-app #retail-cart .checkout-summary-row {
+          min-width: 0;
+        }
+
+        @media (max-width: 480px) {
+          .native-mobile-app #retail-cart .cart-item {
+            gap: 0.75rem;
+          }
+
+          .native-mobile-app #retail-cart .cart-controls {
+            width: 100%;
+            justify-content: flex-start;
+          }
+
+          .native-mobile-app #retail-cart .cart-controls input {
+            flex: 1 1 5rem;
+          }
+        }
+
         @keyframes cart-spring {
           0% { transform: scale(1); }
           45% { transform: scale(1.16); }
