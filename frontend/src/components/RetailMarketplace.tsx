@@ -665,7 +665,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
             )}
 
             {searchStatus === 'loading' && (
-              <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid w-full grid-cols-2 gap-2.5 p-2 sm:grid-cols-3 lg:grid-cols-4">
                 <CropCardSkeleton />
                 <CropCardSkeleton />
                 <CropCardSkeleton />
@@ -700,7 +700,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                         {t('aiTopPick')}
                       </div>
                     )}
-                    <div className="mt-4 h-28 overflow-hidden rounded-tl-3xl rounded-br-3xl rounded-tr-lg rounded-bl-lg bg-linear-to-br from-emerald-200 via-lime-100 to-amber-100">
+                    <div className="h-24 w-full overflow-hidden rounded-xl bg-linear-to-br from-emerald-200 via-lime-100 to-amber-100 sm:h-32">
                       {getCropImageUrl(listing.sample_img_url) && (
                         <img
                           src={getCropImageUrl(listing.sample_img_url) || undefined}
@@ -745,11 +745,11 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                       `}</style>
                     </div>
 
-                    <div className="mt-4 flex items-start justify-between gap-3">
+                    <div className="mt-2 flex items-start justify-between gap-2">
                       <div>
                         <h3 className="text-2xl font-black text-slate-900">{getLocalizedCropName(listing.crop_name)}</h3>
                         {wholesale && (
-                          <div className="mt-2 space-y-1 text-sm text-slate-600">
+                          <div className="mt-1 space-y-0.5 text-[10px] text-slate-600">
                             {listing.farmer_name !== 'Not available' && (
                               <div><span className="font-semibold text-slate-800">{t('marketplace.farmer')}:</span> {listing.farmer_name}</div>
                             )}
@@ -774,19 +774,12 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                       </div>
                     </div>
 
-                    <div className="mt-5 rounded-2xl bg-slate-50 p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-500">{t('marketplace.pricePerKg')}</span>
-                        <span className="text-xl font-black text-slate-900">{formatCurrency(listing.price_per_unit)}</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-5 flex flex-wrap justify-end gap-2">
+                    <div className="mt-2 flex w-full flex-wrap gap-1.5">
                       {wholesale && (
                         <a
                           href={listing.farmer_phone ? `tel:${listing.farmer_phone}` : undefined}
                           aria-disabled={!listing.farmer_phone}
-                          className={`rounded-full px-4 py-2.5 text-sm font-semibold transition-transform duration-150 ease-out active:scale-95 ${listing.farmer_phone ? 'bg-slate-900 text-white' : 'cursor-not-allowed bg-slate-200 text-slate-400'}`}
+                          className={`w-full rounded-lg px-2 py-1.5 text-center text-xs font-semibold transition-transform duration-150 ease-out active:scale-95 ${listing.farmer_phone ? 'bg-slate-900 text-white' : 'cursor-not-allowed bg-slate-200 text-slate-400'}`}
                         >
                           {t('common.contactNow')}
                         </a>
@@ -801,9 +794,9 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                         <button
                           type="button"
                           onClick={() => addToCart(listing)}
-                          className="rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-transform duration-150 ease-out active:scale-95"
+                          className="mt-1 w-full rounded-lg bg-emerald-600 px-2 py-1.5 text-center text-xs font-semibold text-white transition-transform duration-150 ease-out active:scale-95"
                         >
-                          {t('marketplace.cart')}
+                          {t('common.addShort')}
                         </button>
                       )}
                     </div>
