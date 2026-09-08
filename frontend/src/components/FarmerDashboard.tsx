@@ -8,6 +8,7 @@ import { orderService, type Order } from '../services/orderService'
 import { aiService, type DemandForecast } from '../services/aiService'
 import { RetailMarketplace } from './RetailMarketplace'
 import { useTranslation } from 'react-i18next'
+import { getLocalizedCropName } from '../i18n'
 
 const navItems = ['Home', 'My Crops', 'My Profile', 'Edit Listing', 'Orders', 'Demand Forecast', 'Earnings']
 
@@ -144,7 +145,6 @@ export function FarmerDashboard() {
     setDashboardMessage('')
     if (label === 'Home') {
       if (isProfileVisible) toggleProfile()
-      navigate('/')
       return
     }
     if (label === 'Add Listing') {
@@ -347,7 +347,19 @@ export function FarmerDashboard() {
                   : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:text-emerald-700'
                   }`}
               >
-                {item === 'Home' ? t('common.home') : item === 'My Crops' ? t('common.myCrops') : item === 'My Profile' ? t('common.myProfile') : item === 'Orders' ? t('common.orders') : item}
+                {item === 'Home'
+                  ? t('common.home')
+                  : item === 'My Crops'
+                    ? t('common.myCrops')
+                    : item === 'My Profile'
+                      ? t('common.myProfile')
+                      : item === 'Orders'
+                        ? t('common.orders')
+                        : item === 'Edit Listing'
+                          ? t('farmer.editListing')
+                          : item === 'Demand Forecast'
+                            ? t('farmer.demandForecast')
+                            : t('farmer.earnings')}
               </button>
             ))}
           </div>
@@ -423,7 +435,7 @@ export function FarmerDashboard() {
                     <div key={item.lid} className="rounded-2xl bg-white/5 p-3">
                       <div className="flex items-center justify-between gap-2">
                         <div>
-                          <div className="text-base font-bold">{item.crop_name || 'Unnamed crop'}</div>
+                          <div className="text-base font-bold">{getLocalizedCropName(item.crop_name) || t('farmer.unnamedCrop')}</div>
                           <div className="text-xs text-slate-300">{formatQuantity(item.quantity_available)} {t('farmer.available').toLowerCase()}</div>
                         </div>
                         <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${item.is_active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
@@ -517,7 +529,7 @@ export function FarmerDashboard() {
                       <div>
                         <div className="font-bold text-slate-900">Order #{order.oid}</div>
                         <div className="text-sm text-slate-600">
-                          {order.crop_name || 'Crop not available'} · {formatQuantity(order.quantity)}
+                          {getLocalizedCropName(order.crop_name) || t('farmer.notAvailable')} · {formatQuantity(order.quantity)}
                         </div>
                       </div>
                       <button
@@ -560,7 +572,7 @@ export function FarmerDashboard() {
                         })()}
                       </div>
                       <div>
-                        <div className="text-base font-bold text-slate-900">{order.crop_name || t('farmer.notAvailable')}</div>
+                        <div className="text-base font-bold text-slate-900">{getLocalizedCropName(order.crop_name) || t('farmer.notAvailable')}</div>
                         <div className="text-sm text-slate-600">{order.buyer_name || 'Buyer not available'} · {formatQuantity(order.quantity)} · {formatCurrency(order.quantity ? Number(order.produce_price || 0) / order.quantity : 0)} / kg</div>
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 text-sm">
@@ -646,7 +658,7 @@ export function FarmerDashboard() {
                           }}
                         />
                       </div>
-                      <h3 className="mt-4 text-2xl font-black text-slate-900">{listing.crop_name || 'Unnamed crop'}</h3>
+                      <h3 className="mt-4 text-2xl font-black text-slate-900">{getLocalizedCropName(listing.crop_name) || t('farmer.unnamedCrop')}</h3>
                       <div className="mt-3 space-y-2 text-sm text-slate-600">
                         <div className="flex justify-between"><span>Available</span><span className="font-semibold text-slate-800">{formatQuantity(listing.quantity_available)}</span></div>
                         <div className="flex justify-between"><span>{t('farmer.pricePlaceholder')}</span><span className="font-semibold text-slate-800">{formatCurrency(listing.price_per_unit)}</span></div>
@@ -693,7 +705,7 @@ export function FarmerDashboard() {
                     <article key={forecast.crop_id} className="rounded-[1.25rem] border border-slate-100 bg-slate-50 p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <h4 className="font-bold text-slate-900">{forecast.crop_name}</h4>
+                          <h4 className="font-bold text-slate-900">{getLocalizedCropName(forecast.crop_name) || t('farmer.notAvailable')}</h4>
                           <p className="mt-1 text-xs text-slate-500">Next demand estimate · {forecast.search_radius_km} km radius</p>
                         </div>
                         <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${hasSurplus ? 'bg-sky-100 text-sky-700' : 'bg-orange-100 text-orange-700'}`}>

@@ -3,12 +3,8 @@
  * Handles authentication header injection, standard REST methods, and network error resilience.
  */
 
-import { Capacitor } from "@capacitor/core"
-
 const defaultApiBaseUrl =
-  Capacitor.getPlatform() === 'android'
-    ? 'https://farm-direct-qw93.onrender.com/api/v1'
-    : 'http://localhost:8000/api/v1'
+  'https://farm-direct-qw93.onrender.com/api/v1'
 
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || defaultApiBaseUrl).replace(/\/$/, '')
 

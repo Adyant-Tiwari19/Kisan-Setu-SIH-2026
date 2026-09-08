@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from 'react-i18next'
+import i18n from '../i18n'
 import logo from '../assets/logomain.png'
 
 export function DashboardHeader() {
@@ -63,6 +64,15 @@ export function DashboardHeader() {
 
         {/* Right Menu Area */}
         <div ref={menuRef} className="relative flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void i18n.changeLanguage(i18n.language === 'hi' ? 'en' : 'hi')}
+            aria-label={t('common.changeLanguage')}
+            className="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-sm font-bold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-50"
+          >
+            🌐 {i18n.language === 'hi' ? 'हिंदी' : 'EN'}
+          </button>
+
           {/* Profile Menu Dropdown */}
           <div className="relative">
             <button

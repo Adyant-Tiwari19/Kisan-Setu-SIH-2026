@@ -27,6 +27,7 @@ const resources = {
         home: 'Home',
         marketplace: 'Marketplace',
         cart: 'Cart',
+        contactNow: 'Contact now',
         orders: 'Orders',
         profile: 'Profile',
         myCrops: 'My Crops',
@@ -58,6 +59,7 @@ const resources = {
         searchCrop: 'Search crop',
         relevance: 'Relevance',
         distance: 'Distance: Nearest first',
+        distanceLabel: 'Distance',
         priceLow: 'Price: Low to high',
         priceHigh: 'Price: High to low',
         dashboard: 'Marketplace',
@@ -145,6 +147,7 @@ const resources = {
         harvested: 'Harvested',
         editListing: 'Edit Listing',
         demandForecast: 'Demand forecast',
+        earnings: 'Earnings',
         predictedDemand: 'Predicted demand',
         activeSupply: 'Active supply',
         supplyGap: 'Supply gap',
@@ -330,6 +333,7 @@ const resources = {
         home: 'होम',
         marketplace: 'मार्केटप्लेस',
         cart: 'कार्ट',
+        contactNow: 'अभी संपर्क करें',
         orders: 'ऑर्डर',
         profile: 'प्रोफ़ाइल',
         myCrops: 'मेरी फसलें',
@@ -361,6 +365,7 @@ const resources = {
         searchCrop: 'फसल खोजें',
         relevance: 'प्रासंगिकता',
         distance: 'दूरी: सबसे पास पहले',
+        distanceLabel: 'दूरी',
         priceLow: 'कीमत: कम से अधिक',
         priceHigh: 'कीमत: अधिक से कम',
         dashboard: 'मार्केटप्लेस',
@@ -448,6 +453,7 @@ const resources = {
         harvested: 'कटाई',
         editListing: 'लिस्टिंग संपादित करें',
         demandForecast: 'मांग का पूर्वानुमान',
+        earnings: 'आय',
         predictedDemand: 'अनुमानित मांग',
         activeSupply: 'सक्रिय आपूर्ति',
         supplyGap: 'आपूर्ति अंतर',
@@ -609,6 +615,44 @@ const resources = {
       },
     },
   },
+}
+
+const hindiCropNames: Record<string, string> = {
+  apple: 'सेब',
+  apples: 'सेब',
+  banana: 'केला',
+  bananas: 'केले',
+  brinjal: 'बैंगन',
+  cabbage: 'पत्तागोभी',
+  carrot: 'गाजर',
+  cauliflower: 'फूलगोभी',
+  chilli: 'मिर्च',
+  chilies: 'मिर्च',
+  chili: 'मिर्च',
+  corn: 'मक्का',
+  cucumber: 'खीरा',
+  garlic: 'लहसुन',
+  ginger: 'अदरक',
+  grapes: 'अंगूर',
+  mango: 'आम',
+  maize: 'मक्का',
+  okra: 'भिंडी',
+  onion: 'प्याज़',
+  onions: 'प्याज़',
+  potato: 'आलू',
+  potatoes: 'आलू',
+  peas: 'मटर',
+  rice: 'चावल',
+  spinach: 'पालक',
+  tomato: 'टमाटर',
+  tomatoes: 'टमाटर',
+  wheat: 'गेहूं',
+}
+
+export const getLocalizedCropName = (cropName: string | null | undefined, language?: string) => {
+  const name = cropName?.trim()
+  if (!name || (language || i18n.language) !== 'hi') return name || ''
+  return hindiCropNames[name.toLowerCase()] || name
 }
 
 void i18n

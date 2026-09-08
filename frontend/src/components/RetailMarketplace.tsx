@@ -7,8 +7,10 @@ import { authService, type User } from '../services/authService'
 import { API_BASE_URL } from '../services/apiClient'
 import { CropCardSkeleton } from './CropCardSkeleton'
 import { useTranslation } from 'react-i18next'
+import { getLocalizedCropName } from '../i18n'
 
 const navItems = ['Home', 'Marketplace', 'Cart', 'Orders', 'Profile']
+const INITIAL_LISTING_LIMIT = 8
 const searchLatitude = '28.6139'
 const searchLongitude = '77.2090'
 type SortMode = 'relevance' | 'distance' | 'price-low-high' | 'price-high-low'
@@ -107,6 +109,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
   const [sortMode, setSortMode] = useState<SortMode>('relevance')
   const [isSortOpen, setIsSortOpen] = useState(false)
   const [cart, setCart] = useState<Record<string | number, number>>({})
+  const [quantityDrafts, setQuantityDrafts] = useState<Record<string | number, string>>({})
   const [dashboardMessage, setDashboardMessage] = useState('')
   const [allListings, setAllListings] = useState<MarketplaceListing[]>([])
   const [listings, setListings] = useState<MarketplaceListing[]>([])
@@ -151,7 +154,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
         String(listing.farmer_id) !== String(currentUserId)
       ))
       setAllListings(visibleCatalog)
-      setListings(visibleCatalog)
+      setListings(visibleCatalog.slice(0, INITIAL_LISTING_LIMIT))
       setSearchStatus(visibleCatalog.length ? 'success' : 'empty')
     } catch {
       setAllListings([])
@@ -288,11 +291,36 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
     }
     setCart((current) => {
       const next = { ...current }
-      if (quantity <= 0) delete next[listing.id]
-      else next[listing.id] = quantity
+      if (quantity > 0) next[listing.id] = quantity
+      return next
+    })
+    if (quantity > 0) {
+      setQuantityDrafts((current) => ({ ...current, [listing.id]: String(quantity) }))
+    }
+    setOrderPlaced(false)
+  }
+
+  const removeFromCart = (listing: MarketplaceListing) => {
+    setCart((current) => {
+      const next = { ...current }
+      delete next[listing.id]
+      return next
+    })
+    setQuantityDrafts((current) => {
+      const next = { ...current }
+      delete next[listing.id]
       return next
     })
     setOrderPlaced(false)
+  }
+
+  const decrementQuantity = (listing: MarketplaceListing) => {
+    const currentQuantity = cart[listing.id] ?? 0
+    if (currentQuantity <= 1) {
+      removeFromCart(listing)
+      return
+    }
+    updateQuantity(listing, currentQuantity - 1)
   }
 
   const addToCart = (listing: MarketplaceListing) => {
@@ -306,7 +334,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
 
     if (!trimmedCrop) {
       setValidationMessage('')
-      setListings(allListings)
+      setListings(allListings.slice(0, INITIAL_LISTING_LIMIT))
       setSearchStatus(allListings.length ? 'success' : 'empty')
       return
     }
@@ -443,7 +471,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                   if (item === 'Home') {
                     if (isProfileVisible) toggleProfile()
                     resetMarketplace()
-                    navigate('/')
+                    setActiveNav('Marketplace')
                     return
                   }
                   if (isProfileVisible) toggleProfile()
@@ -477,12 +505,6 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                   { label: t('mobileNumber'), value: profileUser?.phone },
                   { label: t('address'), value: profileUser?.address },
                   { label: t('pincode'), value: profileUser?.pincode },
-                  ...(wholesale
-                    ? [
-                        { label: 'Email address', value: profileUser?.email },
-                        { label: 'Organization', value: profileUser?.organization },
-                      ]
-                    : []),
                 ].map((detail) => (
                   <div key={detail.label} className="rounded-xl bg-slate-50 p-3">
                     <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{detail.label}</div>
@@ -676,7 +698,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
 
                     <div className="mt-4 flex items-start justify-between gap-3">
                       <div>
-                        <h3 className="text-2xl font-black text-slate-900">{listing.crop_name}</h3>
+                        <h3 className="text-2xl font-black text-slate-900">{getLocalizedCropName(listing.crop_name)}</h3>
                         {wholesale && (
                           <div className="mt-2 space-y-1 text-sm text-slate-600">
                             {listing.farmer_name !== 'Not available' && (
@@ -692,7 +714,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
 
                     <div className="mt-4 space-y-2 text-sm text-slate-600">
                       <div className="flex items-center justify-between">
-                        <span>{t('marketplace.distance')}</span>
+                        <span>{t('marketplace.distanceLabel')}</span>
                         <span className="font-semibold text-slate-800">{formatDistance(listing.distance_km)}</span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -717,12 +739,12 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                           aria-disabled={!listing.farmer_phone}
                           className={`rounded-full px-4 py-2.5 text-sm font-semibold transition-transform duration-150 ease-out active:scale-95 ${listing.farmer_phone ? 'bg-slate-900 text-white' : 'cursor-not-allowed bg-slate-200 text-slate-400'}`}
                         >
-                          {t('common.joinNow')}
+                          {t('common.contactNow')}
                         </a>
                       )}
                       {cart[listing.id] ? (
                         <div className="flex items-center gap-2 rounded-full bg-emerald-50 p-1 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-200">
-                          <button type="button" onClick={() => updateQuantity(listing, (cart[listing.id] ?? 1) - 1)} className="h-8 w-8 rounded-full bg-white text-lg transition-transform duration-150 ease-out active:scale-95">−</button>
+                          <button type="button" onClick={() => decrementQuantity(listing)} className="h-8 w-8 rounded-full bg-white text-lg transition-transform duration-150 ease-out active:scale-95">−</button>
                           <span className="min-w-8 text-center">{cart[listing.id]}</span>
                           <button type="button" onClick={() => addToCart(listing)} className="h-8 w-8 rounded-full bg-white text-lg transition-transform duration-150 ease-out active:scale-95">+</button>
                         </div>
@@ -787,7 +809,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                   <div className="mt-4 space-y-3 text-sm text-slate-600">
                     {cartItems.map((listing) => (
                       <div key={String(listing.id)} className="flex items-center justify-between">
-                        <span>{listing.crop_name} × {cart[listing.id]}</span>
+                        <span>{getLocalizedCropName(listing.crop_name)} × {cart[listing.id]}</span>
                         <span className="font-bold text-slate-900">{formatLineTotal(listing, cart[listing.id] ?? 0)}</span>
                       </div>
                     ))}
@@ -836,23 +858,36 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                   {cartItems.map((listing) => (
                     <div key={String(listing.id)} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3">
                       <div>
-                        <div className="font-bold text-slate-900">{listing.crop_name}</div>
+                        <div className="font-bold text-slate-900">{getLocalizedCropName(listing.crop_name)}</div>
                         <div className="text-sm text-slate-500">{t('marketplace.pricePerKg')}: {formatCurrency(listing.price_per_unit)} / kg</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button type="button" onClick={() => updateQuantity(listing, (cart[listing.id] ?? 1) - 1)} className="h-8 w-8 rounded-full bg-white text-lg ring-1 ring-slate-200">−</button>
+                        <button type="button" onClick={() => decrementQuantity(listing)} className="h-8 w-8 rounded-full bg-white text-lg ring-1 ring-slate-200">−</button>
                         <input
                           type="number"
-                          min="0"
+                          min="1"
                           max={listing.quantity_available ?? undefined}
                           step="any"
-                          value={cart[listing.id] ?? 0}
+                          value={quantityDrafts[listing.id] ?? String(cart[listing.id] ?? 1)}
                           onChange={(event) => {
-                            const value = Number(event.target.value)
-                            if (event.target.value === '') {
-                              updateQuantity(listing, 0)
-                            } else if (Number.isFinite(value) && value >= 0) {
-                              updateQuantity(listing, value)
+                            const rawValue = event.target.value
+                            const value = Number(rawValue)
+                            const availableQuantity = listing.quantity_available ?? 0
+                            if (rawValue === '') {
+                              setQuantityDrafts((current) => ({ ...current, [listing.id]: rawValue }))
+                            } else if (Number.isFinite(value) && value >= 1) {
+                              const clampedValue = Math.min(value, availableQuantity)
+                              setQuantityDrafts((current) => ({ ...current, [listing.id]: String(clampedValue) }))
+                              updateQuantity(listing, clampedValue)
+                            }
+                          }}
+                          onBlur={() => {
+                            if (!quantityDrafts[listing.id]?.trim()) {
+                              setQuantityDrafts((current) => {
+                                const next = { ...current }
+                                delete next[listing.id]
+                                return next
+                              })
                             }
                           }}
                           aria-label={t('marketplace.openCart', { count: cart[listing.id], itemLabel: listing.crop_name })}
@@ -860,6 +895,20 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                         />
                         <span className="text-xs font-semibold text-slate-500">kg</span>
                         <button type="button" onClick={() => addToCart(listing)} className="h-8 w-8 rounded-full bg-white text-lg ring-1 ring-slate-200">+</button>
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(listing)}
+                          aria-label={`Remove ${listing.crop_name} from cart`}
+                          title="Remove from cart"
+                          className="flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-600 ring-1 ring-red-100 transition-colors hover:bg-red-100"
+                        >
+                          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18" />
+                            <path d="M8 6V4h8v2" />
+                            <path d="M19 6l-1 14H6L5 6" />
+                            <path d="M10 11v5M14 11v5" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -907,7 +956,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                     })()}
                   </div>
                   <div>
-                    <div className="text-base font-bold text-slate-900">{order.crop_name || 'Crop not available'}</div>
+                    <div className="text-base font-bold text-slate-900">{getLocalizedCropName(order.crop_name) || t('marketplace.notAvailable')}</div>
                     <div className="text-sm text-slate-600">{order.quantity} kg · {formatCurrency(order.quantity ? Number(order.produce_price || 0) / order.quantity : 0)} / kg</div>
                   </div>
                   <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-sm">

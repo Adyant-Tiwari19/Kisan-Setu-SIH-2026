@@ -9,8 +9,6 @@ export function EditProfile() {
   const { user } = useAuth()
   const { t } = useTranslation()
   const [name, setName] = useState(user?.name || '')
-  const [email, setEmail] = useState(user?.email || '')
-  const [organization, setOrganization] = useState(user?.organization || '')
   const [address, setAddress] = useState(user?.address || '')
   const [pincode, setPincode] = useState(user?.pincode || '')
   const [accountNumber, setAccountNumber] = useState(user?.account_num || '')
@@ -23,7 +21,6 @@ export function EditProfile() {
   }
 
   const isFarmer = user.role === 'farmer'
-  const isBulkBuyer = user.role === 'bulk-buyer'
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -31,11 +28,6 @@ export function EditProfile() {
 
     if (!name.trim() || !address.trim() || !/^\d{6}$/.test(pincode.trim())) {
       setError('Enter a name, address, and valid 6-digit pincode.')
-      return
-    }
-
-    if (isBulkBuyer && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError('Enter a valid email address.')
       return
     }
 
@@ -55,7 +47,6 @@ export function EditProfile() {
         name,
         address,
         pincode,
-        ...(isBulkBuyer ? { email, organization } : {}),
         ...(isFarmer ? { account_num: accountNumber, ifsc } : {}),
       })
       navigate(-1)
@@ -91,19 +82,6 @@ export function EditProfile() {
               <input value={user.phone} readOnly className="mt-2 w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500" />
             </label>
           </div>
-
-          {isBulkBuyer && (
-            <div className="grid gap-5 md:grid-cols-2">
-              <label className="text-sm font-semibold text-slate-700">
-                Email address
-                <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" />
-              </label>
-              <label className="text-sm font-semibold text-slate-700">
-                Organization
-                <input value={organization} onChange={(event) => setOrganization(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" />
-              </label>
-            </div>
-          )}
 
           <label className="block text-sm font-semibold text-slate-700">
             {t('address')}

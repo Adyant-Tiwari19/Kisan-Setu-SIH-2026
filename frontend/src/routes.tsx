@@ -9,6 +9,23 @@ import { HowItWorks } from './components/HowItWorks'
 import { Benefits } from './components/Benefits'
 import { EditProfile } from './components/EditProfile'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { useAuth } from './context/AuthContext'
+import { Capacitor } from '@capacitor/core'
+
+function StartupRoute() {
+  const { user, isLoading } = useAuth()
+
+  if (isLoading) return null
+  if (!Capacitor.isNativePlatform() || !user) return null
+
+  const dashboardPath = user.backendRole === 'FARMER_FPO' || user.role === 'farmer'
+    ? '/farmer'
+    : user.backendRole === 'BULK_BUYER' || user.role === 'bulk-buyer'
+      ? '/buyer'
+      : '/retailer'
+
+  return <Navigate to={dashboardPath} replace />
+}
 
 export function AppRoutes() {
   return (
@@ -16,6 +33,7 @@ export function AppRoutes() {
       <Route path="/" element={<AppShell />}>
         <Route index element={
           <>
+            <StartupRoute />
             <Hero />
             <HowItWorks />
             <Benefits />
