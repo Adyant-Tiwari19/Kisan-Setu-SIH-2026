@@ -125,7 +125,7 @@ class ApiClient {
    */
   async isOnline(): Promise<boolean> {
     try {
-      const res = await fetch(API_BASE_URL.replace('/api/v1', '') || 'http://localhost:8000', {
+      const res = await fetch(API_BASE_URL.replace('/api/v1', '') || 'https://farm-direct-qw93.onrender.com/', {
         method: 'GET',
         signal: AbortSignal.timeout(1500),
       })

@@ -7,6 +7,8 @@ const resources = {
     translation: {
       close: 'Close',
       aiTopPick: 'AI Top Pick',
+      noOrdersReceivedYet: 'No orders received yet',
+      addCropToReceiveOrders: 'List your fresh crops to start receiving orders from local buyers.',
       pincode: 'Pincode',
       mobileNumber: 'Mobile number',
       address: 'Address',
@@ -313,6 +315,8 @@ const resources = {
     translation: {
       close: 'बंद करें',
       aiTopPick: 'सर्वश्रेष्ठ पसंद ✨',
+      noOrdersReceivedYet: 'अभी तक कोई ऑर्डर नहीं मिला है',
+      addCropToReceiveOrders: 'स्थानीय खरीदारों से ऑर्डर प्राप्त करना शुरू करने के लिए अपनी फसल सूचीबद्ध करें।',
       pincode: 'पिनकोड',
       mobileNumber: 'मोबाइल नंबर',
       address: 'पता',

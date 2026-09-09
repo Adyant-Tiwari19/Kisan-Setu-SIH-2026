@@ -75,33 +75,33 @@ export function EditProfile() {
           <div className="grid gap-5 md:grid-cols-2">
             <label className="text-sm font-semibold text-slate-700">
               {t('name')}
-              <input value={name} onChange={(event) => setName(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" required />
+              <input value={name} onChange={(event) => setName(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-xs transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
             </label>
             <label className="text-sm font-semibold text-slate-700">
               {t('mobileNumber')}
-              <input value={user.phone} readOnly className="mt-2 w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500" />
+              <input value={user.phone} readOnly className="mt-2 w-full cursor-not-allowed rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-xs transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-600" />
             </label>
           </div>
 
           <label className="block text-sm font-semibold text-slate-700">
             {t('address')}
-            <textarea value={address} onChange={(event) => setAddress(event.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" required />
+            <textarea value={address} onChange={(event) => setAddress(event.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-xs transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
           </label>
 
           <label className="block text-sm font-semibold text-slate-700">
             {t('pincode')}
-            <input value={pincode} onChange={(event) => setPincode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" maxLength={6} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" required />
+            <input value={pincode} onChange={(event) => setPincode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" maxLength={6} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-xs transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-600" required />
           </label>
 
           {isFarmer && (
             <div className="grid gap-5 md:grid-cols-2">
               <label className="text-sm font-semibold text-slate-700">
                 Account number
-                <input value={accountNumber} onChange={(event) => setAccountNumber(event.target.value.replace(/\D/g, '').slice(0, 18))} inputMode="numeric" className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" />
+                <input value={accountNumber} onChange={(event) => setAccountNumber(event.target.value.replace(/\D/g, '').slice(0, 18))} inputMode="numeric" className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-xs transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-600" />
               </label>
               <label className="text-sm font-semibold text-slate-700">
                 IFSC code
-                <input value={ifsc} onChange={(event) => setIfsc(event.target.value.toUpperCase().slice(0, 11))} maxLength={11} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" />
+                <input value={ifsc} onChange={(event) => setIfsc(event.target.value.toUpperCase().slice(0, 11))} maxLength={11} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-xs transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-600" />
               </label>
             </div>
           )}

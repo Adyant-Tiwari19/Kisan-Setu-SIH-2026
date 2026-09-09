@@ -1,5 +1,18 @@
 @import 'tailwindcss';
 
+@layer base {
+  input[type='text'],
+  input[type='number'],
+  input[type='tel'],
+  input[type='email'],
+  input[type='password'],
+  textarea,
+  select {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+}
+
 @font-face {
   font-family: 'Montserrat Alternates';
   src: url('/fonts/MontserratAlternates-Regular.ttf') format('truetype');

@@ -457,7 +457,7 @@ export function FarmerDashboard() {
                 </div>
                 <div className="mt-4 space-y-3">
                   {!isLoading && isCurrentUserData && currentListings.length === 0 && (
-                    <div className="rounded-2xl bg-white/5 p-3 text-sm text-slate-300">{t('farmer.noListings')}</div>
+                    <div className="rounded-2xl bg-white/90 p-3 text-xs font-medium text-slate-800 sm:text-sm">{t('farmer.noListings')}</div>
                   )}
                   {currentListings.map((item) => (
                     <div key={item.lid} className="rounded-2xl bg-[#C2D0BF] p-3 text-black">
@@ -498,7 +498,7 @@ export function FarmerDashboard() {
                                 min="0"
                                 value={values.quantity}
                                 onChange={(event) => setListingEditValues((current) => ({ ...current, [item.lid]: { ...values, quantity: event.target.value } }))}
-                                className="mt-1 w-full rounded-xl border-0 bg-white px-3 py-2 text-sm text-slate-900"
+                                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-xs transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-600"
                               />
                             </label>
                             <label className="text-xs font-semibold text-black">
@@ -509,7 +509,7 @@ export function FarmerDashboard() {
                                 step="0.01"
                                 value={values.price}
                                 onChange={(event) => setListingEditValues((current) => ({ ...current, [item.lid]: { ...values, price: event.target.value } }))}
-                                className="mt-1 w-full rounded-xl border-0 bg-white px-3 py-2 text-sm text-slate-900"
+                                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-xs transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-600"
                               />
                             </label>
                             <button type="button" disabled={isUpdating} onClick={() => void updateListing(item)} className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50">
@@ -548,7 +548,7 @@ export function FarmerDashboard() {
                 </div>
                 <div className="mt-4 space-y-3">
                   {currentOrders.filter((order) => order.status === 'clustered').length === 0 && (
-                    <div className="rounded-2xl bg-emerald-50 p-3 text-sm text-slate-600">
+                    <div className="rounded-2xl bg-emerald-50 p-3 text-xs font-medium text-slate-700 sm:text-sm">
                       {t('farmer.noOrders')}
                     </div>
                   )}
@@ -582,11 +582,20 @@ export function FarmerDashboard() {
 
                 <div className="mt-4 space-y-3">
                   {!isLoading && isCurrentUserData && currentOrders.length === 0 && (
-                    <div className="rounded-2xl border border-emerald-100 bg-white p-6 text-center shadow-sm">
-                      <div className="text-3xl" aria-hidden="true">🛍️</div>
-                      <p className="mt-2 font-bold text-slate-900">{t('farmer.noOrders')}</p>
-                      <button type="button" onClick={() => { setIsRetailMode(true) }} className="mt-4 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
-                        {t('common.browseMarketplace')}
+                    <div className="flex flex-col items-center justify-center space-y-3 rounded-2xl border border-emerald-100 bg-white p-6 text-center shadow-sm">
+                      <span className="text-2xl" aria-hidden="true">📦</span>
+                      <p className="text-sm font-semibold text-slate-800">
+                        {t('noOrdersReceivedYet', 'No orders received yet')}
+                      </p>
+                      <p className="max-w-xs text-xs text-slate-500">
+                        {t('addCropToReceiveOrders', 'List your fresh crops to start receiving orders from local buyers.')}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowListingForm(true)}
+                        className="mt-1 rounded-xl bg-emerald-800 px-4 py-2 text-xs font-semibold text-white transition-transform hover:bg-emerald-900 active:scale-95"
+                      >
+                        + {t('common.addCrop', 'Add Crop')}
                       </button>
                     </div>
                   )}
@@ -639,13 +648,13 @@ export function FarmerDashboard() {
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <label className="text-sm font-semibold text-slate-700">Crop Name
-                <input required value={listingName} onChange={(event) => setListingName(event.target.value)} placeholder={t('farmer.cropNamePlaceholder')} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
+                <input required value={listingName} onChange={(event) => setListingName(event.target.value)} placeholder={t('farmer.cropNamePlaceholder')} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-xs transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-600" />
               </label>
               <label className="text-sm font-semibold text-slate-700">Available Quantity (kg)
-                <input required type="number" min="1" value={listingQuantity} onChange={(event) => setListingQuantity(event.target.value)} placeholder={t('farmer.quantityPlaceholder')} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
+                <input required type="number" min="1" value={listingQuantity} onChange={(event) => setListingQuantity(event.target.value)} placeholder={t('farmer.quantityPlaceholder')} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-xs transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-600" />
               </label>
               <label className="text-sm font-semibold text-slate-700">Price per kg (₹)
-                <input required type="number" min="1" value={listingPrice} onChange={(event) => setListingPrice(event.target.value)} placeholder={t('farmer.pricePlaceholder')} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100" />
+                <input required type="number" min="1" value={listingPrice} onChange={(event) => setListingPrice(event.target.value)} placeholder={t('farmer.pricePlaceholder')} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-xs transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-600" />
               </label>
             </div>
             <button
@@ -670,7 +679,7 @@ export function FarmerDashboard() {
                 <button type="button" onClick={() => handleNavClick('Edit Listing')} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">{t('farmer.editListings')}</button>
               </div>
               {currentListings.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">{t('farmer.noCrops')}</div>
+                <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-xs font-medium text-slate-700 sm:text-sm">{t('farmer.noCrops')}</div>
               ) : (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {currentListings.map((listing) => (
@@ -714,13 +723,13 @@ export function FarmerDashboard() {
               </div>
             )}
             {!isLoadingDemandForecasts && currentListings.filter((listing) => listing.is_active).length === 0 && (
-              <div className="mt-4 rounded-[1.25rem] bg-white/10 p-4 text-sm text-white">
+              <div className="mt-4 rounded-[1.25rem] bg-white/90 p-4 text-xs font-medium text-slate-800 sm:text-sm">
                 Activate a crop listing to see its local demand forecast.
               </div>
             )}
 
             {!isLoadingDemandForecasts && currentListings.filter((listing) => listing.is_active).length > 0 && Object.keys(demandForecasts).length === 0 && (
-              <div className="mt-4 rounded-[1.25rem] bg-white/10 p-4 text-sm text-white">
+              <div className="mt-4 rounded-[1.25rem] bg-white/90 p-4 text-xs font-medium text-slate-800 sm:text-sm">
                 Demand forecasts are temporarily unavailable. Please try again after checking your farm location.
               </div>
             )}

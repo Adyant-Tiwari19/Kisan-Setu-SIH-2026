@@ -573,7 +573,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                     }, 350)
                   }}
                   placeholder={t('marketplace.searchCrop')}
-                  className="w-full rounded-full border border-emerald-100/80 bg-white/70 px-5 py-3 text-sm text-slate-800 shadow-inner focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-xs transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-600"
                 />
               </div>
 
@@ -655,10 +655,10 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
           {(activeNav === 'Home' || activeNav === 'Marketplace') && (
           <div id="retail-products" className="scroll-mt-24 mt-6" aria-live="polite">
             {searchStatus === 'empty' && !cropQuery.trim() && (
-              <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-700">
                 <div className="text-3xl">🧺</div>
                 <h3 className="mt-4 text-xl font-black text-slate-900">{t('marketplace.searchHeading')}</h3>
-                <p className="mt-2 text-sm text-slate-500">{t('marketplace.searchDescription')}</p>
+                <p className="mt-2 text-xs font-medium text-slate-700 sm:text-sm">{t('marketplace.searchDescription')}</p>
               </div>
             )}
 
@@ -672,12 +672,12 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
             )}
 
             {searchStatus === 'empty' && (
-              <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-700">
                 <div className="text-3xl">📍</div>
                 <h3 className="mt-4 text-xl font-black text-slate-900">
                   {t('marketplace.noResults')}: {cropQuery.trim()}.
                 </h3>
-                <p className="mt-2 text-sm text-slate-500">{t('marketplace.tryAnotherCrop')}</p>
+                <p className="mt-2 text-xs font-medium text-slate-700 sm:text-sm">{t('marketplace.tryAnotherCrop')}</p>
               </div>
             )}
 
@@ -931,7 +931,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                             }
                           }}
                           aria-label={t('marketplace.openCart', { count: cart[listing.id], itemLabel: listing.crop_name })}
-                          className="h-8 w-20 rounded-lg border border-slate-200 bg-white px-2 text-center text-sm font-bold text-slate-900"
+                          className="h-8 w-20 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-slate-900 shadow-xs transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-600"
                         />
                         <span className="text-xs font-semibold text-slate-500">kg</span>
                         <button type="button" onClick={() => addToCart(listing)} className="h-8 w-8 rounded-full bg-white text-lg ring-1 ring-slate-200">+</button>
@@ -980,7 +980,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
               {!buyerOrders.length && (
                 <div className="rounded-2xl border border-emerald-100 bg-white p-6 text-center shadow-sm">
                   <div className="text-3xl" aria-hidden="true">🛍️</div>
-                  <p className="mt-2 font-bold text-slate-900">{t('marketplace.noOrders')}</p>
+                  <p className="mt-2 text-xs font-medium text-slate-700 sm:text-sm">{t('marketplace.noOrders')}</p>
                   <button type="button" onClick={() => { setActiveNav('Marketplace'); scrollToSection('retail-products') }} className="mt-4 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
                     {t('marketplace.browseMarketplace')}
                   </button>
