@@ -577,8 +577,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                 />
               </div>
 
-              {!wholesale && (
-                <div className="relative flex min-w-[160px] flex-1 items-center gap-2 whitespace-nowrap text-sm font-semibold text-slate-700">
+              <div className="relative flex min-w-[160px] flex-1 items-center gap-2 whitespace-nowrap text-sm font-semibold text-slate-700">
                   <div className="flex min-w-0 flex-1 items-center gap-2">
                     <span>{t('common.sortBy')}</span>
                     <button
@@ -624,8 +623,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                       </div>
                     </>
                   )}
-                </div>
-              )}
+              </div>
 
               <button
                 type="button"
@@ -749,7 +747,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                       <div>
                         <h3 className="text-2xl font-black text-slate-900">{getLocalizedCropName(listing.crop_name)}</h3>
                         {wholesale && (
-                          <div className="mt-1 space-y-0.5 text-[10px] text-slate-600">
+                          <div className="mt-1 space-y-0.5 text-sm text-slate-600">
                             {listing.farmer_name !== 'Not available' && (
                               <div><span className="font-semibold text-slate-800">{t('marketplace.farmer')}:</span> {listing.farmer_name}</div>
                             )}
@@ -796,7 +794,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                           onClick={() => addToCart(listing)}
                           className="mt-1 w-full rounded-lg bg-emerald-600 px-2 py-1.5 text-center text-xs font-semibold text-white transition-transform duration-150 ease-out active:scale-95"
                         >
-                          {t('common.addShort')}
+                          {t('common.cart')}
                         </button>
                       )}
                     </div>
@@ -818,41 +816,41 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                   type="button"
                   disabled={isPlacingOrder}
                   onClick={() => setShowCheckout(false)}
-                  className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-full border border-black/20 bg-[#C2D0BF] px-4 py-2 text-sm font-semibold text-black disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {t('marketplace.cart')}
                 </button>
               </div>
 
               <div className="mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-                <div className="space-y-4 rounded-3xl bg-white/5 p-4">
+                <div className="space-y-4 rounded-3xl bg-[#C2D0BF] p-4 text-black">
                   <div>
-                    <div className="mb-2 text-sm text-slate-300">{t('marketplace.deliveryAddress')}</div>
-                    <div className="rounded-2xl bg-white/10 p-3 text-sm leading-7 text-slate-100">
+                    <div className="mb-2 text-sm font-bold text-black">{t('marketplace.deliveryAddress')}</div>
+                    <div className="rounded-2xl bg-black/5 p-3 text-sm leading-7 text-black">
                       {user?.address || t('marketplace.notAvailable')}
                       {user?.pincode && <><br />{user.pincode}</>}
                     </div>
                   </div>
 
                   <div>
-                    <div className="mb-2 text-sm text-slate-300">{t('marketplace.deliveryEstimate')}</div>
-                    <div className="rounded-2xl bg-white/10 p-3 text-sm text-slate-100">{t('marketplace.todayDelivery')}</div>
+                    <div className="mb-2 text-sm font-bold text-black">{t('marketplace.deliveryEstimate')}</div>
+                    <div className="rounded-2xl bg-black/5 p-3 text-sm text-black">{t('marketplace.todayDelivery')}</div>
                   </div>
 
                   <div>
-                    <div className="mb-2 text-sm text-slate-300">{t('marketplace.paymentMethod')}</div>
-                    <div className="rounded-2xl bg-white/10 p-3 text-sm text-slate-100">{t('marketplace.cashOnDelivery')}</div>
+                    <div className="mb-2 text-sm font-bold text-black">{t('marketplace.paymentMethod')}</div>
+                    <div className="rounded-2xl bg-black/5 p-3 text-sm text-black">{t('marketplace.cashOnDelivery')}</div>
                   </div>
                 </div>
 
-                <div className="rounded-3xl bg-white p-4 text-slate-900">
-                  <h4 className="text-xl font-black text-slate-900">{t('marketplace.orderSummary')}</h4>
+                <div className="rounded-3xl bg-[#C2D0BF] p-4 text-black">
+                  <h4 className="text-xl font-black text-black">{t('marketplace.orderSummary')}</h4>
 
-                  <div className="mt-4 space-y-3 text-sm text-slate-600">
+                  <div className="mt-4 space-y-3 text-sm text-black">
                     {cartItems.map((listing) => (
                       <div key={String(listing.id)} className="checkout-summary-row flex min-w-0 items-start justify-between gap-3">
                         <span className="min-w-0 break-words">{getLocalizedCropName(listing.crop_name)} × {cart[listing.id]}</span>
-                        <span className="shrink-0 font-bold text-slate-900">{formatLineTotal(listing, cart[listing.id] ?? 0)}</span>
+                        <span className="shrink-0 font-bold text-black">{formatLineTotal(listing, cart[listing.id] ?? 0)}</span>
                       </div>
                     ))}
                     <div className="flex items-center justify-between">
@@ -863,7 +861,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                       <span>{t('marketplace.logistics')}</span>
                       <span>{formatCurrency(displayedLogisticsCost)}</span>
                     </div>
-                    <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-base font-bold text-slate-900">
+                    <div className="flex items-center justify-between border-t border-black/20 pt-3 text-base font-bold text-black">
                       <span>{t('marketplace.total')}</span>
                       <span>{formatCurrency(orderTotal)}</span>
                     </div>

@@ -37,7 +37,7 @@ export function ImpactBand() {
   return (
     <section
       style={{
-        background: '#fff',
+        background: '#F0EBE4',
         paddingTop: '4rem',
         paddingBottom: '4rem',
         position: 'relative',
@@ -60,7 +60,7 @@ export function ImpactBand() {
             background: 'var(--ff-deep)',
             borderRadius: '1.75rem',
             overflow: 'hidden',
-            boxShadow: '0 20px 60px rgba(27,67,50,0.25)',
+            boxShadow: '0 20px 60px rgba(43,86,77,0.25)',
           }}
         >
           {metrics.map((m, i) => (
@@ -91,7 +91,7 @@ export function ImpactBand() {
               <div style={{
                 fontSize: '3rem',
                 fontWeight: 900,
-                color: '#fff',
+                color: '#F0EBE4',
                 lineHeight: 1,
                 letterSpacing: '-0.04em',
               }}>

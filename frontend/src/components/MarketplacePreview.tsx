@@ -9,7 +9,7 @@ export function MarketplacePreview() {
   return (
     <section
       id="marketplace"
-      style={{ background: '#fff', paddingTop: '5rem', paddingBottom: '5rem' }}
+      style={{ background: '#F0EBE4', paddingTop: '5rem', paddingBottom: '5rem' }}
     >
       <div className="container">
         <div className="scroll-reveal" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -53,7 +53,7 @@ export function MarketplacePreview() {
                     </div>
                   </div>
 
-                  <div style={{ height: '1px', background: 'rgba(27,67,50,0.07)', margin: '0.875rem 0' }} />
+                  <div style={{ height: '1px', background: 'rgba(43,86,77,0.07)', margin: '0.875rem 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--ff-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.2rem' }}>Available</div>

@@ -55,7 +55,7 @@ export function DashboardHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-emerald-100/90 bg-white/95 shadow-sm backdrop-blur-xl">
+    <header className="dashboard-header sticky top-0 z-50 border-b border-emerald-100/90 bg-white/95 shadow-sm backdrop-blur-xl">
       <div className="section-shell flex min-h-16 items-center justify-between gap-4 px-4 py-3 sm:px-6 md:min-h-20 md:px-8 md:py-4">
         {/* Brand Logo */}
         <Link to="/" onClick={handleLogoClick} className="flex items-center" aria-label="Kisan Setu home">

@@ -1,14 +1,44 @@
 @import 'tailwindcss';
 
-/* ── Google Fonts loaded via index.html ──────────────────── */
+@font-face {
+  font-family: 'Montserrat Alternates';
+  src: url('/fonts/MontserratAlternates-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Google Sans Flex';
+  src: url('/fonts/GoogleSansFlex-Variable.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Montserrat Alternates';
+  src: url('/fonts/MontserratAlternates-Bold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Montserrat Alternates';
+  src: url('/fonts/MontserratAlternates-Italic.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
 
 /* ── Design Tokens ──────────────────────────────────────── */
 :root {
-  --ff-deep:    #1b4332;
-  --ff-fresh:   #2d6a4f;
+  --ff-deep:    #2B564D;
+  --ff-fresh:   #2B564D;
   --ff-mint:    #52b788;
   --ff-pale:    #d8f3dc;
-  --ff-cream:   #faf7f0;
+  --ff-cream:   #F0EBE4;
   --ff-yellow:  #f2a200;
   --ff-amber:   #fbbf24;
   --ff-terra:   #c2714f;
@@ -16,9 +46,9 @@
   --ff-navy:    #0d1b2a;
   --ff-slate:   #374151;
   --ff-muted:   #6b7280;
-  --ff-border:  rgba(27, 67, 50, 0.1);
+  --ff-border:  rgba(43, 86, 77, 0.1);
 
-  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  font-family: 'Montserrat Alternates', 'Segoe UI', sans-serif;
   font-size: 16px;
   line-height: 1.65;
   letter-spacing: 0.01em;
@@ -63,6 +93,11 @@ body {
 }
 
 h1,h2,h3,h4,h5,h6,p { overflow-wrap: break-word; }
+h1,h2,h3,h4,h5,h6 { font-family: 'Google Sans Flex', 'Segoe UI', sans-serif; }
+.dashboard-header,
+.dashboard-header button {
+  font-family: 'Google Sans Flex', 'Segoe UI', sans-serif;
+}
 
 button,a,input { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
@@ -137,13 +172,13 @@ img { max-width: 100%; display: block; }
 
 .bg-cream  { background-color: var(--ff-cream); }
 .bg-pale   { background-color: #f0faf4; }
-.bg-white  { background-color: #ffffff; }
+.bg-white  { background-color: #F0EBE4; }
 .bg-deep   { background-color: var(--ff-deep); }
 .bg-navy   { background-color: var(--ff-navy); }
 
 /* ── Cards ────────────────────────────────────────────────── */
 .card {
-  background: #fff;
+  background: #F0EBE4;
   border: 1px solid var(--ff-border);
   border-radius: 1.25rem;
   box-shadow: 0 4px 24px rgba(13, 27, 42, 0.06);
@@ -163,7 +198,7 @@ img { max-width: 100%; display: block; }
   align-items: center;
   gap: 0.5rem;
   background: var(--ff-deep);
-  color: #fff;
+  color: #F0EBE4;
   font-weight: 700;
   font-size: 0.975rem;
   letter-spacing: 0.01em;
@@ -172,12 +207,12 @@ img { max-width: 100%; display: block; }
   border: none;
   text-decoration: none;
   transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-  box-shadow: 0 4px 16px rgba(27,67,50,0.22);
+  box-shadow: 0 4px 16px rgba(43,86,77,0.22);
 }
 .btn-primary:hover {
-  background: #153728;
+  background: #23483F;
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(27,67,50,0.3);
+  box-shadow: 0 8px 24px rgba(43,86,77,0.3);
 }
 
 .btn-secondary {
@@ -196,7 +231,7 @@ img { max-width: 100%; display: block; }
   transition: background 0.2s, transform 0.15s;
 }
 .btn-secondary:hover {
-  background: rgba(27,67,50,0.06);
+  background: rgba(43,86,77,0.06);
   transform: translateY(-2px);
 }
 
@@ -204,7 +239,7 @@ img { max-width: 100%; display: block; }
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: #fff;
+  background: #F0EBE4;
   color: var(--ff-deep);
   font-weight: 700;
   font-size: 0.975rem;
@@ -225,7 +260,7 @@ img { max-width: 100%; display: block; }
   align-items: center;
   gap: 0.5rem;
   background: transparent;
-  color: #fff;
+  color: #F0EBE4;
   font-weight: 700;
   font-size: 0.975rem;
   padding: 0.85rem 2rem;
@@ -365,21 +400,21 @@ img { max-width: 100%; display: block; }
 
 /* ── Produce Card ─────────────────────────────────────────── */
 .produce-card {
-  background: #fff;
-  border: 1px solid rgba(27,67,50,0.08);
+  background: #F0EBE4;
+  border: 1px solid rgba(43,86,77,0.08);
   border-radius: 1.25rem;
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
 }
 .produce-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(27,67,50,0.12);
+  box-shadow: 0 16px 40px rgba(43,86,77,0.12);
 }
 
 /* ── Tabs ─────────────────────────────────────────────────── */
 .tab-bar {
   display: flex;
-  background: #fff;
+  background: #F0EBE4;
   border: 1px solid var(--ff-border);
   border-radius: 100px;
   padding: 4px;
@@ -400,12 +435,12 @@ img { max-width: 100%; display: block; }
 }
 .tab-btn.active {
   background: var(--ff-deep);
-  color: #fff;
+  color: #F0EBE4;
 }
 
 /* ── Testimonial Card ─────────────────────────────────────── */
 .testimonial-card {
-  background: #fff;
+  background: #F0EBE4;
   border: 1px solid var(--ff-border);
   border-radius: 1.5rem;
   padding: 2rem;
@@ -471,4 +506,39 @@ img { max-width: 100%; display: block; }
     animation-iteration-count: 1 !important;
   }
   .scroll-reveal { opacity: 1; transform: none; }
+}
+
+/* Keep utility-based screens on the shared palette. */
+.bg-white,
+.bg-white\/5,
+.bg-white\/10,
+.bg-white\/20,
+.bg-white\/95,
+.bg-white\/90,
+.bg-white\/80,
+.bg-white\/70 {
+  background-color: #F0EBE4 !important;
+}
+
+.bg-emerald-500,
+.bg-emerald-600,
+.bg-emerald-700,
+.bg-emerald-800,
+.hover\:bg-emerald-700:hover,
+.hover\:bg-emerald-800:hover {
+  background-color: #2B564D !important;
+}
+
+.bg-emerald-500.text-white,
+.bg-emerald-600.text-white,
+.bg-emerald-700.text-white,
+.bg-emerald-800.text-white,
+.tab-btn.active {
+  color: #F0EBE4 !important;
+}
+
+.border-emerald-100,
+.border-emerald-300,
+.hover\:border-emerald-300:hover {
+  border-color: #2B564D !important;
 }

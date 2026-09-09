@@ -125,8 +125,8 @@ export function Hero() {
             position: 'relative',
             aspectRatio: '4/3',
             background: 'linear-gradient(160deg, var(--ff-pale) 0%, var(--ff-pale) 100%)',
-            border: '1px solid rgba(27,67,50,0.12)',
-            boxShadow: '0 32px 80px rgba(27,67,50,0.18)',
+            border: '1px solid rgba(43,86,77,0.12)',
+            boxShadow: '0 32px 80px rgba(43,86,77,0.18)',
           }}>
             <img
               src="/hero-farm.png"
@@ -136,7 +136,7 @@ export function Hero() {
             {/* Gradient overlay at bottom */}
             <div style={{
               position: 'absolute', bottom: 0, left: 0, right: 0, height: '35%',
-              background: 'linear-gradient(to top, rgba(27,67,50,0.35), transparent)',
+              background: 'linear-gradient(to top, rgba(43,86,77,0.35), transparent)',
             }} />
           </div>
 
@@ -165,7 +165,7 @@ export function Hero() {
       {/* Wave divider */}
       <div className="wave-divider" style={{ marginTop: '-2px' }}>
         <svg viewBox="0 0 1440 60" preserveAspectRatio="none" style={{ height: '60px' }}>
-          <path d="M0,0 C240,60 480,60 720,30 C960,0 1200,0 1440,40 L1440,60 L0,60 Z" fill="#ffffff" />
+          <path d="M0,0 C240,60 480,60 720,30 C960,0 1200,0 1440,40 L1440,60 L0,60 Z" fill="#F0EBE4" />
         </svg>
       </div>
 

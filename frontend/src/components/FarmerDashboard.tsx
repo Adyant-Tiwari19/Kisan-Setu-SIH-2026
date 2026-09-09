@@ -75,6 +75,11 @@ export function FarmerDashboard() {
   const [editingListingId, setEditingListingId] = useState<number | null>(null)
   const [demandForecasts, setDemandForecasts] = useState<Record<number, DemandForecast>>({})
   const [isLoadingDemandForecasts, setIsLoadingDemandForecasts] = useState(false)
+
+  useEffect(() => {
+    setActiveNav(isProfileVisible ? 'My Profile' : 'Home')
+  }, [isProfileVisible])
+
   useEffect(() => {
     let isMounted = true
     void authService.getCurrentUserProfile().then((profile) => {
@@ -293,7 +298,7 @@ export function FarmerDashboard() {
 
   const handleCancelListing = () => {
     setShowListingForm(false)
-    if (!activeNav) setActiveNav('Home')
+    setActiveNav('Home')
   }
 
   const submitListing = async (event: FormEvent<HTMLFormElement>) => {
@@ -316,7 +321,7 @@ export function FarmerDashboard() {
       setListingSubmitted(true)
       setDashboardMessage(t('farmer.listingAdded', { crop: createdListing.crop_name || listingName }))
       setShowListingForm(false)
-      setActiveNav('My Crops')
+      setActiveNav('Home')
     } catch {
       setListingError(t('farmer.unexpectedError'))
     } finally {
@@ -426,11 +431,14 @@ export function FarmerDashboard() {
                 value: isLoading || !isCurrentUserData ? '—' : String(currentOrders.length),
                 note: t('farmer.orders'),
               },
-            ].map((item) => (
-              <div key={item.label} className="rounded-[1.35rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{item.label}</div>
-                <div className="mt-2 text-2xl font-black text-slate-900">{item.value}</div>
-                <div className="mt-1 text-sm text-slate-500">{item.note}</div>
+            ].map((item, index) => (
+              <div
+                key={item.label}
+                className={`rounded-[1.35rem] p-4 shadow-sm ring-1 ring-slate-100 ${index === 0 ? 'bg-[#2B564D] text-white' : 'bg-white'}`}
+              >
+                <div className={`text-xs font-semibold uppercase tracking-[0.18em] ${index === 0 ? 'text-white' : 'text-slate-500'}`}>{item.label}</div>
+                <div className={`mt-2 text-2xl font-black ${index === 0 ? 'text-white' : 'text-slate-900'}`}>{item.value}</div>
+                <div className={`mt-1 text-sm ${index === 0 ? 'text-white' : 'text-slate-500'}`}>{item.note}</div>
               </div>
             ))}
           </div>
@@ -452,18 +460,18 @@ export function FarmerDashboard() {
                     <div className="rounded-2xl bg-white/5 p-3 text-sm text-slate-300">{t('farmer.noListings')}</div>
                   )}
                   {currentListings.map((item) => (
-                    <div key={item.lid} className="rounded-2xl bg-white/5 p-3">
+                    <div key={item.lid} className="rounded-2xl bg-[#C2D0BF] p-3 text-black">
                       <div className="flex items-center justify-between gap-2">
                         <div>
                           <div className="text-base font-bold">{getLocalizedCropName(item.crop_name) || t('farmer.unnamedCrop')}</div>
-                          <div className="text-xs text-slate-300">{formatQuantity(item.quantity_available)} {t('farmer.available').toLowerCase()}</div>
+                          <div className="text-xs text-black">{formatQuantity(item.quantity_available)} {t('farmer.available').toLowerCase()}</div>
                         </div>
-                        <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${item.is_active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-black ${item.is_active ? 'bg-emerald-500/20' : 'bg-amber-500/20'
                           }`}>
                           {item.is_active ? t('farmer.activeListings') : t('farmer.notAvailable')}
                         </span>
                       </div>
-                      <div className="mt-3 flex items-center justify-between gap-3 text-sm text-slate-300">
+                      <div className="mt-3 flex items-center justify-between gap-3 text-sm text-black">
                         <span>{t('farmer.listings')} #{item.lid}</span>
                         <div className="flex items-center gap-3">
                           <span>{formatCurrency(item.price_per_unit)}/kg</span>
@@ -471,7 +479,7 @@ export function FarmerDashboard() {
                             <button
                               type="button"
                               onClick={() => setEditingListingId(editingListingId === item.lid ? null : item.lid)}
-                              className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-emerald-200 transition hover:bg-white/20"
+                              className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-black transition hover:bg-white/20"
                             >
                               {editingListingId === item.lid ? t('common.close') : t('farmer.editListing')}
                             </button>
@@ -483,7 +491,7 @@ export function FarmerDashboard() {
                         const isUpdating = updatingListingId === item.lid
                         return (
                           <div className="mt-3 grid gap-2 border-t border-white/10 pt-3 md:grid-cols-[1fr_1fr_auto_auto_auto] md:items-end">
-                            <label className="text-xs font-semibold text-slate-300">
+                            <label className="text-xs font-semibold text-black">
                               {t('farmer.quantityPlaceholder')}
                               <input
                                 type="number"
@@ -493,7 +501,7 @@ export function FarmerDashboard() {
                                 className="mt-1 w-full rounded-xl border-0 bg-white px-3 py-2 text-sm text-slate-900"
                               />
                             </label>
-                            <label className="text-xs font-semibold text-slate-300">
+                            <label className="text-xs font-semibold text-black">
                               {t('farmer.pricePlaceholder')}
                               <input
                                 type="number"
@@ -504,18 +512,18 @@ export function FarmerDashboard() {
                                 className="mt-1 w-full rounded-xl border-0 bg-white px-3 py-2 text-sm text-slate-900"
                               />
                             </label>
-                            <button type="button" disabled={isUpdating} onClick={() => void updateListing(item)} className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                            <button type="button" disabled={isUpdating} onClick={() => void updateListing(item)} className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50">
                               {isUpdating ? t('common.searching') : t('farmer.editListing')}
                             </button>
                             <button
                               type="button"
                               disabled={isUpdating}
                               onClick={() => void toggleListingStatus(item)}
-                              className="rounded-full bg-amber-400/20 px-4 py-2 text-sm font-semibold text-amber-200 disabled:opacity-50"
+                              className="rounded-full bg-amber-400/20 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
                             >
                               {item.is_active ? t('farmer.notAvailable') : t('farmer.activeListings')}
                             </button>
-                            <button type="button" disabled={isUpdating} onClick={() => void deleteListing(item)} className="rounded-full bg-red-400/20 px-4 py-2 text-sm font-semibold text-red-200 disabled:opacity-50">
+                            <button type="button" disabled={isUpdating} onClick={() => void deleteListing(item)} className="rounded-full bg-red-400/20 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50">
                               {t('farmer.cancel')}
                             </button>
                           </div>
@@ -693,26 +701,26 @@ export function FarmerDashboard() {
           )}
 
           {activeNav === 'Demand Forecast' && (
-          <div id="demand-forecast" className="scroll-mt-24 mt-6 rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
+          <div id="demand-forecast" className="scroll-mt-24 mt-6 rounded-[1.5rem] bg-[#2B564D] p-4 text-white shadow-sm ring-1 ring-slate-100">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900">{t('farmer.demandForecast')}</h3>
-              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold uppercase tracking-[0.12em] text-emerald-700">
+              <h3 className="text-lg font-bold text-white">{t('farmer.demandForecast')}</h3>
+              <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-bold uppercase tracking-[0.12em] text-white">
                 AI forecast
               </span>
             </div>
             {isLoadingDemandForecasts && (
-              <div className="mt-4 rounded-[1.25rem] bg-slate-50 p-4 text-sm text-slate-600">
+              <div className="mt-4 rounded-[1.25rem] bg-white/10 p-4 text-sm text-white">
                 Preparing demand forecasts for your active crops...
               </div>
             )}
             {!isLoadingDemandForecasts && currentListings.filter((listing) => listing.is_active).length === 0 && (
-              <div className="mt-4 rounded-[1.25rem] bg-slate-50 p-4 text-sm text-slate-600">
+              <div className="mt-4 rounded-[1.25rem] bg-white/10 p-4 text-sm text-white">
                 Activate a crop listing to see its local demand forecast.
               </div>
             )}
 
             {!isLoadingDemandForecasts && currentListings.filter((listing) => listing.is_active).length > 0 && Object.keys(demandForecasts).length === 0 && (
-              <div className="mt-4 rounded-[1.25rem] bg-amber-50 p-4 text-sm text-amber-800">
+              <div className="mt-4 rounded-[1.25rem] bg-white/10 p-4 text-sm text-white">
                 Demand forecasts are temporarily unavailable. Please try again after checking your farm location.
               </div>
             )}
@@ -722,34 +730,43 @@ export function FarmerDashboard() {
                 {Object.values(demandForecasts).map((forecast) => {
                   const hasSurplus = forecast.supply_gap_kg < 0
                   return (
-                    <article key={forecast.crop_id} className="rounded-[1.25rem] border border-slate-100 bg-slate-50 p-4">
+                    <article
+                      key={forecast.crop_id}
+                      className={`rounded-[1.25rem] p-4 ${
+                        forecast.supply_gap_kg > 0
+                          ? 'bg-[#C2D0BF] text-black'
+                          : forecast.supply_gap_kg < 0
+                            ? 'bg-[#7F1D1D] text-white'
+                            : 'bg-white/10 text-white'
+                      }`}
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <h4 className="font-bold text-slate-900">{getLocalizedCropName(forecast.crop_name) || t('farmer.notAvailable')}</h4>
-                          <p className="mt-1 text-xs text-slate-500">Next demand estimate · {forecast.search_radius_km} km radius</p>
+                        <h4 className="font-bold">{getLocalizedCropName(forecast.crop_name) || t('farmer.notAvailable')}</h4>
+                        <p className="mt-1 text-xs opacity-75">Next demand estimate · {forecast.search_radius_km} km radius</p>
                         </div>
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${hasSurplus ? 'bg-sky-100 text-sky-700' : 'bg-orange-100 text-orange-700'}`}>
-                          {hasSurplus ? 'Supply ahead' : 'Demand opportunity'}
-                        </span>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${hasSurplus ? 'bg-white/15' : 'bg-black/10'}`}>
+                        {hasSurplus ? 'Supply ahead' : 'Demand opportunity'}
+                      </span>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="opacity-75">{t('farmer.predictedDemand')}</p>
+                        <p className="mt-1 text-lg font-bold">{formatQuantity(forecast.predicted_demand_kg)}</p>
                       </div>
-                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <p className="text-slate-500">{t('farmer.predictedDemand')}</p>
-                          <p className="mt-1 text-lg font-bold text-slate-900">{formatQuantity(forecast.predicted_demand_kg)}</p>
-                        </div>
-                        <div>
-                          <p className="text-slate-500">{t('farmer.activeSupply')}</p>
-                          <p className="mt-1 text-lg font-bold text-slate-900">{formatQuantity(forecast.current_active_supply_kg)}</p>
-                        </div>
-                        <div>
-                          <p className="text-slate-500">{t('farmer.supplyGap')}</p>
-                          <p className={`mt-1 font-bold ${hasSurplus ? 'text-sky-700' : 'text-orange-700'}`}>
-                            {forecast.supply_gap_kg > 0 ? '+' : ''}{formatQuantity(forecast.supply_gap_kg)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-slate-500">{t('farmer.averageMarketPrice')}</p>
-                          <p className="mt-1 font-bold text-slate-900">{formatCurrency(forecast.avg_market_price)} / kg</p>
+                      <div>
+                        <p className="opacity-75">{t('farmer.activeSupply')}</p>
+                        <p className="mt-1 text-lg font-bold">{formatQuantity(forecast.current_active_supply_kg)}</p>
+                      </div>
+                      <div>
+                        <p className="opacity-75">{t('farmer.supplyGap')}</p>
+                        <p className="mt-1 font-bold">
+                          {forecast.supply_gap_kg > 0 ? '+' : ''}{formatQuantity(forecast.supply_gap_kg)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="opacity-75">{t('farmer.averageMarketPrice')}</p>
+                        <p className="mt-1 font-bold">{formatCurrency(forecast.avg_market_price)} / kg</p>
                         </div>
                       </div>
                     </article>
@@ -761,21 +778,21 @@ export function FarmerDashboard() {
           )}
 
           {activeNav === 'Earnings' && (
-            <div id="farmer-earnings" className="mt-6 rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
-              <div className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">{t('farmer.earningsBreakdown')}</div>
-              <h3 className="mt-2 text-2xl font-black text-slate-900">{t('farmer.farmIncome')}</h3>
+            <div id="farmer-earnings" className="mt-6 rounded-[1.5rem] bg-[#2B564D] p-5 text-white shadow-sm ring-1 ring-slate-100">
+              <div className="text-xs font-bold uppercase tracking-[0.18em] text-white">{t('farmer.earningsBreakdown')}</div>
+              <h3 className="mt-2 text-2xl font-black text-white">{t('farmer.farmIncome')}</h3>
               <div className="mt-5 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl bg-emerald-50 p-4">
-                  <div className="text-sm text-slate-600">{t('farmer.totalEarnings')}</div>
-                  <div className="mt-1 text-2xl font-black text-slate-900">{formatCurrency(totalEarnings)}</div>
+                <div className="rounded-2xl bg-[#C2D0BF] p-4 text-black">
+                  <div className="text-sm text-black">{t('farmer.totalEarnings')}</div>
+                  <div className="mt-1 text-2xl font-black text-black">{formatCurrency(totalEarnings)}</div>
                 </div>
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <div className="text-sm text-slate-600">{t('farmer.thisMonth')}</div>
-                  <div className="mt-1 text-2xl font-black text-slate-900">{formatCurrency(monthlyEarnings)}</div>
+                <div className="rounded-2xl bg-[#C2D0BF] p-4 text-black">
+                  <div className="text-sm text-black">{t('farmer.thisMonth')}</div>
+                  <div className="mt-1 text-2xl font-black text-black">{formatCurrency(monthlyEarnings)}</div>
                 </div>
-                <div className="rounded-2xl bg-amber-50 p-4">
-                  <div className="text-sm text-slate-600">{t('farmer.deliveredOrders')}</div>
-                  <div className="mt-1 text-2xl font-black text-slate-900">{deliveredOrders.length}</div>
+                <div className="rounded-2xl bg-[#C2D0BF] p-4 text-black">
+                  <div className="text-sm text-black">{t('farmer.deliveredOrders')}</div>
+                  <div className="mt-1 text-2xl font-black text-black">{deliveredOrders.length}</div>
                 </div>
               </div>
             </div>

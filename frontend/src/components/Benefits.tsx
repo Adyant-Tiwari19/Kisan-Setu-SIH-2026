@@ -203,7 +203,7 @@ export function Benefits() {
         .benefits-caption-before { left: 2.5rem; }
         .benefits-caption-after { right: 2.5rem; color: #d8f3dc; }
         .benefits-hotspot { position: absolute; z-index: 5; max-width: 13rem; padding: .7rem .9rem; border: 0; border-left: 2px solid rgba(255,255,255,.6); border-radius: 0; background: rgba(255,255,255,.92); box-shadow: 0 8px 24px rgba(13,27,42,.18); color: var(--ff-navy); text-align: left; transform: translateY(0); transition: transform .3s ease, background .3s ease, box-shadow .3s ease; }
-        .benefits-hotspot:hover, .benefits-hotspot:focus-visible, .benefits-hotspot.is-active { outline: none; background: #fff; box-shadow: 0 12px 30px rgba(13,27,42,.25); transform: translateY(-4px); }
+        .benefits-hotspot:hover, .benefits-hotspot:focus-visible, .benefits-hotspot.is-active { outline: none; background: #F0EBE4; box-shadow: 0 12px 30px rgba(13,27,42,.25); transform: translateY(-4px); }
         .benefits-hotspot-after { border-left-color: var(--ff-mint); }
         .benefits-hotspot strong, .benefits-hotspot span { display: block; }
         .benefits-hotspot strong { font-size: .78rem; line-height: 1.25; }

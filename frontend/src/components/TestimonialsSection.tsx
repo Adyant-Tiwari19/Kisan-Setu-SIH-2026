@@ -50,11 +50,11 @@ export function TestimonialsSection() {
               key={t.name}
               className="scroll-reveal"
               style={{
-                background: '#fff',
+                background: '#F0EBE4',
                 borderRadius: '1.75rem',
                 overflow: 'hidden',
                 boxShadow: '0 8px 32px rgba(13,27,42,0.08)',
-                border: '1px solid rgba(27,67,50,0.07)',
+                border: '1px solid rgba(43,86,77,0.07)',
                 animationDelay: `${i * 120}ms`,
               }}
             >
@@ -129,8 +129,8 @@ export function TestimonialsSection() {
               <div
                 key={p}
                 style={{
-                  background: '#fff',
-                  border: '1px solid rgba(27,67,50,0.1)',
+                  background: '#F0EBE4',
+                  border: '1px solid rgba(43,86,77,0.1)',
                   borderRadius: '0.75rem',
                   padding: '0.6rem 1.5rem',
                   fontWeight: 700,

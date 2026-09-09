@@ -113,15 +113,15 @@ export function HowItWorks() {
                   width: '5rem',
                   height: '5rem',
                   borderRadius: '50%',
-                  background: stage.highlight ? 'var(--ff-deep)' : '#fff',
+                  background: stage.highlight ? 'var(--ff-deep)' : '#F0EBE4',
                   border: `2px solid ${stage.highlight ? 'var(--ff-deep)' : 'var(--ff-mint)'}`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   boxShadow: stage.highlight
-                    ? '0 8px 24px rgba(27,67,50,0.3)'
-                    : '0 4px 16px rgba(27,67,50,0.08)',
-                  color: stage.highlight ? '#fff' : 'var(--ff-deep)',
+                    ? '0 8px 24px rgba(43,86,77,0.3)'
+                    : '0 4px 16px rgba(43,86,77,0.08)',
+                  color: stage.highlight ? '#F0EBE4' : 'var(--ff-deep)',
                   marginBottom: '1.25rem',
                   transition: 'transform 0.2s',
                   cursor: 'default',
@@ -159,7 +159,7 @@ export function HowItWorks() {
       {/* Wave divider */}
       <div className="wave-divider" style={{ marginTop: '4rem' }}>
         <svg viewBox="0 0 1440 60" preserveAspectRatio="none" style={{ height: '60px' }}>
-          <path d="M0,20 C480,60 960,0 1440,30 L1440,60 L0,60 Z" fill="#fff" />
+          <path d="M0,20 C480,60 960,0 1440,30 L1440,60 L0,60 Z" fill="#F0EBE4" />
         </svg>
       </div>
 
