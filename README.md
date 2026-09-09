@@ -69,8 +69,6 @@ From the repository root:
 
 ```powershell
 cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 ```
 
@@ -94,13 +92,4 @@ npm install
 npm run dev
 ```
 
-Use the Vite URL shown in the terminal. Useful commands include `npm run build`, `npm run lint`, and `npm run preview`.
-
-## License
-
-No license has been specified for this repository.
-
-<div align="center">
-	<p><strong>Kisan Setu</strong></p>
-	<p>Connecting fields to opportunities.</p>
-</div>
+Use the Vite URL shown in the terminal.
