@@ -51,6 +51,29 @@ Farmers lose a significant portion of their revenue to multi-tiered intermediari
 
 ---
 
+## 📌 Table of Contents
+
+* 📄 [Project Overview & Summary](#project-overview--summary)
+* 🏗️ [System Architecture](#system-architecture)
+* 🔌 [Backend API Surface](#backend-api-surface)
+* 🔄 [Application Flowcharts](#application-flowcharts)
+  * [Authentication & Persistence Flow](#authentication--persistence-flow)
+  * [Farmer Marketplace Lifecycle](#farmer-marketplace-lifecycle)
+  * [Buyer Search and Purchase Flow](#buyer-search-and-purchase-flow)
+* ⭐ [Key Features](#key-features)
+  * [Farmer Capabilities](#farmer-capabilities)
+  * [Retail Consumer Capabilities](#retail-consumer-capabilities)
+  * [Bulk Buyer Capabilities](#bulk-buyer-capabilities)
+* 🛠️ [Tech Stack](#tech-stack)
+* 📁 [Repository Structure](#repository-structure)
+* 💻 [Installation & Local Setup](#installation--local-setup)
+* 📱 [How to Run & Test the Mobile APK](#how-to-run--test-the-mobile-apk-)
+* 🚀 [Mobile APK Build Sequence](#mobile-apk-build-sequence-)
+* 🔐 [Authentication and Local Persistence](#authentication-and-local-persistence)
+* 🔮 [Future Scope](#future-scope)
+
+---
+
 ## Project Overview & Summary
 
 Kisan Setu is a localized, mobile-first agricultural marketplace connecting **Farmers**, **Retail Consumers**, and **Bulk Buyers** in one application. Farmers can publish crop availability and manage fulfillment, while buyers can discover produce, compare listings, estimate delivery logistics, place orders, and track fulfillment.
@@ -60,7 +83,7 @@ The core mission is to **cut out middle-tier exploitation** by enabling direct p
 ## System Architecture
 
 ```mermaid
-flowchart LR
+flowchart TD
     subgraph Client["Frontend / Android client"]
         UI["React + TypeScript UI"]
         Router["React Router"]
