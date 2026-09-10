@@ -4,4 +4,4 @@
 ## Demo Video Link 🔗
 
 
-* **Video:** ``
+* **Video:** `https://drive.google.com/file/d/1slv-tIrhzR4xSDxFGWiOuvoLSInbrIN8/view`
