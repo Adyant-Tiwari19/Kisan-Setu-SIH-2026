@@ -248,6 +248,7 @@ flowchart TD
 │       ├── android/                # generated Capacitor Android project
 │       ├── capacitor.config.ts
 │       └── package.json
+├── kisansetu.apk
 └── README.md
 ```
 
@@ -312,7 +313,7 @@ cd android
 The debug APK is generated under:
 
 ```text
-src/frontend/android/app/build/outputs/apk/debug/app-debug.apk
+kisansetu.apk
 ```
 
 The Android project currently targets SDK 36, supports a minimum SDK of 24, uses Gradle 8.14.3, and compiles Java sources with Java 21.
