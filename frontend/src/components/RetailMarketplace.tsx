@@ -48,7 +48,7 @@ const formatHarvestDate = (value: string | null | undefined, fallback?: string |
     : `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`
 }
 
-const getUnitPrice = (listing: MarketplaceListing) => listing.estimated_landed_price ?? listing.price_per_unit
+const getUnitPrice = (listing: MarketplaceListing) => listing.price_per_unit
 const getDisplayedPrice = (listing: MarketplaceListing) => listing.price_per_unit ?? Number.MAX_SAFE_INTEGER
 
 const getCropImageUrl = (sampleImageUrl: string | null | undefined) => {
@@ -138,6 +138,8 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
   }, [user])
 
   useEffect(() => {
+    if (activeNav !== 'Orders') return
+
     let isMounted = true
     void orderService.getMyOrders().then((myOrders) => {
       if (isMounted) setOrders(myOrders)
@@ -145,7 +147,7 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
     return () => {
       isMounted = false
     }
-  }, [user?.uid])
+  }, [activeNav, user?.uid])
 
   const loadCatalog = useCallback(async () => {
     setSearchStatus('loading')
@@ -746,6 +748,9 @@ export function RetailMarketplace({ embedded = false, wholesale = false, hidePro
                     <div className="mt-2 flex items-start justify-between gap-2">
                       <div>
                         <h3 className="text-2xl font-black text-slate-900">{getLocalizedCropName(listing.crop_name)}</h3>
+                        <div className="mt-1 text-lg font-black text-emerald-700">
+                          {t('marketplace.pricePerKg')}: {formatCurrency(listing.price_per_unit)}
+                        </div>
                         {wholesale && (
                           <div className="mt-1 space-y-0.5 text-sm text-slate-600">
                             {listing.farmer_name !== 'Not available' && (

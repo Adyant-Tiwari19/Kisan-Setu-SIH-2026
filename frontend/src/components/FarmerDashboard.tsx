@@ -71,8 +71,6 @@ export function FarmerDashboard() {
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null)
   const [updatingListingId, setUpdatingListingId] = useState<number | null>(null)
   const [listingEditValues, setListingEditValues] = useState<Record<number, { quantity: string; price: string }>>({})
-  const [isEditingListings, setIsEditingListings] = useState(false)
-  const [editingListingId, setEditingListingId] = useState<number | null>(null)
   const [demandForecasts, setDemandForecasts] = useState<Record<number, DemandForecast>>({})
   const [isLoadingDemandForecasts, setIsLoadingDemandForecasts] = useState(false)
 
@@ -184,8 +182,6 @@ export function FarmerDashboard() {
     if (isProfileVisible) toggleProfile()
     if (label === 'Edit Listing') {
       setShowListingForm(false)
-      setIsEditingListings(true)
-      setEditingListingId(null)
       scrollToSection('active-listings')
       return
     }
@@ -475,18 +471,9 @@ export function FarmerDashboard() {
                         <span>{t('farmer.listings')} #{item.lid}</span>
                         <div className="flex items-center gap-3">
                           <span>{formatCurrency(item.price_per_unit)}/kg</span>
-                          {isEditingListings && (
-                            <button
-                              type="button"
-                              onClick={() => setEditingListingId(editingListingId === item.lid ? null : item.lid)}
-                              className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-black transition hover:bg-white/20"
-                            >
-                              {editingListingId === item.lid ? t('common.close') : t('farmer.editListing')}
-                            </button>
-                          )}
                         </div>
                       </div>
-                      {isEditingListings && editingListingId === item.lid && (() => {
+                      {activeNav === 'Edit Listing' && (() => {
                         const values = getListingEditValues(item)
                         const isUpdating = updatingListingId === item.lid
                         return (
@@ -701,7 +688,7 @@ export function FarmerDashboard() {
                         <div className="flex justify-between"><span>{t('farmer.pricePlaceholder')}</span><span className="font-semibold text-slate-800">{formatCurrency(listing.price_per_unit)}</span></div>
                         <div className="flex justify-between"><span>{t('farmer.harvested')}</span><span className="font-semibold text-slate-800">{formatDate(listing.harvested_at)}</span></div>
                       </div>
-                      <button type="button" onClick={() => { setActiveNav('Edit Listing'); setIsEditingListings(true); setEditingListingId(listing.lid) }} className="mt-5 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white">{t('farmer.editListing')}</button>
+                      <button type="button" onClick={() => handleNavClick('Edit Listing')} className="mt-5 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white">{t('farmer.editListing')}</button>
                     </article>
                   ))}
                 </div>

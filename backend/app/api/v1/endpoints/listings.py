@@ -58,16 +58,16 @@ def get_geometry_coordinates(db: Session, location: object) -> Optional[tuple[fl
 
 
 def resolve_buyer_coordinates(current_user: User, db: Session) -> tuple[float, float]:
+    stored_coordinates = get_geometry_coordinates(db, current_user.location)
+    if stored_coordinates:
+        return stored_coordinates
+
     if current_user.address and current_user.address.strip():
         try:
             geo_res = geocode_address(address=current_user.address)
             return float(geo_res.latitude), float(geo_res.longitude)
         except (HTTPException, TypeError, ValueError):
             pass
-
-    stored_coordinates = get_geometry_coordinates(db, current_user.location)
-    if stored_coordinates:
-        return stored_coordinates
 
     return DEFAULT_BUYER_COORDINATES
 
