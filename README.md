@@ -227,26 +227,27 @@ flowchart TD
 
 ```text
 .
-├── backend/
-│   ├── app/
-│   │   ├── api/v1/endpoints/   # auth, listings, orders, location, AI, dashboard
-│   │   ├── models/             # SQLAlchemy models
-│   │   ├── schemas/            # Pydantic request/response schemas
-│   │   └── services/           # forecasting, ranking, routing
-│   ├── requirements.txt
-│   ├── init_db.py
-│   └── seed_data.py
-├── frontend/
-│   ├── src/
-│   │   ├── components/         # landing, dashboards, marketplace, profile
-│   │   ├── context/            # authentication context
-│   │   ├── services/           # API, auth, listing, order, AI services
-│   │   ├── data/               # local/mock supporting data
-│   │   ├── i18n.ts              # English and Hindi resources
-│   │   └── routes.tsx
-│   ├── android/                # generated Capacitor Android project
-│   ├── capacitor.config.ts
-│   └── package.json
+├── src/
+│   ├── backend/
+│   │   ├── app/
+│   │   │   ├── api/v1/endpoints/   # auth, listings, orders, location, AI, dashboard
+│   │   │   ├── models/             # SQLAlchemy models
+│   │   │   ├── schemas/            # Pydantic request/response schemas
+│   │   │   └── services/           # forecasting, ranking, routing
+│   │   ├── requirements.txt
+│   │   ├── init_db.py
+│   │   └── seed_data.py
+│   └── frontend/
+│       ├── src/
+│       │   ├── components/         # landing, dashboards, marketplace, profile
+│       │   ├── context/            # authentication context
+│       │   ├── services/           # API, auth, listing, order, AI services
+│       │   ├── data/               # local/mock supporting data
+│       │   ├── i18n.ts             # English and Hindi resources
+│       │   └── routes.tsx
+│       ├── android/                # generated Capacitor Android project
+│       ├── capacitor.config.ts
+│       └── package.json
 └── README.md
 ```
 
@@ -259,17 +260,14 @@ flowchart TD
 - PostgreSQL with the PostGIS extension for backend persistence.
 - Android Studio, Android SDK, Java 21, and a configured Android emulator/device for Capacitor builds.
 
-### Frontend setup
+### Frontend setup 🖥️
 
 ```bash
-git clone https://github.com/Adyant-Tiwari19/Kisan-Setu-SIH-2026/
-cd Kisan-Setu-SIH-2026
-cd frontend
+git clone https://github.com/Adyant-Tiwari19/Kisan-Setu-SIH-2026.git
+cd src/frontend
 npm install
 npm run dev
 ```
-
-
 The frontend also supports the following scripts:
 
 ```bash
@@ -278,10 +276,12 @@ npm run lint     # Run ESLint
 npm run preview  # Preview the production bundle
 ```
 
-### Backend setup
+### Backend setup 🔨
+
+Install the dependencies, configure the database, initialize the schema, seed development data, and start the API:
 
 ```bash
-cd backend
+# Windows PowerShell
 pip install -r requirements.txt
 python init_db.py
 uvicorn app.main:app --reload
@@ -289,19 +289,19 @@ uvicorn app.main:app --reload
 
 The backend reads configuration from environment variables or `backend/.env`, including `DATABASE_URL` and project/geocoding settings. Keep credentials, Firebase keys, JWT secrets, and local environment files out of source control.
 
-## Mobile APK Build Sequence
+## Mobile APK Build Sequence 📱
 
 The Capacitor configuration uses `frontend/dist` as its web directory and packages the Android app with application ID `com.kisansetu.app`. From the repository root, run:
 
 ```bash
-cd frontend
+cd src/frontend
 npm run build && npx cap sync android && cd android && gradlew clean && gradlew assembleDebug
 ```
 
 On Windows PowerShell, use the Gradle wrapper explicitly if command resolution requires it:
 
 ```powershell
-cd frontend
+cd src/frontend
 npm run build
 npx cap sync android
 cd android
@@ -312,7 +312,7 @@ cd android
 The debug APK is generated under:
 
 ```text
-kisansetu.apk
+src/frontend/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
 The Android project currently targets SDK 36, supports a minimum SDK of 24, uses Gradle 8.14.3, and compiles Java sources with Java 21.
