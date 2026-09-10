@@ -196,7 +196,7 @@ def update_order_status(
 
   db.commit()
   db.refresh(order)
-  return order
+  return format_order_response(order, db)
 
 @router.put("/{oid}/deliver", response_model=OrderResponse)
 def mark_order_delivered(oid: int, db: Session = Depends(get_db)):

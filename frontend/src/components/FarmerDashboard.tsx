@@ -441,10 +441,12 @@ export function FarmerDashboard() {
           )}
 
           {(activeNav === 'Home' || activeNav === 'Orders' || activeNav === 'Edit Listing') && (
-          <div className="mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className={`mt-6 grid gap-5 ${activeNav === 'Edit Listing' ? '' : 'lg:grid-cols-[1.1fr_0.9fr]'}`}>
             {(activeNav === 'Home' || activeNav === 'Edit Listing') && (
             <div className="space-y-5">
-              <div id="active-listings" className="scroll-mt-24 rounded-[1.5rem] bg-slate-900 p-4 text-white">
+
+            <div id="active-listings" className="space-y-5">
+              <div className="scroll-mt-24 rounded-[1.5rem] bg-slate-900 p-4 text-white">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold">{t('farmer.activeListings')}</h3>
                   <span className="rounded-full bg-emerald-500/20 px-2 py-1 text-xs font-semibold text-emerald-300">
@@ -464,7 +466,7 @@ export function FarmerDashboard() {
                         </div>
                         <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-black ${item.is_active ? 'bg-emerald-500/20' : 'bg-amber-500/20'
                           }`}>
-                          {item.is_active ? t('farmer.activeListings') : t('farmer.notAvailable')}
+                          {item.is_active ? t('farmer.activeListings') : t('farmer.inactive')}
                         </span>
                       </div>
                       <div className="mt-3 flex items-center justify-between gap-3 text-sm text-black">
@@ -500,7 +502,7 @@ export function FarmerDashboard() {
                               />
                             </label>
                             <button type="button" disabled={isUpdating} onClick={() => void updateListing(item)} className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50">
-                              {isUpdating ? t('common.searching') : t('farmer.editListing')}
+                              {isUpdating ? t('common.searching') : t('farmer.saveChanges')}
                             </button>
                             <button
                               type="button"
@@ -508,10 +510,10 @@ export function FarmerDashboard() {
                               onClick={() => void toggleListingStatus(item)}
                               className="rounded-full bg-amber-400/20 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
                             >
-                              {item.is_active ? t('farmer.notAvailable') : t('farmer.activeListings')}
+                              {item.is_active ? t('farmer.makeInactive') : t('farmer.makeActive')}
                             </button>
                             <button type="button" disabled={isUpdating} onClick={() => void deleteListing(item)} className="rounded-full bg-red-400/20 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50">
-                              {t('farmer.cancel')}
+                              {t('farmer.delete')}
                             </button>
                           </div>
                         )
@@ -522,9 +524,10 @@ export function FarmerDashboard() {
               </div>
 
             </div>
+            </div>
             )}
 
-            <div className="space-y-5">
+            {activeNav !== 'Edit Listing' && <div className="space-y-5">
               {activeNav === 'Home' && (
               <div className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
                 <div className="flex items-center justify-between">
@@ -553,7 +556,7 @@ export function FarmerDashboard() {
                         onClick={() => void confirmPickup(order)}
                         className="shrink-0 rounded-full bg-emerald-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {updatingOrderId === order.oid ? t('common.searching') : t('farmer.upcomingPickups')}
+                        {updatingOrderId === order.oid ? t('common.searching') : t('farmer.confirmPickup')}
                       </button>
                     </div>
                   ))}
@@ -611,7 +614,7 @@ export function FarmerDashboard() {
                             onClick={() => void acceptOrder(order)}
                             className="rounded-full bg-emerald-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            {updatingOrderId === order.oid ? t('common.searching') : t('farmer.orderAccepted')}
+                            {updatingOrderId === order.oid ? t('common.searching') : t('farmer.acceptOrder')}
                           </button>
                         )}
                       </div>
@@ -620,7 +623,7 @@ export function FarmerDashboard() {
                 </div>
               </div>
               )}
-            </div>
+            </div>}
           </div>
           )}
 
