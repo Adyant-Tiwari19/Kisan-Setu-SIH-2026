@@ -262,8 +262,8 @@ flowchart TD
 ### Frontend setup
 
 ```bash
-git clone <repository-url>
-cd kisan-setu
+git clone https://github.com/Adyant-Tiwari19/Kisan-Setu-SIH-2026/
+cd Kisan-Setu-SIH-2026
 cd frontend
 npm install
 npm run dev
@@ -312,7 +312,7 @@ cd android
 The debug APK is generated under:
 
 ```text
-frontend/android/app/build/outputs/apk/debug/app-debug.apk
+kisansetu.apk
 ```
 
 The Android project currently targets SDK 36, supports a minimum SDK of 24, uses Gradle 8.14.3, and compiles Java sources with Java 21.
