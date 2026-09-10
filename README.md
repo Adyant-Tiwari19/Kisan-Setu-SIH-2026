@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="frontend\src\assets\logomain.png" alt="Kisan Setu logo" width="300">
+  <img src="src\frontend\src\assets\logomain.png" alt="Kisan Setu logo" width="300">
 
   # Kisan Setu
 
@@ -248,8 +248,11 @@ flowchart TD
 │       ├── android/                # generated Capacitor Android project
 │       ├── capacitor.config.ts
 │       └── package.json
+├── kisansetu.apk
 └── README.md
 ```
+
+The kisansetu.apk file located in the main branch is our fully working prototype.
 
 ## Installation & Local Setup
 
@@ -282,6 +285,7 @@ Install the dependencies, configure the database, initialize the schema, seed de
 
 ```bash
 # Windows PowerShell
+cd src\backend
 pip install -r requirements.txt
 python init_db.py
 uvicorn app.main:app --reload
