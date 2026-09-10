@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="frontend/src/assets/icon.png" alt="Kisan Setu logo" width="120">
+  <img src="frontend\src\assets\logomain.png" alt="Kisan Setu logo" width="120">
 
   # Kisan Setu
 
