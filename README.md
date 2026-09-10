@@ -227,28 +227,33 @@ flowchart TD
 
 ```text
 .
+├── assets/
+│   └── screenshots/              # Application UI screenshots and showcase assets
+├── submission/
+│   ├── DEMO_VIDEO.md             # Direct link to the project demonstration video
+│   └── PRESENTATION.md           # Presentation file details and repository presentation link
 ├── src/
 │   ├── backend/
 │   │   ├── app/
-│   │   │   ├── api/v1/endpoints/   # auth, listings, orders, location, AI, dashboard
-│   │   │   ├── models/             # SQLAlchemy models
-│   │   │   ├── schemas/            # Pydantic request/response schemas
-│   │   │   └── services/           # forecasting, ranking, routing
+│   │   │   ├── api/v1/endpoints/ # auth, listings, orders, location, AI, dashboard
+│   │   │   ├── models/           # SQLAlchemy models
+│   │   │   ├── schemas/          # Pydantic request/response schemas
+│   │   │   └── services/         # forecasting, ranking, routing
 │   │   ├── requirements.txt
 │   │   ├── init_db.py
 │   │   └── seed_data.py
 │   └── frontend/
 │       ├── src/
-│       │   ├── components/         # landing, dashboards, marketplace, profile
-│       │   ├── context/            # authentication context
-│       │   ├── services/           # API, auth, listing, order, AI services
-│       │   ├── data/               # local/mock supporting data
-│       │   ├── i18n.ts             # English and Hindi resources
+│       │   ├── components/       # landing, dashboards, marketplace, profile
+│       │   ├── context/          # authentication context
+│       │   ├── services/         # API, auth, listing, order, AI services
+│       │   ├── data/             # local/mock supporting data
+│       │   ├── i18n.ts           # English and Hindi resources
 │       │   └── routes.tsx
-│       ├── android/                # generated Capacitor Android project
+│       ├── android/              # generated Capacitor Android project
 │       ├── capacitor.config.ts
 │       └── package.json
-├── kisansetu.apk
+├── kisansetu.apk                 # Production debug Android build
 └── README.md
 ```
 
@@ -292,6 +297,15 @@ uvicorn app.main:app --reload
 ```
 
 The backend reads configuration from environment variables or `backend/.env`, including `DATABASE_URL` and project/geocoding settings. Keep credentials, Firebase keys, JWT secrets, and local environment files out of source control.
+
+## How to Run & Test the Mobile APK 📱
+
+The pre-built Android APK (`kisansetu.apk`) in the repository root connects directly to our live production API hosted on **Render**.
+
+### Quick Start
+1. Install `kisansetu.apk` on your Android device.
+2. Open the app. The application communicates with the live backend service deployed on Render.
+3. **Important Note:** If the backend on Render has spun down due to inactivity, the initial request (such as sign-in or fetching listings) may take **30 to 50 seconds** to wake up the server instance.
 
 ## Mobile APK Build Sequence 📱
 
