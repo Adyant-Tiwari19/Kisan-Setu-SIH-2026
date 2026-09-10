@@ -83,7 +83,7 @@ The core mission is to **cut out middle-tier exploitation** by enabling direct p
 ## System Architecture
 
 ```mermaid
-flowchart TD
+flowchart LR
     subgraph Client["Frontend / Android client"]
         UI["React + TypeScript UI"]
         Router["React Router"]
