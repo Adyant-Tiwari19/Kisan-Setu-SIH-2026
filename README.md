@@ -269,11 +269,6 @@ npm install
 npm run dev
 ```
 
-The Vite development server starts the web client. To point the frontend at a different backend, create `frontend/.env.local`:
-
-```dotenv
-VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
-```
 
 The frontend also supports the following scripts:
 
@@ -287,17 +282,8 @@ npm run preview  # Preview the production bundle
 
 ```bash
 cd backend
-python -m venv .venv
-```
-
-Activate the virtual environment, install dependencies, configure the database, initialize the schema, seed development data, and start the API:
-
-```bash
-# Windows PowerShell
-.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python init_db.py
-python seed_data.py
 uvicorn app.main:app --reload
 ```
 
